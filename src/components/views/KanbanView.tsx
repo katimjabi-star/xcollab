@@ -11,7 +11,6 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -19,7 +18,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, AlertCircle } from 'lucide-react';
+import { GripVertical, AlertCircle, Columns3, Inbox } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -34,7 +33,7 @@ const COLUMN_KEYS = { todo: 'kanban.todo', 'in-progress': 'kanban.inProgress', r
 const COLUMN_WIP = { todo: 99, 'in-progress': 5, review: 3, done: 99 } as const;
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: '#8888A0',
+  low: '#71717A',
   medium: '#3B82F6',
   high: '#F59E0B',
   critical: '#EF4444',
@@ -47,6 +46,11 @@ function getInitials(name: string) {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+}
+
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : '113,113,122';
 }
 
 /* ---- Sortable Task Card ---- */
@@ -68,20 +72,22 @@ function TaskCard({ task, teamColor, overlay }: TaskCardProps) {
     transition,
   };
 
+  const priorityColor = PRIORITY_COLORS[task.priority] || '#71717A';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`${isDragging && !overlay ? 'opacity-40' : ''}`}
     >
-      <Card className="bg-xcollab-surface-2 border-xcollab-border/60 hover:border-xcollab-border transition-colors group cursor-grab active:cursor-grabbing relative overflow-hidden">
+      <Card className="bg-xcollab-surface-2 border-xcollab-border/40 rounded-xl card-glass card-hover group cursor-grab active:cursor-grabbing relative overflow-hidden">
         {/* Team color strip */}
-        <div className="absolute start-0 top-0 bottom-0 w-1 rounded-s-lg" style={{ backgroundColor: teamColor }} />
-        <CardContent className="p-3 ps-4">
-          <div className="flex items-start gap-2">
+        <div className="absolute start-0 top-0 bottom-0 w-1 rounded-s-xl" style={{ backgroundColor: teamColor }} />
+        <CardContent className="p-4 ps-5">
+          <div className="flex items-start gap-2.5">
             {!overlay && (
               <button
-                className="mt-0.5 text-[#8888A0] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-grab"
+                className="mt-0.5 text-[#71717A] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-grab"
                 {...attributes}
                 {...listeners}
               >
@@ -90,28 +96,28 @@ function TaskCard({ task, teamColor, overlay }: TaskCardProps) {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[#E8E8ED] font-medium leading-snug truncate">{task.title}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-3">
                 <Badge
-                  className="text-[10px] h-5"
+                  className="text-[11px] h-5 rounded-md"
                   style={{
-                    backgroundColor: `${PRIORITY_COLORS[task.priority] || '#8888A0'}20`,
-                    color: PRIORITY_COLORS[task.priority] || '#8888A0',
-                    borderColor: `${PRIORITY_COLORS[task.priority] || '#8888A0'}30`,
+                    backgroundColor: `rgba(${hexToRgb(priorityColor)}, 0.12)`,
+                    color: priorityColor,
+                    borderColor: `rgba(${hexToRgb(priorityColor)}, 0.2)`,
                   }}
                   variant="outline"
                 >
                   {task.priority}
                 </Badge>
-                <span className="text-[10px] font-mono text-[#8888A0]">{task.wbp.code}</span>
+                <span className="text-[11px] font-mono text-[#71717A]">{task.wbp.code}</span>
                 <div className="ms-auto">
                   {task.assignee ? (
                     <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-[8px] bg-xcollab-surface-3 text-[#8888A0]">
+                      <AvatarFallback className="text-[8px] bg-xcollab-surface-3 text-[#71717A]">
                         {getInitials(task.assignee.name)}
                       </AvatarFallback>
                     </Avatar>
                   ) : (
-                    <span className="text-[10px] text-[#8888A0]">—</span>
+                    <span className="text-[11px] text-[#71717A]">—</span>
                   )}
                 </div>
               </div>
@@ -139,33 +145,37 @@ function KanbanColumn({ id, title, tasks, wipLimit, wbpTeamColors }: KanbanColum
   return (
     <div className="flex flex-col w-[300px] md:w-[320px] shrink-0">
       {/* Column header */}
-      <div className="flex items-center justify-between px-1 mb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-1 mb-4">
+        <div className="flex items-center gap-2.5">
           <h3 className="text-sm font-semibold text-[#E8E8ED]">{title}</h3>
-          <span className="text-xs font-bold text-[#8888A0] bg-xcollab-surface-3 rounded-full px-2 py-0.5">
+          <span className="text-xs font-bold text-[#71717A] bg-xcollab-surface-3 rounded-md px-2 py-0.5 tabular-nums">
             {tasks.length}
           </span>
+          {isOverWip && (
+            <span className="flex items-center gap-1 text-[11px] text-[#EF4444] font-medium">
+              <AlertCircle className="w-3 h-3" />
+              WIP
+            </span>
+          )}
         </div>
-        {isOverWip && (
-          <AlertCircle className="w-4 h-4 text-[#EF4444]" />
-        )}
       </div>
 
-      {/* Cards */}
-      <div className="flex-1 bg-xcollab-surface/50 rounded-xl p-2 border border-xcollab-border/30 min-h-[200px]">
+      {/* Cards area */}
+      <div className="flex-1 bg-xcollab-surface/30 rounded-xl p-2 border border-xcollab-border/30 min-h-[200px]">
         <ScrollArea className="max-h-[calc(100vh-16rem)]">
           <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2 pb-2">
+            <div className="space-y-3 pb-2">
               {tasks.length === 0 ? (
-                <div className="flex items-center justify-center h-24 text-xs text-[#8888A0] border border-dashed border-xcollab-border/40 rounded-lg">
-                  No tasks
+                <div className="flex flex-col items-center justify-center h-32 text-[#71717A] gap-2">
+                  <Inbox className="w-6 h-6 opacity-40" />
+                  <span className="text-xs">No tasks</span>
                 </div>
               ) : (
                 tasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
-                    teamColor={wbpTeamColors[task.wbpId] || '#8888A0'}
+                    teamColor={wbpTeamColors[task.wbpId] || '#71717A'}
                   />
                 ))
               )}
@@ -194,7 +204,6 @@ export default function KanbanView() {
     ])
       .then(([tasksData, programData]) => {
         setTasks(tasksData || []);
-        // Build WBP -> team color map
         const colors: Record<string, string> = {};
         const flatten = (w: WBPFlat) => {
           if (w.ownerTeam?.color) colors[w.id] = w.ownerTeam.color;
@@ -231,21 +240,17 @@ export default function KanbanView() {
     const currentTask = tasks.find((t) => t.id === taskId);
     if (!currentTask) return;
 
-    // Determine target column
     let targetColumnId = currentTask.columnId;
 
-    // Check if dropped on a column (column ids are our column names)
     if (COLUMNS.includes(over.id as typeof COLUMNS[number])) {
       targetColumnId = over.id as string;
     } else {
-      // Dropped on another task — use that task's column
       const overTask = tasks.find((t) => t.id === over.id);
       if (overTask) targetColumnId = overTask.columnId;
     }
 
     if (targetColumnId === currentTask.columnId) return;
 
-    // Optimistic update
     const columnTasks = getColumnTasks(targetColumnId);
     const newSortOrder = columnTasks.length;
     setTasks((prev) =>
@@ -254,7 +259,6 @@ export default function KanbanView() {
       ),
     );
 
-    // Sync with server
     try {
       await fetch('/api/tasks', {
         method: 'POST',
@@ -262,7 +266,6 @@ export default function KanbanView() {
         body: JSON.stringify({ id: taskId, columnId: targetColumnId, sortOrder: newSortOrder }),
       });
     } catch {
-      // Revert on error — re-fetch
       fetch('/api/tasks')
         .then((r) => r.json())
         .then((d) => setTasks(d || []))
@@ -272,11 +275,11 @@ export default function KanbanView() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-48 bg-xcollab-surface-2" />
-        <div className="flex gap-4 overflow-hidden">
+        <div className="flex gap-6 overflow-hidden">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-[300px] shrink-0 space-y-3">
+            <div key={i} className="w-[300px] shrink-0 space-y-4">
               <Skeleton className="h-6 w-24 bg-xcollab-surface-2" />
               <Skeleton className="h-40 bg-xcollab-surface-2 rounded-xl" />
             </div>
@@ -288,9 +291,10 @@ export default function KanbanView() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-1.5 h-6 bg-[#FF4713] rounded-full" />
-        <h2 className="text-xl font-bold text-white">{t('kanban.title')}</h2>
+        <Columns3 className="w-5 h-5 text-[#FF4713]" />
+        <h2 className="text-xl font-bold text-[#E8E8ED]">{t('kanban.title')}</h2>
       </div>
 
       <DndContext
@@ -299,7 +303,7 @@ export default function KanbanView() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-6 overflow-x-auto pb-4">
           {COLUMNS.map((colId) => (
             <KanbanColumn
               key={colId}
@@ -317,7 +321,7 @@ export default function KanbanView() {
             <div className="opacity-90 rotate-2 scale-105">
               <TaskCard
                 task={activeTask}
-                teamColor={wbpTeamColors[activeTask.wbpId] || '#8888A0'}
+                teamColor={wbpTeamColors[activeTask.wbpId] || '#71717A'}
                 overlay
               />
             </div>

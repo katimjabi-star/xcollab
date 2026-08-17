@@ -11,6 +11,8 @@ type TranslationKeys = {
   'nav.kanban': string;
   'nav.dependencies': string;
   'nav.aiChat': string;
+  'nav.teams': string;
+  'nav.timeline': string;
   'nav.settings': string;
   'nav.collapseSidebar': string;
   'nav.expandSidebar': string;
@@ -186,6 +188,8 @@ const translations: Record<Locale, TranslationKeys> = {
     'nav.kanban': 'Kanban Board',
     'nav.dependencies': 'Dependencies',
     'nav.aiChat': 'AI Assistant',
+    'nav.teams': 'Teams',
+    'nav.timeline': 'Timeline',
     'nav.settings': 'Settings',
     'nav.collapseSidebar': 'Collapse sidebar',
     'nav.expandSidebar': 'Expand sidebar',
@@ -360,6 +364,8 @@ const translations: Record<Locale, TranslationKeys> = {
     'nav.kanban': 'لوحة كانبان',
     'nav.dependencies': 'التبعيات',
     'nav.aiChat': 'المساعد الذكي',
+    'nav.teams': 'الفرق',
+    'nav.timeline': 'الجدول الزمني',
     'nav.settings': 'الإعدادات',
     'nav.collapseSidebar': 'طي القائمة الجانبية',
     'nav.expandSidebar': 'توسيع القائمة الجانبية',

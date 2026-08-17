@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { GitBranch, Circle } from 'lucide-react';
+import { ArrowRightLeft, Inbox } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,7 +44,7 @@ function flattenWbps(list: WBPFlat[]): FlatWBP[] {
       code: w.code,
       name: w.name,
       health: w.health,
-      teamColor: w.ownerTeam?.color || '#8888A0',
+      teamColor: w.ownerTeam?.color || '#71717A',
       x: 0,
       y: 0,
     });
@@ -56,8 +56,7 @@ function flattenWbps(list: WBPFlat[]): FlatWBP[] {
 
 function flattenDeps(wbps: WBPFlat[]): Edge[] {
   const edges: Edge[] = [];
-  const collect = (w: WBPFlat) => {
-    // Dependencies from this WBP
+  const collect = (w: WBPFlat & { dependenciesFrom?: Array<{ id: string; fromWbpId: string; toWbpId: string; type: string; status: string }> }) => {
     if (w.dependenciesFrom) {
       for (const d of w.dependenciesFrom) {
         edges.push({
@@ -99,10 +98,7 @@ export default function DependenciesView() {
     const flatWbps = flattenWbps(data.wbps);
     const deps = flattenDeps(data.wbps);
 
-    // Auto-position nodes in a grid
     const cols = 4;
-    const cardW = 240;
-    const cardH = 100;
     const gapX = 280;
     const gapY = 140;
 
@@ -114,7 +110,6 @@ export default function DependenciesView() {
     return { nodes: flatWbps, edges: deps };
   }, [data]);
 
-  // Filter edges to only include nodes we have
   const validEdges = useMemo(
     () => edges.filter((e) => nodes.some((n) => n.id === e.from) && nodes.some((n) => n.id === e.to)),
     [edges, nodes],
@@ -139,37 +134,48 @@ export default function DependenciesView() {
     [nodes],
   );
 
-  // Compute SVG dimensions
   const svgW = nodes.length > 0 ? Math.max(...nodes.map((n) => n.x)) + 300 : 800;
   const svgH = nodes.length > 0 ? Math.max(...nodes.map((n) => n.y)) + 200 : 500;
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-48 bg-xcollab-surface-2" />
         <Skeleton className="h-[500px] bg-xcollab-surface-2 rounded-xl" />
       </div>
     );
   }
 
+  if (nodes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="empty-state-icon">
+          <ArrowRightLeft className="w-8 h-8 text-[#71717A]" />
+        </div>
+        <p className="text-sm text-[#71717A]">{t('dependencies.noDependencies')}</p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <GitBranch className="w-5 h-5 text-[#FF4713]" />
-        <h2 className="text-xl font-bold text-white">{t('dependencies.title')}</h2>
-        <Badge variant="outline" className="text-[10px] ms-2 border-xcollab-border text-[#8888A0]">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-1.5 h-6 bg-[#FF4713] rounded-full" />
+        <ArrowRightLeft className="w-5 h-5 text-[#FF4713]" />
+        <h2 className="text-xl font-bold text-[#E8E8ED]">{t('dependencies.title')}</h2>
+        <Badge variant="outline" className="text-[11px] ms-2 border-xcollab-border/60 text-[#71717A]">
           {validEdges.length} {t('dependencies.title').toLowerCase()}
         </Badge>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-[#8888A0]">
+      <div className="flex items-center gap-6 mb-6 text-xs text-[#71717A]">
         <div className="flex items-center gap-1.5">
           <div className="w-6 h-0 border-t-2 border-[#EF4444]" />
           <span>{t('dependencies.blocks')}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-6 h-0 border-t-2 border-dashed border-[#8888A0]" />
+          <div className="w-6 h-0 border-t-2 border-dashed border-[#71717A]" />
           <span>{t('dependencies.relatesTo')}</span>
         </div>
       </div>
@@ -189,7 +195,7 @@ export default function DependenciesView() {
                 <polygon points="0 0, 8 3, 0 6" fill="#EF4444" />
               </marker>
               <marker id="arrowhead-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="#8888A0" />
+                <polygon points="0 0, 8 3, 0 6" fill="#71717A" />
               </marker>
             </defs>
 
@@ -215,7 +221,7 @@ export default function DependenciesView() {
                   key={edge.id}
                   d={path}
                   fill="none"
-                  stroke={isBlocks ? '#EF4444' : '#8888A0'}
+                  stroke={isBlocks ? '#EF4444' : '#71717A'}
                   strokeWidth={isHighlighted ? 2.5 : 1.5}
                   strokeDasharray={isBlocks ? 'none' : '6 4'}
                   markerEnd={isBlocks ? 'url(#arrowhead-red)' : 'url(#arrowhead-gray)'}
@@ -242,34 +248,33 @@ export default function DependenciesView() {
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
                   <Card
-                    className={`cursor-pointer transition-all border ${
+                    className={`cursor-pointer transition-all rounded-xl border card-glass ${
                       selectedId === node.id
                         ? 'border-[#FF4713]/50 glow-orange-sm'
-                        : 'border-xcollab-border/60 hover:border-xcollab-border'
+                        : 'border-xcollab-border/40 hover:border-xcollab-border/80'
                     }`}
                     style={{
-                      backgroundColor: isHighlighted ? undefined : '#12121A80',
                       opacity: highlightedIds.size > 0 ? (isHighlighted ? 1 : 0.2) : 1,
                     }}
                   >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2 mb-1.5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2.5 mb-2">
                         <span
-                          className="w-2 h-2 rounded-full shrink-0"
+                          className="w-3 h-3 rounded-full shrink-0"
                           style={{
-                            backgroundColor: HEALTH_COLORS[node.health] || '#8888A0',
-                            boxShadow: `0 0 6px ${HEALTH_COLORS[node.health] || '#8888A0'}60`,
+                            backgroundColor: HEALTH_COLORS[node.health] || '#71717A',
+                            boxShadow: `0 0 8px ${HEALTH_COLORS[node.health] || '#71717A'}40`,
                           }}
                         />
-                        <span className="text-[10px] font-mono text-[#8888A0]">{node.code}</span>
+                        <span className="text-[11px] font-mono text-[#71717A]">{node.code}</span>
                         <div className="ms-auto">
                           <span
-                            className="w-2 h-2 rounded-full block"
+                            className="w-2.5 h-2.5 rounded-full block"
                             style={{ backgroundColor: node.teamColor }}
                           />
                         </div>
                       </div>
-                      <p className="text-xs font-medium text-[#E8E8ED] line-clamp-2 leading-snug">
+                      <p className="text-sm font-medium text-[#B0B0C0] line-clamp-2 leading-snug">
                         {node.name}
                       </p>
                     </CardContent>
@@ -280,13 +285,6 @@ export default function DependenciesView() {
           </div>
         </div>
       </ScrollArea>
-
-      {nodes.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-[#8888A0]">
-          <GitBranch className="w-10 h-10 mb-3 opacity-40" />
-          <p>{t('dependencies.noDependencies')}</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const showAiPanel = aiChatOpen && currentView !== 'ai-chat';
 
   return (
-    <div dir={rtl ? 'rtl' : 'ltr'} className="min-h-screen flex bg-[#0A0A0F] text-white">
+    <div dir={rtl ? 'rtl' : 'ltr'} className="min-h-screen flex bg-[#0A0A0F] text-[#E8E8ED]">
       {/* Sidebar — hidden on mobile unless open */}
       <div className="hidden md:block">
         <AppSidebar />
@@ -56,7 +56,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
         <AppHeader />
-        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-auto relative">
+          {/* Subtle top gradient overlay for depth */}
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none z-10" />
+          <div className="p-6 md:p-8 max-w-[1400px] mx-auto w-full relative z-0">
+            {children}
+          </div>
+        </main>
       </div>
 
       {/* AI Chat slide-in panel */}
@@ -67,14 +73,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
             animate={{ width: 420, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="hidden lg:flex flex-col border-s border-xcollab-border bg-[#0D0D14] overflow-hidden shrink-0"
+            className="hidden lg:flex flex-col border-s border-xcollab-border/60 bg-[#0D0D14] overflow-hidden shrink-0"
           >
-            <div className="flex items-center justify-between px-4 h-14 border-b border-xcollab-border shrink-0">
-              <span className="text-sm font-semibold text-white">AI Assistant</span>
+            <div className="flex items-center justify-between px-4 h-14 border-b border-xcollab-border/60 shrink-0">
+              <span className="text-sm font-semibold text-[#E8E8ED]">AI Assistant</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-[#8888A0] hover:text-white hover:bg-white/5"
+                className="h-8 w-8 text-[#71717A] hover:text-[#E8E8ED] hover:bg-white/5"
                 onClick={() => setAiChatOpen(false)}
               >
                 <X className="w-4 h-4" />

@@ -3,7 +3,7 @@
 // ============================================
 
 // --- View Types ---
-export type ViewType = 'dashboard' | 'wbp' | 'kanban' | 'dependencies' | 'ai-chat';
+export type ViewType = 'dashboard' | 'wbp' | 'kanban' | 'dependencies' | 'ai-chat' | 'teams' | 'timeline' | 'settings';
 
 export type Locale = 'en' | 'ar';
 
@@ -245,6 +245,42 @@ export interface UpdateTaskPositionRequest {
   id: string;
   columnId: string;
   sortOrder: number;
+}
+
+// --- Activity Feed ---
+export interface Activity {
+  id: string;
+  type: 'task_moved' | 'task_created' | 'wbp_updated' | 'risk_flagged' | 'milestone_reached' | 'member_joined' | 'comment_added' | 'status_changed';
+  title: string;
+  description: string;
+  actorName: string;
+  actorAvatar?: string;
+  entityType: 'task' | 'wbp' | 'risk' | 'milestone' | 'member';
+  entityId: string;
+  entityCode?: string;
+  timestamp: string;
+}
+
+// --- Notification ---
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  type: 'risk' | 'milestone' | 'task' | 'info' | 'approval';
+ read: boolean;
+  entityType: string;
+  entityId: string;
+  timestamp: string;
+}
+
+// --- Command Palette ---
+export interface CommandItem {
+  id: string;
+  type: 'wbp' | 'task' | 'team' | 'member' | 'view' | 'action';
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  action?: () => void;
 }
 
 // --- Utility Types ---
