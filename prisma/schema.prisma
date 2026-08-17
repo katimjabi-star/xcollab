@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  type        String   @default("internal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teams       Team[]
+  programs    Program[]
+  members     Member[]
+}
+
+model Team {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String
+  color          String   @default("#FF4713")
+  type           String   @default("internal")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  members        Member[]
+  wbps           WBP[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Member {
+  id             String   @id @default(cuid())
+  name           String
+  email          String
+  role           String   @default("member")
+  avatar         String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  teamId         String?
+  team           Team?          @relation(fields: [teamId], references: [id])
+  assignedTasks  Task[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Program {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  status         String    @default("active")
+  startDate      DateTime?
+  targetDate     DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  wbps           WBP[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model WBP {
+  id          String   @id @default(cuid())
+  code        String
+  name        String
+  description String?
+  scope       String?
+  ownerTeamId String?
+  ownerTeam   Team?    @relation(fields: [ownerTeamId], references: [id])
+  programId   String
+  program     Program  @relation(fields: [programId], references: [id])
+  parentId    String?
+  parent      WBP?     @relation("WBPTree", fields: [parentId], references: [id])
+  children    WBP[]    @relation("WBPTree")
+  status      String   @default("planned")
+  priority    String   @default("medium")
+  health      String   @default("on-track")
+  progress    Int      @default(0)
+  startDate   DateTime?
+  dueDate     DateTime?
+  sortOrder   Int      @default(0)
+  tasks       Task[]
+  risks       Risk[]
+  milestones  Milestone[]
+  dependenciesFrom Dependency[] @relation("DepFrom")
+  dependenciesTo   Dependency[] @relation("DepTo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  description String?
+  status    String   @default("todo")
+  priority  String   @default("medium")
+  assigneeId String?
+  assignee   Member?  @relation(fields: [assigneeId], references: [id])
+  wbpId     String
+  wbp       WBP      @relation(fields: [wbpId], references: [id])
+  columnId  String   @default("todo")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Risk {
+  id        String   @id @default(cuid())
+  title     String
+  severity  String   @default("medium")
+  status    String   @default("open")
+  wbpId     String
+  wbp       WBP      @relation(fields: [wbpId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  name      String
+  date      DateTime?
+  status    String   @default("upcoming")
+  wbpId     String
+  wbp       WBP      @relation(fields: [wbpId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Dependency {
+  id         String   @id @default(cuid())
+  fromWbpId  String
+  fromWbp    WBP      @relation("DepFrom", fields: [fromWbpId], references: [id])
+  toWbpId    String
+  toWbp      WBP      @relation("DepTo", fields: [toWbpId], references: [id])
+  type       String   @default("blocks")
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  role      String
+  content   String
+  programId String?
+  createdAt DateTime @default(now())
+}
