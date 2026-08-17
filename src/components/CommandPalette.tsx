@@ -30,11 +30,10 @@ const AI_ACTIONS = [
 ];
 
 export default function CommandPalette() {
-  const { commandPaletteOpen, setCommandPaletteOpen, setView, toggleAiChat, locale } = useAppStore();
+  const { commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette, setView, toggleAiChat, locale } = useAppStore();
   const { t } = useTranslation(locale);
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [programData, setProgramData] = useState<ProgramDashboardData | null>(null);
 
   // Load program data for entity search
