@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FolderTree, Columns3, ArrowRightLeft, Bot, Shield,
-  ChevronLeft, ChevronRight, Users, GanttChart, Settings,
+  ChevronLeft, ChevronRight, Users, GanttChart, Settings, Inbox,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useAppStore } from '@/lib/store';
+import { useProgram, useInbox as useInboxData } from '@/hooks/use-app-data';
 import { useTranslation, isRTL } from '@/lib/i18n';
 import type { ViewType } from '@/lib/types';
-import type { ProgramDashboardData } from '@/lib/types';
 
 const NAV_ITEMS: { view: ViewType; icon: LucideIcon; labelKey: string }[] = [
   { view: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+  { view: 'inbox', icon: Inbox, labelKey: 'nav.inbox' },
   { view: 'wbp', icon: FolderTree, labelKey: 'nav.wbp' },
   { view: 'kanban', icon: Columns3, labelKey: 'nav.kanban' },
   { view: 'timeline', icon: GanttChart, labelKey: 'nav.timeline' },
@@ -28,35 +28,43 @@ export default function AppSidebar() {
   const { currentView, sidebarCollapsed, locale, setView, toggleSidebar, programName } = useAppStore();
   const { t } = useTranslation(locale);
   const rtl = isRTL(locale);
+  const { data: inbox } = useInboxData();
+  const unread = inbox?.unreadCount ?? 0;
 
   const navButton = (item: (typeof NAV_ITEMS)[number]) => {
     const isActive = currentView === item.view;
     const Icon = item.icon;
+    const showBadge = item.view === 'inbox' && unread > 0;
     return (
       <button
         key={item.view}
         onClick={() => setView(item.view)}
         className={`
           group relative flex items-center w-full rounded-lg transition-all duration-200
-          ${isActive ? 'bg-white/[0.06] text-[#E8E8ED]' : 'text-[#71717A] hover:text-[#B0B0C0] hover:bg-white/[0.03]'}
+          ${isActive ? 'bg-[var(--ink-1)]/[0.06] text-[var(--ink-1)]' : 'text-[var(--ink-3)] hover:text-[var(--ink-2)] hover:bg-[var(--ink-1)]/[0.03]'}
         `}
         style={{ paddingInlineStart: sidebarCollapsed ? '0' : undefined }}
       >
         {isActive && (
           <motion.div
             layoutId="sidebar-active-bar"
-            className="absolute rounded-full bg-[#FF4713]"
+            className="absolute rounded-full bg-[var(--brand)]"
             style={{ width: '2px', height: '20px', ...(rtl ? { right: 0 } : { left: 0 }) }}
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
           />
         )}
         <span
           className={`flex items-center justify-center shrink-0 transition-colors duration-200 ${
-            isActive ? 'text-[#FF4713]' : 'text-[#71717A] group-hover:text-[#B0B0C0]'
+            isActive ? 'text-[var(--brand)]' : 'text-[var(--ink-3)] group-hover:text-[var(--ink-2)]'
           }`}
           style={{ width: sidebarCollapsed ? '64px' : '40px', height: '40px' }}
         >
-          <Icon className="w-5 h-5" />
+          <span className="relative">
+            <Icon className="w-5 h-5" />
+            {showBadge && sidebarCollapsed && (
+              <span className="absolute -top-1 -end-1 h-2 w-2 rounded-full bg-[var(--brand)]" />
+            )}
+          </span>
         </span>
         <AnimatePresence>
           {!sidebarCollapsed && (
@@ -65,9 +73,14 @@ export default function AppSidebar() {
               animate={{ opacity: 1, width: 'auto' }}
               exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.15 }}
-              className="overflow-hidden whitespace-nowrap text-sm font-medium"
+              className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-medium"
             >
               {t(item.labelKey as Parameters<typeof t>[0])}
+              {showBadge && (
+                <span className="rounded-full bg-[var(--brand)]/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--brand)] tabular-nums">
+                  {unread}
+                </span>
+              )}
             </motion.span>
           )}
         </AnimatePresence>
@@ -81,11 +94,11 @@ export default function AppSidebar() {
         initial={false}
         animate={{ width: sidebarCollapsed ? 64 : 256 }}
         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-        className="relative flex flex-col h-screen border-r border-xcollab-border/60 bg-[#0D0D14] overflow-hidden shrink-0 z-30"
+        className="relative flex flex-col h-screen border-e border-xcollab-border/60 bg-[var(--bg-1)] overflow-hidden shrink-0 z-30"
       >
         {/* Logo + Tagline */}
         <div className="flex items-center gap-3 px-4 shrink-0" style={{ height: '64px' }}>
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#FF4713] shrink-0 shadow-[0_0_12px_rgba(255,71,19,0.3)]">
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--brand)] shrink-0 glow-brand-logo">
             <Shield className="w-[18px] h-[18px] text-white" />
           </div>
           <AnimatePresence>
@@ -98,9 +111,9 @@ export default function AppSidebar() {
                 className="overflow-hidden whitespace-nowrap"
               >
                 <span className="text-base font-bold tracking-tight">
-                  <span className="text-[#E8E8ED]">X</span><span className="text-[#FF4713] text-glow">Collab</span>
+                  <span className="text-[var(--ink-1)]">X</span><span className="text-[var(--brand)] text-glow">Collab</span>
                 </span>
-                <p className="text-[11px] text-[#71717A] font-medium -mt-0.5">EDGE Group</p>
+                <p className="text-[11px] text-[var(--ink-3)] font-medium -mt-0.5">EDGE Group · Katim</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -116,7 +129,7 @@ export default function AppSidebar() {
               return (
                 <Tooltip key={item.view}>
                   <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                  <TooltipContent side={rtl ? 'right' : 'left'} className="bg-xcollab-surface-2 text-[#E8E8ED] border-xcollab-border">{t(item.labelKey as Parameters<typeof t>[0])}</TooltipContent>
+                  <TooltipContent side={rtl ? 'right' : 'left'} className="bg-xcollab-surface-2 text-[var(--ink-1)] border-xcollab-border">{t(item.labelKey as Parameters<typeof t>[0])}</TooltipContent>
                 </Tooltip>
               );
             }
@@ -131,14 +144,14 @@ export default function AppSidebar() {
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mb-3">
-                <p className="text-[11px] uppercase tracking-widest text-[#71717A] font-semibold">Teams</p>
+                <p className="text-[11px] uppercase tracking-widest text-[var(--ink-3)] font-semibold">{t('nav.teams')}</p>
               </motion.div>
             )}
           </AnimatePresence>
           <SidebarTeams collapsed={sidebarCollapsed} rtl={rtl} />
           <AnimatePresence>
             {!sidebarCollapsed && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[11px] text-[#71717A] mt-3 font-medium">{programName}</motion.p>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[11px] text-[var(--ink-3)] mt-3 font-medium">{programName}</motion.p>
             )}
           </AnimatePresence>
         </div>
@@ -148,7 +161,7 @@ export default function AppSidebar() {
           {!sidebarCollapsed && (
             <button
               onClick={() => setView('settings')}
-              className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${currentView === 'settings' ? 'text-[#E8E8ED]' : 'text-[#71717A] hover:text-[#B0B0C0]'}`}
+              className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${currentView === 'settings' ? 'text-[var(--ink-1)]' : 'text-[var(--ink-3)] hover:text-[var(--ink-2)]'}`}
             >
               <Settings className="w-5 h-5" />
               <span>{t('nav.settings')}</span>
@@ -157,7 +170,7 @@ export default function AppSidebar() {
           <div className="p-2">
             <Button
               variant="ghost" size="sm" onClick={toggleSidebar}
-              className="w-full justify-center text-[#71717A] hover:text-[#E8E8ED] hover:bg-white/5"
+              className="w-full justify-center text-[var(--ink-3)] hover:text-[var(--ink-1)] hover:bg-[var(--ink-1)]/5"
               aria-label={sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
             >
               {sidebarCollapsed ? (rtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : (rtl ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />)}
@@ -170,14 +183,8 @@ export default function AppSidebar() {
 }
 
 function SidebarTeams({ collapsed, rtl }: { collapsed: boolean; rtl: boolean }) {
-  const { locale } = useAppStore();
-  const [teams, setTeams] = useState<{ id: string; name: string; color: string }[]>([]);
-
-  useEffect(() => {
-    fetch('/api/program').then((r) => r.json()).then((data: ProgramDashboardData) => {
-      if (data?.teams) setTeams(data.teams.map((t) => ({ id: t.id, name: t.name, color: t.color })));
-    }).catch(() => {});
-  }, []);
+  const { data } = useProgram();
+  const teams = data?.teams ?? [];
 
   if (teams.length === 0) return null;
 
@@ -189,7 +196,7 @@ function SidebarTeams({ collapsed, rtl }: { collapsed: boolean; rtl: boolean }) 
             <TooltipTrigger asChild>
               <div className="w-3 h-3 rounded-full cursor-pointer transition-transform hover:scale-125" style={{ backgroundColor: team.color, boxShadow: `0 0 8px ${team.color}40` }} />
             </TooltipTrigger>
-            <TooltipContent side={rtl ? 'right' : 'left'} className="bg-xcollab-surface-2 text-[#E8E8ED] border-xcollab-border">{team.name}</TooltipContent>
+            <TooltipContent side={rtl ? 'right' : 'left'} className="bg-xcollab-surface-2 text-[var(--ink-1)] border-xcollab-border">{team.name}</TooltipContent>
           </Tooltip>
         ))}
       </div>

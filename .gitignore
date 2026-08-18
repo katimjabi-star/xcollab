@@ -52,3 +52,16 @@ prompt
 server.log
 # Skills directory
 /skills/
+# Local artifacts
+test-results/
+playwright-report/
+db/*.bak
+.zscripts/
+tool-results/
+agent-ctx/
+examples/
+download/
+mini-services/
+worklog.md
+Caddyfile
+bun.lock

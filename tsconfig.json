@@ -37,6 +37,12 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "examples",
+    "download",
+    "tool-results",
+    "agent-ctx",
+    "mini-services",
+    ".zscripts"
   ]
 }

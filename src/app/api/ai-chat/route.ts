@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import Anthropic from '@anthropic-ai/sdk';
 import { db } from '@/lib/db';
 
 const SYSTEM_PROMPT = `You are XCollab AI — an expert project manager and defense acquisition analyst for the BRAIN Network Encryptor program within EDGE Group / Katim.
@@ -12,11 +14,68 @@ Your role:
 
 Guidelines:
 - Be concise, analytical, and action-oriented
-- Reference specific WBP codes, task names, and team names when possible
+- Reference specific WBP codes, task names, and team names from the program data provided
 - Use structured responses (bullet points, numbered lists) for clarity
 - Highlight urgent items and blockers clearly
 - Always consider cross-team dependencies
 - Respond in the same language the user writes in (English or Arabic)`;
+
+const MODEL = 'claude-opus-5';
+const HISTORY_LIMIT = 20;
+
+/**
+ * Snapshot of the live program state, injected into the model's context so
+ * answers cite real WBPs, risks, and milestones instead of guessing.
+ */
+async function buildProgramContext(programId: string): Promise<string> {
+  const wbps = await db.wBP.findMany({
+    where: { programId },
+    include: {
+      ownerTeam: { select: { name: true } },
+      tasks: { select: { title: true, status: true, priority: true } },
+      risks: { where: { status: { not: 'closed' } }, select: { title: true, severity: true, status: true } },
+      milestones: { select: { name: true, date: true, status: true } },
+      dependenciesFrom: {
+        include: { toWbp: { select: { code: true } } },
+      },
+    },
+    orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+  });
+
+  const lines = wbps.map((w) => {
+    const tasksDone = w.tasks.filter((t) => t.status === 'done').length;
+    const parts = [
+      `${w.code} ${w.name} — status: ${w.status}, health: ${w.health}, progress: ${w.progress}%`,
+      `owner: ${w.ownerTeam?.name ?? 'unassigned'}`,
+      `due: ${w.dueDate?.toISOString().slice(0, 10) ?? 'n/a'}`,
+      `tasks: ${tasksDone}/${w.tasks.length} done`,
+    ];
+    if (w.risks.length > 0) {
+      parts.push(`risks: ${w.risks.map((r) => `[${r.severity}] ${r.title}`).join('; ')}`);
+    }
+    if (w.milestones.length > 0) {
+      parts.push(`milestones: ${w.milestones.map((m) => `${m.name} (${m.date?.toISOString().slice(0, 10) ?? 'n/a'}, ${m.status})`).join('; ')}`);
+    }
+    if (w.dependenciesFrom.length > 0) {
+      parts.push(`blocks: ${w.dependenciesFrom.map((d) => d.toWbp.code).join(', ')}`);
+    }
+    return `- ${parts.join(' | ')}`;
+  });
+
+  return `\n\nCurrent program data (live, authoritative — cite these codes and figures):\n${lines.join('\n')}`;
+}
+
+const postSchema = z.object({
+  message: z.string().trim().min(1, 'message is required').max(4000, 'message too long'),
+});
+
+/** Resolve the active program server-side so clients never need to know its ID. */
+async function getActiveProgram() {
+  return db.program.findFirst({
+    where: { status: 'active' },
+    select: { id: true, name: true },
+  });
+}
 
 function generateMockResponse(message: string): string {
   const lowerMsg = message.toLowerCase();
@@ -27,166 +86,208 @@ function generateMockResponse(message: string): string {
 Based on the current program data, here are the key risk areas:
 
 🔴 **Critical Risks:**
-- Supply chain delays on cryptographic module procurement (WBP-CRY-003) — impacts downstream integration timeline
-- Key personnel availability constraint on firmware validation team
+- FIPS 140-2 Level 4 lab availability is limited (WBP-600) — 6-month lead time threatens the certification window
+- Post-Quantum Crypto Module (WBP-210) is behind schedule — NIST standardization delay compounds the risk
 
 🟡 **Medium Risks:**
-- Integration testing environment setup is behind schedule by 2 weeks
-- Third-party certification dependency may slip into Q3
+- FPGA supply chain shortage could delay PCB production (WBP-100)
+- KERNO production line readiness not confirmed for Q3 start (WBP-700)
 
 ✅ **Recommendations:**
-1. Escalate cryptographic module procurement to program director
-2. Initiate cross-training for firmware validation team
-3. Allocate additional resources to integration testing environment
-4. Pre-engage with certification body to secure testing windows`;
+1. Book the FIPS certification lab slot now to protect the Q4 submission date
+2. Add a second crypto engineer to WBP-210 to recover schedule
+3. Qualify a second FPGA supplier for WBP-100
+4. Escalate KERNO readiness confirmation to the program director`;
   }
 
   if (lowerMsg.includes('status') || lowerMsg.includes('progress') || lowerMsg.includes('حالة') || lowerMsg.includes('تقدم')) {
     return `**Program Status Overview — BRAIN Network Encryptor**
 
-📊 **Overall Progress: 42%**
+📊 **Top-level Work Packages:**
 
-| WBP | Status | Health | Progress |
-|-----|--------|--------|----------|
-| WBP-ARCH-001 System Architecture | In Progress | On Track | 68% |
-| WBP-CRY-002 Crypto Engine | In Progress | At Risk | 35% |
-| WBP-HW-003 Hardware Design | Planned | On Track | 10% |
-| WBP-SW-004 Firmware Dev | In Progress | At Risk | 28% |
-| WBP-INT-005 Integration | Planned | — | 0% |
-| WBP-TST-006 Testing & QA | Planned | — | 0% |
+| WBP | Name | Status | Health | Progress |
+|-----|------|--------|--------|----------|
+| WBP-100 | Hardware Platform | In Progress | At Risk | 45% |
+| WBP-200 | Crypto Engine | In Progress | At Risk | 35% |
+| WBP-300 | Firmware Layer | Planned | On Track | 15% |
+| WBP-400 | Management Software | In Progress | On Track | 30% |
+| WBP-500 | Integration Testing | Planned | On Track | 0% |
+| WBP-600 | Certification & Compliance | Planned | On Track | 5% |
+| WBP-700 | Manufacturing & Production | Planned | On Track | 0% |
 
-⚠️ **Attention Required:** WBP-CRY-002 and WBP-SW-004 are both at-risk due to dependency on cryptographic library certification.
+⚠️ **Attention Required:** WBP-100 and WBP-200 are at risk; WBP-210 (Post-Quantum Crypto Module) is behind schedule.
 
-🎯 **Next milestone:** Architecture Review — Target: End of current sprint.`;
+🎯 **Next milestone:** Alpha Prototype Ready — May 15, 2026.`;
   }
 
   if (lowerMsg.includes('depend') || lowerMsg.includes('تبع') || lowerMsg.includes('block')) {
     return `**Dependency Map Analysis**
 
-🔗 **Active Dependencies:**
+🔗 **Critical-path dependencies:**
 
-1. **WBP-ARCH-001 → WBP-CRY-002** (Blocks)
-   Architecture freeze required before crypto engine implementation
-   ✅ Architecture is 68% complete — on track
+1. **WBP-100 Hardware Platform → WBP-300 Firmware Layer** (Blocks)
+   Firmware needs stable hardware — WBP-100 is at risk at 45%
 
-2. **WBP-CRY-002 → WBP-SW-004** (Blocks)
-   Crypto API must be stable before firmware integration
-   ⚠️ Crypto engine at 35% — potential delay
+2. **WBP-200 Crypto Engine → WBP-300 Firmware Layer** (Blocks)
+   Crypto API must be stable before firmware integration — ⚠️ WBP-210 is behind schedule
 
-3. **WBP-CRY-003 → WBP-HW-003** (Depends On)
-   Hardware design needs certified cryptographic module specs
-   🔴 Module procurement delayed — **BROKEN dependency risk**
+3. **WBP-100/200/300/400 → WBP-500 Integration Testing** (Blocks)
+   All engineering streams converge on integration testing in July
 
-4. **WBP-SW-004 → WBP-INT-005** (Blocks)
-   Firmware must be feature-complete before integration testing
+4. **WBP-500 → WBP-600 Certification** (Blocks)
+   🔴 FIPS lab lead time makes this the highest-impact chain
 
-5. **WBP-INT-005 → WBP-TST-006** (Blocks)
-   Integration complete before formal QA cycle
+5. **WBP-100 & WBP-200 → WBP-700 Manufacturing** (Blocks)
+   Production start depends on hardware and crypto design freeze
 
-💡 **Recommendation:** Fast-track WBP-CRY-002 to unblock the critical path. Consider parallel work streams for hardware design using provisional specs.`;
+💡 **Recommendation:** Fast-track WBP-210 to protect the critical path, and book the FIPS lab slot immediately.`;
   }
 
   return `**XCollab AI Analysis**
 
-Thank you for your query. Here's my analysis of the BRAIN Network Encryptor program:
+Here's my snapshot of the BRAIN Network Encryptor program:
 
 📋 **Current Snapshot:**
-- 6 Work Breakdown Packages defined
-- 42% overall program completion
-- 2 WBPs currently at-risk (Crypto Engine, Firmware Development)
-- 4 active dependencies, 1 potential blocker
+- 13 Work Breakdown Packages (7 top-level)
+- 2 top-level WBPs at risk (Hardware Platform, Crypto Engine); WBP-210 behind schedule
+- 5 open or mitigating risks; 10 active dependencies
 
 🔍 **Key Observations:**
-1. The critical path runs through Architecture → Crypto Engine → Firmware → Integration → QA
-2. The cryptographic module procurement is the highest-impact risk
-3. Team utilization is at ~78% — capacity exists for risk mitigation
+1. The critical path runs through Crypto Engine → Firmware → Integration Testing → Certification
+2. The FIPS 140-2 L4 lab lead time is the highest-impact schedule risk
+3. Hardware supply chain (FPGA) needs a second-source strategy
 
 🎯 **Suggested Actions:**
-- Conduct a dependency cleanup meeting with all team leads
-- Establish weekly cross-team sync for at-risk WBPs
-- Review and update risk register with current severity assessments
+- Escalate WBP-210 staffing to recover the post-quantum module schedule
+- Book the FIPS certification lab now
+- Confirm KERNO production readiness before Q3
 
 Ask me about specific WBPs, risks, dependencies, or team workloads for more detailed analysis.`;
 }
 
+/**
+ * Ask Claude for a reply grounded in the live program snapshot. Returns null
+ * when no credentials are configured or the API call fails, so the caller can
+ * degrade to the offline mock analysis.
+ */
+async function generateClaudeReply(
+  programId: string,
+  chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<string | null> {
+  try {
+    // Zero-arg client resolves ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, or an
+    // `ant auth login` profile; throws here when none exist.
+    const client = new Anthropic();
+    const programContext = await buildProgramContext(programId);
+
+    const response = await client.beta.messages.create({
+      model: MODEL,
+      max_tokens: 16000,
+      // Route safety-classifier declines to Anthropic's recommended fallback
+      // model server-side instead of surfacing them as empty replies.
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: SYSTEM_PROMPT + programContext,
+      messages: chatHistory,
+    });
+
+    if (response.stop_reason === 'refusal') return null;
+
+    const text = response.content
+      .filter((block): block is Anthropic.Beta.BetaTextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n')
+      .trim();
+    return text.length > 0 ? text : null;
+  } catch (error) {
+    console.warn('[AI Chat] Claude unavailable, using offline analysis:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+// GET — conversation history for the active program (oldest first)
+export async function GET() {
+  try {
+    const program = await getActiveProgram();
+    if (!program) {
+      return NextResponse.json({ error: 'No active program found' }, { status: 404 });
+    }
+
+    const messages = await db.aIConversation.findMany({
+      where: { programId: program.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, role: true, content: true, createdAt: true },
+    });
+
+    return NextResponse.json({ programId: program.id, messages });
+  } catch (error) {
+    console.error('[API /api/ai-chat GET] Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch conversation history' }, { status: 500 });
+  }
+}
+
+// POST — send a message, persist both sides, return the reply
 export async function POST(request: NextRequest) {
   try {
-    const { message, programId } = await request.json();
-
-    if (!message || !programId) {
+    const parsed = postSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'message and programId are required' },
-        { status: 400 }
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
+        { status: 400 },
       );
     }
+    const { message } = parsed.data;
 
-    // Store user message
-    await db.aIConversation.create({
-      data: {
-        role: 'user',
-        content: message,
-        programId,
-      },
-    });
-
-    // Fetch recent conversation context (last 10 messages)
-    const recentMessages = await db.aIConversation.findMany({
-      where: { programId },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
-    // Build messages array for AI (oldest first)
-    const chatMessages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
-      ...recentMessages
-        .reverse()
-        .map((m) => ({
-          role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-          content: m.content,
-        })),
-    ];
-
-    // Try to use z-ai-web-dev-sdk
-    let reply: string;
-    try {
-      const { default: ZAI } = await import('z-ai-web-dev-sdk');
-      const zAI = await ZAI.create();
-
-      const response = await zAI.chat.completions.create({
-        messages: chatMessages,
-        stream: false,
-      });
-
-      // Extract the text content from the response
-      reply =
-        response?.choices?.[0]?.message?.content ??
-        response?.content ??
-        response?.text ??
-        typeof response === 'string'
-          ? response
-          : JSON.stringify(response);
-    } catch {
-      // Fallback to mock response if SDK fails
-      console.warn('[AI Chat] z-ai-web-dev-sdk unavailable, using mock response');
-      reply = generateMockResponse(message);
+    const program = await getActiveProgram();
+    if (!program) {
+      return NextResponse.json({ error: 'No active program found' }, { status: 404 });
     }
 
-    // Store AI reply
     await db.aIConversation.create({
-      data: {
-        role: 'assistant',
-        content: reply,
-        programId,
-      },
+      data: { role: 'user', content: message, programId: program.id },
+    });
+
+    const recentMessages = await db.aIConversation.findMany({
+      where: { programId: program.id },
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+
+    const chatHistory = recentMessages.reverse().map((m) => ({
+      role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.content,
+    }));
+    // The Messages API requires the first message to be from the user; an
+    // orphaned assistant row at the window boundary would 400 every request.
+    while (chatHistory.length > 0 && chatHistory[0].role !== 'user') {
+      chatHistory.shift();
+    }
+
+    const reply =
+      (await generateClaudeReply(program.id, chatHistory)) ?? generateMockResponse(message);
+
+    await db.aIConversation.create({
+      data: { role: 'assistant', content: reply, programId: program.id },
     });
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error('[API /api/ai-chat] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process AI chat request' },
-      { status: 500 }
-    );
+    console.error('[API /api/ai-chat POST] Error:', error);
+    return NextResponse.json({ error: 'Failed to process AI chat request' }, { status: 500 });
+  }
+}
+
+// DELETE — clear the active program's conversation history
+export async function DELETE() {
+  try {
+    const program = await getActiveProgram();
+    if (!program) {
+      return NextResponse.json({ error: 'No active program found' }, { status: 404 });
+    }
+    await db.aIConversation.deleteMany({ where: { programId: program.id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('[API /api/ai-chat DELETE] Error:', error);
+    return NextResponse.json({ error: 'Failed to clear conversation' }, { status: 500 });
   }
 }

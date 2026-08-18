@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { GanttChart, ZoomIn, ZoomOut } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,9 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import ErrorState from '@/components/ErrorState';
 import { useAppStore } from '@/lib/store';
+import { useProgram } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
-import type { WBPFlat, ProgramDashboardData } from '@/lib/types';
+import type { WBPFlat } from '@/lib/types';
 
 const HEALTH_COLORS: Record<string, string> = {
   'on-track': '#22C55E',
@@ -20,8 +22,6 @@ const HEALTH_COLORS: Record<string, string> = {
   completed: '#3B82F6',
   behind: '#EF4444',
 };
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function flattenWbps(list: WBPFlat[]): (WBPFlat & { depth: number })[] {
   const result: (WBPFlat & { depth: number })[] = [];
@@ -36,49 +36,66 @@ function flattenWbps(list: WBPFlat[]): (WBPFlat & { depth: number })[] {
 export default function TimelineView() {
   const { locale } = useAppStore();
   const { t } = useTranslation(locale);
-  const [data, setData] = useState<ProgramDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error, refetch } = useProgram();
   const [zoom, setZoom] = useState(1);
-
-  useEffect(() => {
-    fetch('/api/program')
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
 
   const flatWbps = useMemo(() => (data ? flattenWbps(data.wbps) : []), [data]);
 
-  const programStart = data?.startDate ? new Date(data.startDate) : new Date('2026-01-01');
-  const programEnd = data?.targetDate ? new Date(data.targetDate) : new Date('2026-12-31');
-  const totalDays = (programEnd.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24);
+  const { programStart, programEnd, totalDays } = useMemo(() => {
+    const start = data?.startDate ? new Date(data.startDate) : new Date('2026-01-01');
+    const end = data?.targetDate ? new Date(data.targetDate) : new Date('2026-12-31');
+    return {
+      programStart: start,
+      programEnd: end,
+      totalDays: Math.max((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24), 1),
+    };
+  }, [data]);
+
   const rowHeight = 48;
   const labelWidth = 320;
 
-  const todayMs = Date.now();
-  const todayX = ((todayMs - programStart.getTime()) / (1000 * 60 * 60 * 24) / totalDays) * 100;
+  const toPercent = (ms: number) =>
+    ((ms - programStart.getTime()) / (1000 * 60 * 60 * 24) / totalDays) * 100;
 
-  const getBarX = (date: string | null) => {
-    if (!date) return 0;
-    return ((new Date(date).getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24) / totalDays) * 100;
-  };
-  const getBarWidth = (start: string | null, end: string | null) => {
-    if (!start || !end) return 0;
-    return Math.max(((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24) / totalDays) * 100, 1);
+  const todayX = toPercent(Date.now());
+  const todayVisible = todayX >= 0 && todayX <= 100;
+
+  // Positions bars, month markers, and the today line in the same coordinate
+  // system: percentage of the bar area, offset past the fixed label column.
+  // Using calc() keeps everything aligned no matter how wide the chart renders.
+  const timelineLeft = (percent: number) =>
+    `calc(${labelWidth}px + (100% - ${labelWidth}px) * ${percent / 100})`;
+
+  const getBar = (start: string | null, end: string | null) => {
+    if (!start || !end) return null;
+    const rawX = toPercent(new Date(start).getTime());
+    const rawEnd = toPercent(new Date(end).getTime());
+    // Entirely outside the program window — no bar rather than a phantom sliver
+    if (rawEnd < 0 || rawX > 100) return null;
+    const x = Math.min(Math.max(rawX, 0), 100);
+    const width = Math.max(Math.min(rawEnd, 100) - x, 1);
+    return { x, width };
   };
 
   const monthMarkers = useMemo(() => {
+    const monthFormat = new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', { month: 'short', year: 'numeric' });
     const markers: { label: string; x: number }[] = [];
     const d = new Date(programStart.getFullYear(), programStart.getMonth(), 1);
     while (d <= programEnd) {
       const x = ((d.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24) / totalDays) * 100;
-      markers.push({ label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, x });
+      if (x >= 0 && x <= 100) {
+        markers.push({ label: monthFormat.format(d), x });
+      }
       d.setMonth(d.getMonth() + 1);
     }
     return markers;
-  }, [programStart, programEnd, totalDays]);
+  }, [programStart, programEnd, totalDays, locale]);
 
-  const chartWidth = 1200;
+  const chartWidth = Math.round(1200 * zoom);
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
+  }
 
   if (loading) {
     return (
@@ -95,21 +112,21 @@ export default function TimelineView() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-6 bg-[#FF4713] rounded-full" />
-            <GanttChart className="w-5 h-5 text-[#FF4713]" />
-            <h2 className="text-xl font-bold text-[#E8E8ED]">Program Timeline</h2>
-            <Badge variant="outline" className="text-[11px] border-xcollab-border/60 text-[#71717A]">
-              {flatWbps.length} packages
+            <div className="w-1.5 h-6 bg-[var(--brand)] rounded-full" />
+            <GanttChart className="w-5 h-5 text-[var(--brand)]" />
+            <h2 className="text-xl font-bold text-[var(--ink-1)]">{t('timeline.title')}</h2>
+            <Badge variant="outline" className="text-[11px] border-xcollab-border/60 text-[var(--ink-3)]">
+              {flatWbps.length} {t('timeline.packages')}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#71717A] hover:text-[#E8E8ED] hover:bg-white/5" onClick={() => setZoom((z) => Math.min(z + 0.25, 2))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--ink-3)] hover:text-[var(--ink-1)] hover:bg-[var(--ink-1)]/5" onClick={() => setZoom((z) => Math.min(z + 0.25, 2))}>
               <ZoomIn className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#71717A] hover:text-[#E8E8ED] hover:bg-white/5" onClick={() => setZoom((z) => Math.max(z - 0.25, 0.5))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--ink-3)] hover:text-[var(--ink-1)] hover:bg-[var(--ink-1)]/5" onClick={() => setZoom((z) => Math.max(z - 0.25, 0.5))}>
               <ZoomOut className="w-4 h-4" />
             </Button>
-            <span className="text-xs text-[#71717A] tabular-nums">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs text-[var(--ink-3)] tabular-nums">{Math.round(zoom * 100)}%</span>
           </div>
         </div>
 
@@ -118,12 +135,12 @@ export default function TimelineView() {
           <ScrollArea className="w-full">
             <div style={{ minWidth: chartWidth }}>
               {/* Month header row */}
-              <div className="flex border-b border-xcollab-border/40" style={{ paddingLeft: labelWidth }}>
+              <div className="relative h-8 border-b border-xcollab-border/40">
                 {monthMarkers.map((m) => (
                   <div
                     key={m.label}
-                    className="text-[11px] text-[#71717A] font-medium shrink-0 border-s border-xcollab-border/20 px-3 py-2"
-                    style={{ width: `${100 / monthMarkers.length}%` }}
+                    className="absolute top-0 bottom-0 flex items-center text-[11px] text-[var(--ink-3)] font-medium border-s border-xcollab-border/20 ps-2 whitespace-nowrap"
+                    style={{ insetInlineStart: timelineLeft(m.x) }}
                   >
                     {m.label}
                   </div>
@@ -133,27 +150,30 @@ export default function TimelineView() {
               {/* Rows */}
               <div className="relative">
                 {/* Today vertical line */}
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-[#FF4713]/40 z-10 pointer-events-none"
-                  style={{ left: `${labelWidth + (todayX / 100) * (chartWidth - labelWidth)}px` }}
-                />
-                <div
-                  className="absolute top-0 z-20 text-[10px] text-[#FF4713] font-bold bg-[#FF4713] px-2 py-0.5 rounded-b-md"
-                  style={{ left: `${labelWidth + (todayX / 100) * (chartWidth - labelWidth) - 16}px` }}
-                >
-                  TODAY
-                </div>
+                {todayVisible && (
+                  <>
+                    <div
+                      className="absolute top-0 bottom-0 w-px bg-[var(--brand)]/40 z-10 pointer-events-none"
+                      style={{ insetInlineStart: timelineLeft(todayX) }}
+                    />
+                    <div
+                      className="absolute top-0 z-20 -translate-x-1/2 rtl:translate-x-1/2 text-[10px] text-white font-bold bg-[var(--brand)] px-2 py-0.5 rounded-b-md"
+                      style={{ insetInlineStart: timelineLeft(todayX) }}
+                    >
+                      <span className="uppercase">{t('common.today')}</span>
+                    </div>
+                  </>
+                )}
 
                 {flatWbps.map((wbp) => {
-                  const barX = getBarX(wbp.startDate);
-                  const barW = getBarWidth(wbp.startDate, wbp.dueDate);
+                  const bar = getBar(wbp.startDate, wbp.dueDate);
                   const healthColor = HEALTH_COLORS[wbp.health] || '#71717A';
                   const teamColor = wbp.ownerTeam?.color || '#71717A';
 
                   return (
                     <div
                       key={wbp.id}
-                      className="flex items-center border-b border-xcollab-border/20 hover:bg-white/[0.02] transition-colors"
+                      className="flex items-center border-b border-xcollab-border/20 hover:bg-[var(--ink-1)]/[0.02] transition-colors"
                       style={{ height: rowHeight }}
                     >
                       {/* Label */}
@@ -162,18 +182,18 @@ export default function TimelineView() {
                         style={{ width: labelWidth, paddingInlineStart: `${wbp.depth * 20 + 16}px` }}
                       >
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: teamColor }} />
-                        <span className="text-xs font-mono text-[#71717A] shrink-0 w-14">{wbp.code}</span>
+                        <span className="text-xs font-mono text-[var(--ink-3)] shrink-0 w-14">{wbp.code}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm text-[#B0B0C0] truncate cursor-default hover:text-[#E8E8ED] transition-colors">{wbp.name}</span>
+                            <span className="text-sm text-[var(--ink-2)] truncate cursor-default hover:text-[var(--ink-1)] transition-colors">{wbp.name}</span>
                           </TooltipTrigger>
-                          <TooltipContent className="bg-xcollab-surface-2 text-[#E8E8ED] border-xcollab-border max-w-xs">
+                          <TooltipContent className="bg-xcollab-surface-2 text-[var(--ink-1)] border-xcollab-border max-w-xs">
                             <div className="space-y-1">
                               <p className="font-semibold">{wbp.code} - {wbp.name}</p>
-                              <p className="text-xs text-[#B0B0C0]">{wbp.description || 'No description'}</p>
+                              <p className="text-xs text-[var(--ink-2)]">{wbp.description || t('common.noDescription')}</p>
                               <div className="flex gap-2 text-[11px]">
                                 <span style={{ color: healthColor }}>{wbp.health}</span>
-                                <span className="text-[#71717A]">|</span>
+                                <span className="text-[var(--ink-3)]">|</span>
                                 <span>{wbp.progress}%</span>
                               </div>
                             </div>
@@ -183,12 +203,12 @@ export default function TimelineView() {
 
                       {/* Timeline bar area */}
                       <div className="flex-1 relative h-full">
-                        {wbp.startDate && wbp.dueDate && (
+                        {bar && (
                           <div
                             className="absolute top-1/2 -translate-y-1/2 h-6 rounded-md overflow-hidden group cursor-pointer"
                             style={{
-                              left: `${barX}%`,
-                              width: `${barW}%`,
+                              insetInlineStart: `${bar.x}%`,
+                              width: `${bar.width}%`,
                               backgroundColor: `${healthColor}20`,
                               border: `1px solid ${healthColor}40`,
                             }}
@@ -198,7 +218,7 @@ export default function TimelineView() {
                               style={{ width: `${wbp.progress}%`, backgroundColor: `${healthColor}60` }}
                             />
                             {wbp.progress > 15 && (
-                              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#E8E8ED]">{wbp.progress}%</span>
+                              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[var(--ink-1)]">{wbp.progress}%</span>
                             )}
                           </div>
                         )}

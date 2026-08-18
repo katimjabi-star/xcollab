@@ -1,4 +1,6 @@
 import React from 'react';
+import { translations } from '@/lib/i18n';
+import { useAppStore } from '@/lib/store';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -16,18 +18,25 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
+      // Class components can't use hooks — read the locale straight off the store.
+      const { locale } = useAppStore.getState();
+      const tr = translations[locale] ?? translations.en;
       return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F] text-white p-8">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--bg-0)] text-white p-8">
           <div className="max-w-lg">
-            <h1 className="text-2xl font-bold text-[#FF4713] mb-4">Something went wrong</h1>
-            <pre className="text-sm text-red-400 bg-red-400/10 p-4 rounded-lg overflow-auto max-h-64">{this.state.error?.message}\n\n{this.state.error?.stack}</pre>
+            <h1 className="text-2xl font-bold text-[var(--brand)] mb-4">{tr['common.somethingWentWrong']}</h1>
+            <pre className="text-sm text-red-400 bg-red-400/10 p-4 rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">{`${this.state.error?.message ?? ''}\n\n${this.state.error?.stack ?? ''}`}</pre>
             <button
               onClick={() => this.setState({ hasError: false, error: undefined })}
-              className="mt-4 px-4 py-2 bg-[#FF4713] text-white rounded-lg"
+              className="mt-4 px-4 py-2 bg-[var(--brand)] text-white rounded-lg"
             >
-              Retry
+              {tr['common.retry']}
             </button>
           </div>
         </div>

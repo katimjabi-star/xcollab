@@ -25,8 +25,16 @@ export async function GET() {
       return NextResponse.json({ error: 'No active program found' }, { status: 404 });
     }
 
+    // Teams that actually work on this program (own at least one of its WBPs),
+    // plus any team with members — the org roster stays visible either way.
     const teams = await db.team.findMany({
-      where: { organizationId: program.organizationId },
+      where: {
+        organizationId: program.organizationId,
+        OR: [
+          { wbps: { some: { programId: program.id } } },
+          { members: { some: {} } },
+        ],
+      },
       include: { members: { include: { team: true }, orderBy: { name: 'asc' } } },
       orderBy: { name: 'asc' },
     });

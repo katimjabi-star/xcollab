@@ -13,6 +13,54 @@ type TranslationKeys = {
   'nav.aiChat': string;
   'nav.teams': string;
   'nav.timeline': string;
+  'nav.inbox': string;
+
+  // Collaboration
+  'inbox.title': string;
+  'inbox.empty': string;
+  'inbox.emptyHint': string;
+  'inbox.markAll': string;
+  'inbox.markRead': string;
+  'inbox.unread': string;
+  'discussion.title': string;
+  'discussion.placeholder': string;
+  'discussion.post': string;
+  'discussion.empty': string;
+  'approvals.title': string;
+  'approvals.request': string;
+  'approvals.requestTitle': string;
+  'approvals.approver': string;
+  'approvals.send': string;
+  'approvals.approve': string;
+  'approvals.requestChanges': string;
+  'approvals.reject': string;
+  'approvals.status.pending': string;
+  'approvals.status.approved': string;
+  'approvals.status.changes_requested': string;
+  'approvals.status.rejected': string;
+  'architect.title': string;
+  'architect.desc': string;
+  'architect.placeholder': string;
+  'architect.create': string;
+  'architect.designing': string;
+  'architect.successTitle': string;
+  'architect.successDesc': string;
+  'architect.error': string;
+  'kanban.assign': string;
+  'kanban.unassigned': string;
+  'program.switch': string;
+  'program.new': string;
+  'create.headline': string;
+  'create.sub': string;
+  'create.placeholder': string;
+  'create.attach': string;
+  'create.examples': string;
+  'create.button': string;
+  'create.skip': string;
+  'create.stepTeams': string;
+  'create.stepWbps': string;
+  'create.stepSchedule': string;
+  'create.stepFinish': string;
   'nav.settings': string;
   'nav.collapseSidebar': string;
   'nav.expandSidebar': string;
@@ -34,6 +82,13 @@ type TranslationKeys = {
   'dashboard.offTrack': string;
   'dashboard.milestones': string;
   'dashboard.upcomingMilestones': string;
+  'dashboard.burndownChart': string;
+  'dashboard.teamTasks': string;
+  'dashboard.countDone': string;
+  'dashboard.countTotal': string;
+  'dashboard.countMembers': string;
+  'dashboard.ideal': string;
+  'dashboard.actual': string;
 
   // WBP
   'wbp.title': string;
@@ -88,6 +143,9 @@ type TranslationKeys = {
   'kanban.noTasks': string;
   'kanban.dragHere': string;
   'kanban.taskCount': string;
+  'kanban.wipExceeded': string;
+  'kanban.moveFailed': string;
+  'kanban.moveFailedDesc': string;
 
   // Task
   'task.title': string;
@@ -141,11 +199,98 @@ type TranslationKeys = {
   'aiChat.welcome': string;
   'aiChat.error': string;
   'aiChat.clearChat': string;
+  'aiChat.clearFailed': string;
+  'aiChat.clearFailedDesc': string;
+  'aiChat.actionBlockers': string;
+  'aiChat.actionStandup': string;
+  'aiChat.actionRisk': string;
+  'aiChat.actionSprint': string;
+  'aiChat.actionResource': string;
+  'aiChat.actionWbpSummary': string;
+  'aiChat.agentRisk': string;
+  'aiChat.agentOrchestrator': string;
+  'aiChat.agentAnalyst': string;
 
   // Teams
   'team.title': string;
   'team.members': string;
   'team.lead': string;
+  'team.allRoles': string;
+  'team.allTeams': string;
+  'team.noMembers': string;
+  'team.joined': string;
+  'team.role.admin': string;
+  'team.role.team-lead': string;
+  'team.role.member': string;
+  'team.role.vendor': string;
+
+  // Timeline
+  'timeline.title': string;
+  'timeline.packages': string;
+
+  // Header
+  'header.notifications': string;
+  'header.markAllRead': string;
+  'header.profile': string;
+  'header.toggleNav': string;
+
+  // Command Palette
+  'palette.placeholder': string;
+  'palette.groupViews': string;
+  'palette.groupAiActions': string;
+  'palette.groupWorkPackages': string;
+  'palette.groupMembers': string;
+  'palette.navigateToView': string;
+  'palette.noResults': string;
+  'palette.navigate': string;
+  'palette.select': string;
+  'palette.actionStandup': string;
+  'palette.actionBlockers': string;
+  'palette.actionRisk': string;
+  'palette.actionCreateWbp': string;
+  'palette.actionTaskSummary': string;
+
+  // Settings
+  'settings.appearance': string;
+  'settings.theme': string;
+  'settings.themeDesc': string;
+  'settings.themeDark': string;
+  'settings.themeLight': string;
+  'settings.themeSystem': string;
+  'settings.accentColor': string;
+  'settings.accentColorDesc': string;
+  'settings.languageDesc': string;
+  'settings.notifications': string;
+  'settings.notifRisk': string;
+  'settings.notifRiskDesc': string;
+  'settings.notifMilestone': string;
+  'settings.notifMilestoneDesc': string;
+  'settings.notifTasks': string;
+  'settings.notifTasksDesc': string;
+  'settings.notifWbp': string;
+  'settings.notifWbpDesc': string;
+  'settings.notifAi': string;
+  'settings.notifAiDesc': string;
+  'settings.security': string;
+  'settings.securityNote': string;
+  'settings.planned': string;
+  'settings.zeroTrust': string;
+  'settings.zeroTrustDesc': string;
+  'settings.encryption': string;
+  'settings.encryptionDesc': string;
+  'settings.auditLog': string;
+  'settings.auditLogDesc': string;
+  'settings.aiGuardrails': string;
+  'settings.aiGuardrailsDesc': string;
+  'settings.integrations': string;
+  'settings.integrationJiraDesc': string;
+  'settings.integrationClaudeDesc': string;
+  'settings.integrationSlackDesc': string;
+  'settings.integrationTeamsDesc': string;
+  'settings.connected': string;
+  'settings.connect': string;
+  'settings.aboutTagline': string;
+  'settings.build': string;
 
   // Common
   'common.search': string;
@@ -178,6 +323,12 @@ type TranslationKeys = {
   'common.language': string;
   'common.english': string;
   'common.arabic': string;
+  'common.retry': string;
+  'common.failedToLoad': string;
+  'common.somethingWentWrong': string;
+  'common.active': string;
+  'common.pending': string;
+  'common.noDescription': string;
 };
 
 const translations: Record<Locale, TranslationKeys> = {
@@ -190,6 +341,53 @@ const translations: Record<Locale, TranslationKeys> = {
     'nav.aiChat': 'AI Assistant',
     'nav.teams': 'Teams',
     'nav.timeline': 'Timeline',
+    'nav.inbox': 'Inbox',
+
+    'inbox.title': 'Inbox',
+    'inbox.empty': 'You are all caught up',
+    'inbox.emptyHint': 'Mentions, assignments, and approvals will land here',
+    'inbox.markAll': 'Mark all read',
+    'inbox.markRead': 'Mark read',
+    'inbox.unread': 'Unread',
+    'discussion.title': 'Discussion',
+    'discussion.placeholder': 'Write a comment — use @ to mention a teammate',
+    'discussion.post': 'Post',
+    'discussion.empty': 'No comments yet — start the discussion',
+    'approvals.title': 'Approvals',
+    'approvals.request': 'Request approval',
+    'approvals.requestTitle': 'What needs sign-off?',
+    'approvals.approver': 'Approver',
+    'approvals.send': 'Send request',
+    'approvals.approve': 'Approve',
+    'approvals.requestChanges': 'Request changes',
+    'approvals.reject': 'Reject',
+    'approvals.status.pending': 'Pending',
+    'approvals.status.approved': 'Approved',
+    'approvals.status.changes_requested': 'Changes requested',
+    'approvals.status.rejected': 'Rejected',
+    'architect.title': 'Design a program',
+    'architect.desc': 'Describe the program and the AI architect will design the full structure — teams, work packages, tasks, milestones, risks, and dependencies. Everything it creates is provisional until you review it.',
+    'architect.placeholder': 'e.g. A secure tactical drone communications program with an external antenna vendor, 14 months, including certification…',
+    'architect.create': 'Design program',
+    'architect.designing': 'Designing the program…',
+    'architect.successTitle': 'Program created',
+    'architect.successDesc': '{name} is now the active program — review the work packages',
+    'architect.error': 'The architect could not create the program. Try again.',
+    'kanban.assign': 'Assign to',
+    'kanban.unassigned': 'Unassigned',
+    'program.switch': 'Switch program',
+    'program.new': 'New program',
+    'create.headline': 'What are you building?',
+    'create.sub': 'Describe the project — timeline, teams, goals — or attach a PRD. The AI architect designs the whole program: teams, work packages, tasks, milestones, risks, and dependencies.',
+    'create.placeholder': 'e.g. I am developing a project called XCollab — a cross-team collaboration platform. Timeline is 3 weeks. Teams: design and QA, plus whoever else you think we need. Create the full plan…',
+    'create.attach': 'Attach PRD (.md / .txt)',
+    'create.examples': 'Try an example',
+    'create.button': 'Create the program',
+    'create.skip': 'Open current program',
+    'create.stepTeams': 'Assembling the teams…',
+    'create.stepWbps': 'Structuring work packages and tasks…',
+    'create.stepSchedule': 'Scheduling milestones and dependencies…',
+    'create.stepFinish': 'Opening your workspace…',
     'nav.settings': 'Settings',
     'nav.collapseSidebar': 'Collapse sidebar',
     'nav.expandSidebar': 'Expand sidebar',
@@ -211,6 +409,13 @@ const translations: Record<Locale, TranslationKeys> = {
     'dashboard.offTrack': 'Off Track',
     'dashboard.milestones': 'Milestones',
     'dashboard.upcomingMilestones': 'Upcoming Milestones',
+    'dashboard.burndownChart': 'Burndown Chart',
+    'dashboard.teamTasks': 'Team Tasks',
+    'dashboard.countDone': '{count} done',
+    'dashboard.countTotal': '{count} total',
+    'dashboard.countMembers': '{count} members',
+    'dashboard.ideal': 'Ideal',
+    'dashboard.actual': 'Actual',
 
     // WBP
     'wbp.title': 'Work Breakdown Structure',
@@ -265,6 +470,9 @@ const translations: Record<Locale, TranslationKeys> = {
     'kanban.noTasks': 'No tasks',
     'kanban.dragHere': 'Drag tasks here',
     'kanban.taskCount': '{count} task(s)',
+    'kanban.wipExceeded': 'WIP',
+    'kanban.moveFailed': 'Move failed',
+    'kanban.moveFailedDesc': 'Could not save the new task position.',
 
     // Task
     'task.title': 'Title',
@@ -318,11 +526,98 @@ const translations: Record<Locale, TranslationKeys> = {
     'aiChat.welcome': 'Hello! I am the XCollab AI assistant. I can help you analyze WBP status, identify risks, trace dependencies, and provide project management insights for the BRAIN Network Encryptor program.',
     'aiChat.error': 'Failed to get AI response. Please try again.',
     'aiChat.clearChat': 'Clear Chat',
+    'aiChat.clearFailed': 'Clear failed',
+    'aiChat.clearFailedDesc': 'Could not clear the conversation.',
+    'aiChat.actionBlockers': 'Identify Blockers',
+    'aiChat.actionStandup': 'Standup Report',
+    'aiChat.actionRisk': 'Risk Analysis',
+    'aiChat.actionSprint': 'Sprint Plan',
+    'aiChat.actionResource': 'Resource Allocation',
+    'aiChat.actionWbpSummary': 'WBP Summary',
+    'aiChat.agentRisk': 'Risk Analyst',
+    'aiChat.agentOrchestrator': 'Orchestrator',
+    'aiChat.agentAnalyst': 'Analyst',
 
     // Teams
     'team.title': 'Team',
     'team.members': 'Members',
     'team.lead': 'Lead',
+    'team.allRoles': 'All Roles',
+    'team.allTeams': 'All Teams',
+    'team.noMembers': 'No members found',
+    'team.joined': 'Joined {time}',
+    'team.role.admin': 'Admin',
+    'team.role.team-lead': 'Team Lead',
+    'team.role.member': 'Member',
+    'team.role.vendor': 'Vendor',
+
+    // Timeline
+    'timeline.title': 'Program Timeline',
+    'timeline.packages': 'packages',
+
+    // Header
+    'header.notifications': 'Notifications',
+    'header.markAllRead': 'Mark all read',
+    'header.profile': 'Profile',
+    'header.toggleNav': 'Toggle navigation',
+
+    // Command Palette
+    'palette.placeholder': 'Search WBPs, tasks, members, actions...',
+    'palette.groupViews': 'Views',
+    'palette.groupAiActions': 'AI Actions',
+    'palette.groupWorkPackages': 'Work Packages',
+    'palette.groupMembers': 'Members',
+    'palette.navigateToView': 'Navigate to view',
+    'palette.noResults': 'No results found',
+    'palette.navigate': 'Navigate',
+    'palette.select': 'Select',
+    'palette.actionStandup': 'Generate standup report',
+    'palette.actionBlockers': 'Identify blockers',
+    'palette.actionRisk': 'Risk assessment',
+    'palette.actionCreateWbp': 'Create new WBP',
+    'palette.actionTaskSummary': 'Task summary',
+
+    // Settings
+    'settings.appearance': 'Appearance',
+    'settings.theme': 'Theme',
+    'settings.themeDesc': 'Obsidian Dark is tuned for operations rooms; Signal Light for daylight review',
+    'settings.themeDark': 'Dark',
+    'settings.themeLight': 'Light',
+    'settings.themeSystem': 'System',
+    'settings.accentColor': 'Accent Color',
+    'settings.accentColorDesc': 'EDGE Orange is the default; Katim Teal honors the secure-comms subsidiary',
+    'settings.languageDesc': 'Interface display language',
+    'settings.notifications': 'Notifications',
+    'settings.notifRisk': 'Risk Alerts',
+    'settings.notifRiskDesc': 'Get notified when risks are flagged or escalated',
+    'settings.notifMilestone': 'Milestone Reminders',
+    'settings.notifMilestoneDesc': 'Alerts 7 days before milestone deadlines',
+    'settings.notifTasks': 'Task Assignments',
+    'settings.notifTasksDesc': 'Notify when tasks are assigned to you',
+    'settings.notifWbp': 'WBP Status Changes',
+    'settings.notifWbpDesc': 'Alerts on health or status transitions',
+    'settings.notifAi': 'AI Insights',
+    'settings.notifAiDesc': 'Proactive AI analysis and recommendations',
+    'settings.security': 'Security & Compliance',
+    'settings.securityNote': "Security hardening is out of scope for this POC; production would inherit Katim's certified security stack.",
+    'settings.planned': 'Planned',
+    'settings.zeroTrust': 'Zero-Trust Architecture',
+    'settings.zeroTrustDesc': 'Planned: 6-layer zero-trust security model',
+    'settings.encryption': 'Encryption at Rest',
+    'settings.encryptionDesc': 'Planned: AES-256-GCM encryption at rest',
+    'settings.auditLog': 'Audit Logging',
+    'settings.auditLogDesc': 'Planned: complete event trail with tamper protection',
+    'settings.aiGuardrails': 'AI Security Guardrails',
+    'settings.aiGuardrailsDesc': 'Planned: prompt injection prevention and output filtering',
+    'settings.integrations': 'Integrations',
+    'settings.integrationJiraDesc': 'Bidirectional WBP ↔ Epic/Story sync',
+    'settings.integrationClaudeDesc': 'AI program assistant powered by Claude',
+    'settings.integrationSlackDesc': 'Notifications and standup summaries',
+    'settings.integrationTeamsDesc': 'Cross-team collaboration channels',
+    'settings.connected': 'Connected',
+    'settings.connect': 'Connect',
+    'settings.aboutTagline': 'AI-Native Cross-Team Workflow Platform — EDGE Group',
+    'settings.build': 'Build',
 
     // Common
     'common.search': 'Search',
@@ -355,6 +650,12 @@ const translations: Record<Locale, TranslationKeys> = {
     'common.language': 'Language',
     'common.english': 'English',
     'common.arabic': 'العربية',
+    'common.retry': 'Retry',
+    'common.failedToLoad': 'Failed to load data',
+    'common.somethingWentWrong': 'Something went wrong',
+    'common.active': 'Active',
+    'common.pending': 'Pending',
+    'common.noDescription': 'No description',
   },
 
   ar: {
@@ -366,6 +667,53 @@ const translations: Record<Locale, TranslationKeys> = {
     'nav.aiChat': 'المساعد الذكي',
     'nav.teams': 'الفرق',
     'nav.timeline': 'الجدول الزمني',
+    'nav.inbox': 'الوارد',
+
+    'inbox.title': 'الوارد',
+    'inbox.empty': 'أنجزت كل شيء',
+    'inbox.emptyHint': 'ستصل الإشارات والمهام وطلبات الاعتماد هنا',
+    'inbox.markAll': 'تعليم الكل كمقروء',
+    'inbox.markRead': 'تعليم كمقروء',
+    'inbox.unread': 'غير مقروء',
+    'discussion.title': 'النقاش',
+    'discussion.placeholder': 'اكتب تعليقًا — استخدم @ للإشارة إلى زميل',
+    'discussion.post': 'نشر',
+    'discussion.empty': 'لا توجد تعليقات بعد — ابدأ النقاش',
+    'approvals.title': 'الاعتمادات',
+    'approvals.request': 'طلب اعتماد',
+    'approvals.requestTitle': 'ما الذي يحتاج إلى توقيع؟',
+    'approvals.approver': 'المعتمِد',
+    'approvals.send': 'إرسال الطلب',
+    'approvals.approve': 'اعتماد',
+    'approvals.requestChanges': 'طلب تعديلات',
+    'approvals.reject': 'رفض',
+    'approvals.status.pending': 'قيد الانتظار',
+    'approvals.status.approved': 'معتمد',
+    'approvals.status.changes_requested': 'مطلوب تعديلات',
+    'approvals.status.rejected': 'مرفوض',
+    'architect.title': 'تصميم برنامج',
+    'architect.desc': 'صف البرنامج وسيقوم المهندس الذكي بتصميم الهيكل الكامل — الفرق وحزم العمل والمهام والمعالم والمخاطر والتبعيات. كل ما يُنشأ مبدئي حتى تراجعه.',
+    'architect.placeholder': 'مثال: برنامج اتصالات آمنة للطائرات المسيّرة مع مورّد هوائيات خارجي، ١٤ شهرًا، شاملًا الاعتماد…',
+    'architect.create': 'تصميم البرنامج',
+    'architect.designing': 'جارٍ تصميم البرنامج…',
+    'architect.successTitle': 'تم إنشاء البرنامج',
+    'architect.successDesc': '{name} هو الآن البرنامج النشط — راجع حزم العمل',
+    'architect.error': 'تعذر على المهندس إنشاء البرنامج. حاول مرة أخرى.',
+    'kanban.assign': 'إسناد إلى',
+    'kanban.unassigned': 'غير مسند',
+    'program.switch': 'تبديل البرنامج',
+    'program.new': 'برنامج جديد',
+    'create.headline': 'ماذا تبني؟',
+    'create.sub': 'صف المشروع — الجدول الزمني والفرق والأهداف — أو أرفق وثيقة المتطلبات. سيصمم المهندس الذكي البرنامج كاملًا: الفرق وحزم العمل والمهام والمعالم والمخاطر والتبعيات.',
+    'create.placeholder': 'مثال: أطوّر مشروعًا اسمه XCollab — منصة تعاون بين الفرق. الجدول الزمني ثلاثة أسابيع. الفرق: التصميم والجودة، ومن تراه ضروريًا. أنشئ الخطة الكاملة…',
+    'create.attach': 'إرفاق وثيقة متطلبات (.md / .txt)',
+    'create.examples': 'جرّب مثالًا',
+    'create.button': 'إنشاء البرنامج',
+    'create.skip': 'فتح البرنامج الحالي',
+    'create.stepTeams': 'جارٍ تشكيل الفرق…',
+    'create.stepWbps': 'جارٍ هيكلة حزم العمل والمهام…',
+    'create.stepSchedule': 'جارٍ جدولة المعالم والتبعيات…',
+    'create.stepFinish': 'جارٍ فتح مساحة العمل…',
     'nav.settings': 'الإعدادات',
     'nav.collapseSidebar': 'طي القائمة الجانبية',
     'nav.expandSidebar': 'توسيع القائمة الجانبية',
@@ -387,6 +735,13 @@ const translations: Record<Locale, TranslationKeys> = {
     'dashboard.offTrack': 'خارج المسار',
     'dashboard.milestones': 'المعالم',
     'dashboard.upcomingMilestones': 'المعالم القادمة',
+    'dashboard.burndownChart': 'مخطط الإنجاز التنازلي',
+    'dashboard.teamTasks': 'مهام الفرق',
+    'dashboard.countDone': '{count} منجزة',
+    'dashboard.countTotal': '{count} إجمالًا',
+    'dashboard.countMembers': '{count} عضوًا',
+    'dashboard.ideal': 'المثالي',
+    'dashboard.actual': 'الفعلي',
 
     // WBP
     'wbp.title': 'هيكل تقسيم العمل',
@@ -441,6 +796,9 @@ const translations: Record<Locale, TranslationKeys> = {
     'kanban.noTasks': 'لا توجد مهام',
     'kanban.dragHere': 'اسحب المهام هنا',
     'kanban.taskCount': '{count} مهمة',
+    'kanban.wipExceeded': 'تجاوز حد العمل',
+    'kanban.moveFailed': 'فشل النقل',
+    'kanban.moveFailedDesc': 'تعذر حفظ الموضع الجديد للمهمة.',
 
     // Task
     'task.title': 'العنوان',
@@ -494,11 +852,98 @@ const translations: Record<Locale, TranslationKeys> = {
     'aiChat.welcome': 'مرحباً! أنا المساعد الذكي لمنصة XCollab. يمكنني تحليل حالة حزم العمل، تحديد المخاطر، تتبع التبعيات، وتقديم رؤى إدارية لمشروع مشفّر الشبكة BRAIN.',
     'aiChat.error': 'فشل في الحصول على استجابة الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.',
     'aiChat.clearChat': 'مسح المحادثة',
+    'aiChat.clearFailed': 'فشل المسح',
+    'aiChat.clearFailedDesc': 'تعذر مسح المحادثة.',
+    'aiChat.actionBlockers': 'تحديد العوائق',
+    'aiChat.actionStandup': 'تقرير الاجتماع اليومي',
+    'aiChat.actionRisk': 'تحليل المخاطر',
+    'aiChat.actionSprint': 'خطة السبرنت',
+    'aiChat.actionResource': 'توزيع الموارد',
+    'aiChat.actionWbpSummary': 'ملخص حزم العمل',
+    'aiChat.agentRisk': 'محلل المخاطر',
+    'aiChat.agentOrchestrator': 'المنسّق',
+    'aiChat.agentAnalyst': 'المحلل',
 
     // Teams
     'team.title': 'الفريق',
     'team.members': 'الأعضاء',
     'team.lead': 'القائد',
+    'team.allRoles': 'جميع الأدوار',
+    'team.allTeams': 'جميع الفرق',
+    'team.noMembers': 'لم يتم العثور على أعضاء',
+    'team.joined': 'انضم {time}',
+    'team.role.admin': 'مسؤول',
+    'team.role.team-lead': 'قائد فريق',
+    'team.role.member': 'عضو',
+    'team.role.vendor': 'مورّد',
+
+    // Timeline
+    'timeline.title': 'الجدول الزمني للبرنامج',
+    'timeline.packages': 'حزمة',
+
+    // Header
+    'header.notifications': 'الإشعارات',
+    'header.markAllRead': 'تعليم الكل كمقروء',
+    'header.profile': 'الملف الشخصي',
+    'header.toggleNav': 'تبديل التنقل',
+
+    // Command Palette
+    'palette.placeholder': 'ابحث في حزم العمل والمهام والأعضاء والإجراءات...',
+    'palette.groupViews': 'العروض',
+    'palette.groupAiActions': 'إجراءات الذكاء الاصطناعي',
+    'palette.groupWorkPackages': 'حزم العمل',
+    'palette.groupMembers': 'الأعضاء',
+    'palette.navigateToView': 'الانتقال إلى العرض',
+    'palette.noResults': 'لم يتم العثور على نتائج',
+    'palette.navigate': 'تنقّل',
+    'palette.select': 'اختيار',
+    'palette.actionStandup': 'إنشاء تقرير الاجتماع اليومي',
+    'palette.actionBlockers': 'تحديد العوائق',
+    'palette.actionRisk': 'تقييم المخاطر',
+    'palette.actionCreateWbp': 'إنشاء حزمة عمل جديدة',
+    'palette.actionTaskSummary': 'ملخص المهام',
+
+    // Settings
+    'settings.appearance': 'المظهر',
+    'settings.theme': 'السمة',
+    'settings.themeDesc': 'السمة الداكنة مصممة لغرف العمليات؛ والسمة الفاتحة للمراجعة النهارية',
+    'settings.themeDark': 'داكن',
+    'settings.themeLight': 'فاتح',
+    'settings.themeSystem': 'النظام',
+    'settings.accentColor': 'لون التمييز',
+    'settings.accentColorDesc': 'برتقالي EDGE هو الافتراضي؛ وتركواز كاتم تكريمًا لشركة الاتصالات الآمنة',
+    'settings.languageDesc': 'لغة عرض الواجهة',
+    'settings.notifications': 'الإشعارات',
+    'settings.notifRisk': 'تنبيهات المخاطر',
+    'settings.notifRiskDesc': 'تلقّي إشعار عند رصد المخاطر أو تصعيدها',
+    'settings.notifMilestone': 'تذكيرات المعالم',
+    'settings.notifMilestoneDesc': 'تنبيهات قبل 7 أيام من مواعيد المعالم النهائية',
+    'settings.notifTasks': 'إسناد المهام',
+    'settings.notifTasksDesc': 'إشعار عند إسناد مهام إليك',
+    'settings.notifWbp': 'تغييرات حالة حزم العمل',
+    'settings.notifWbpDesc': 'تنبيهات عند تغيّر الصحة أو الحالة',
+    'settings.notifAi': 'رؤى الذكاء الاصطناعي',
+    'settings.notifAiDesc': 'تحليلات وتوصيات استباقية من الذكاء الاصطناعي',
+    'settings.security': 'الأمن والامتثال',
+    'settings.securityNote': 'تعزيز الأمان خارج نطاق هذا النموذج التجريبي؛ وسترث النسخة الإنتاجية منظومة الأمان المعتمدة لدى Katim.',
+    'settings.planned': 'مخطط له',
+    'settings.zeroTrust': 'بنية انعدام الثقة',
+    'settings.zeroTrustDesc': 'مخطط له: نموذج أمني من 6 طبقات قائم على انعدام الثقة',
+    'settings.encryption': 'تشفير البيانات المخزّنة',
+    'settings.encryptionDesc': 'مخطط له: تشفير AES-256-GCM للبيانات المخزّنة',
+    'settings.auditLog': 'سجل التدقيق',
+    'settings.auditLogDesc': 'مخطط له: سجل كامل للأحداث مع حماية من العبث',
+    'settings.aiGuardrails': 'ضوابط أمان الذكاء الاصطناعي',
+    'settings.aiGuardrailsDesc': 'مخطط له: منع حقن التعليمات وتصفية المخرجات',
+    'settings.integrations': 'التكاملات',
+    'settings.integrationJiraDesc': 'مزامنة ثنائية الاتجاه بين حزم العمل والملاحم/القصص',
+    'settings.integrationClaudeDesc': 'مساعد برامج ذكي مدعوم من Claude',
+    'settings.integrationSlackDesc': 'الإشعارات وملخصات الاجتماعات اليومية',
+    'settings.integrationTeamsDesc': 'قنوات تعاون بين الفرق',
+    'settings.connected': 'متصل',
+    'settings.connect': 'ربط',
+    'settings.aboutTagline': 'منصة سير عمل عابرة للفرق قائمة على الذكاء الاصطناعي — مجموعة EDGE',
+    'settings.build': 'إصدار',
 
     // Common
     'common.search': 'بحث',
@@ -531,6 +976,12 @@ const translations: Record<Locale, TranslationKeys> = {
     'common.language': 'اللغة',
     'common.english': 'English',
     'common.arabic': 'العربية',
+    'common.retry': 'إعادة المحاولة',
+    'common.failedToLoad': 'فشل تحميل البيانات',
+    'common.somethingWentWrong': 'حدث خطأ ما',
+    'common.active': 'نشط',
+    'common.pending': 'قيد الانتظار',
+    'common.noDescription': 'لا يوجد وصف',
   },
 };
 
@@ -545,6 +996,17 @@ export function useTranslation(locale: Locale) {
 // --- RTL helper ---
 export function isRTL(locale: Locale): boolean {
   return locale === 'ar';
+}
+
+// --- Relative time helper ---
+export function formatTimeAgo(locale: Locale, date: string): string {
+  const rtf = new Intl.RelativeTimeFormat(locale === 'ar' ? 'ar' : 'en', { numeric: 'auto' });
+  const seconds = Math.round((new Date(date).getTime() - Date.now()) / 1000);
+  const abs = Math.abs(seconds);
+  if (abs < 60) return rtf.format(seconds, 'second');
+  if (abs < 3600) return rtf.format(Math.trunc(seconds / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.trunc(seconds / 3600), 'hour');
+  return rtf.format(Math.trunc(seconds / 86400), 'day');
 }
 
 export { translations };

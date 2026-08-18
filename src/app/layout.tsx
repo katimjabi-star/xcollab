@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import Providers from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,10 +16,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "XCollab — Cross-Team Workflow Intelligence",
-  description: "AI-powered end-to-end workflow management for complex product development programs. Connect teams, track dependencies, and deliver with confidence.",
-  keywords: ["XCollab", "project management", "AI", "cross-team", "WBP", "workflow", "defense"],
+  description: "AI-powered end-to-end workflow management for complex product development programs. Built for EDGE Group and Katim.",
+  keywords: ["XCollab", "EDGE Group", "Katim", "project management", "AI", "cross-team", "WBP", "workflow", "defense"],
+  applicationName: "XCollab",
+  authors: [{ name: "EDGE Group — Katim" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
 };
 
@@ -32,7 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>

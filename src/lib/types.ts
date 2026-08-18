@@ -3,7 +3,7 @@
 // ============================================
 
 // --- View Types ---
-export type ViewType = 'dashboard' | 'wbp' | 'kanban' | 'dependencies' | 'ai-chat' | 'teams' | 'timeline' | 'settings';
+export type ViewType = 'create' | 'dashboard' | 'inbox' | 'wbp' | 'kanban' | 'dependencies' | 'ai-chat' | 'teams' | 'timeline' | 'settings';
 
 export type Locale = 'en' | 'ar';
 
@@ -231,12 +231,15 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   message: string;
-  programId: string;
 }
 
 export interface ChatResponse {
   reply: string;
-  conversationId?: string;
+}
+
+export interface ChatHistoryResponse {
+  programId: string;
+  messages: Array<{ id: string; role: string; content: string; createdAt: string }>;
 }
 
 // --- API Request/Response Types ---
@@ -245,6 +248,66 @@ export interface UpdateTaskPositionRequest {
   id: string;
   columnId: string;
   sortOrder: number;
+}
+
+export interface UpdateTasksRequest {
+  updates: UpdateTaskPositionRequest[];
+}
+
+// --- Collaboration ---
+
+export interface CommentWithAuthor {
+  id: string;
+  body: string;
+  authorId: string;
+  wbpId: string | null;
+  taskId: string | null;
+  createdAt: string;
+  author: { id: string; name: string; role: string; team: { color: string } | null };
+}
+
+export interface InboxNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  entityType: string | null;
+  entityId: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface InboxData {
+  notifications: InboxNotification[];
+  unreadCount: number;
+}
+
+export interface ApprovalWithMembers {
+  id: string;
+  wbpId: string;
+  title: string;
+  status: 'pending' | 'approved' | 'changes_requested' | 'rejected';
+  note: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  requestedBy: { id: string; name: string };
+  approver: { id: string; name: string };
+}
+
+export interface ProgramSummary {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ArchitectResult {
+  ok: boolean;
+  source: 'claude' | 'fallback';
+  programId: string;
+  name: string;
+  teams: number;
+  wbps: number;
 }
 
 // --- Activity Feed ---
@@ -267,7 +330,7 @@ export interface Notification {
   title: string;
   description: string;
   type: 'risk' | 'milestone' | 'task' | 'info' | 'approval';
- read: boolean;
+  read: boolean;
   entityType: string;
   entityId: string;
   timestamp: string;

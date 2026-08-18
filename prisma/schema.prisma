@@ -44,6 +44,10 @@ model Member {
   teamId         String?
   team           Team?          @relation(fields: [teamId], references: [id])
   assignedTasks  Task[]
+  comments       Comment[]      @relation("CommentAuthor")
+  notifications  Notification[] @relation("NotificationTarget")
+  approvalsRequested Approval[] @relation("ApprovalRequester")
+  approvalsToDecide  Approval[] @relation("ApprovalApprover")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -87,6 +91,7 @@ model WBP {
   milestones  Milestone[]
   dependenciesFrom Dependency[] @relation("DepFrom")
   dependenciesTo   Dependency[] @relation("DepTo")
+  approvals   Approval[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -147,4 +152,42 @@ model AIConversation {
   content   String
   programId String?
   createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  authorId  String
+  author    Member   @relation("CommentAuthor", fields: [authorId], references: [id])
+  wbpId     String?
+  taskId    String?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  memberId   String
+  member     Member    @relation("NotificationTarget", fields: [memberId], references: [id])
+  type       String
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+}
+
+model Approval {
+  id            String    @id @default(cuid())
+  wbpId         String
+  wbp           WBP       @relation(fields: [wbpId], references: [id])
+  requestedById String
+  requestedBy   Member    @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  approverId    String
+  approver      Member    @relation("ApprovalApprover", fields: [approverId], references: [id])
+  title         String
+  status        String    @default("pending")
+  note          String?
+  decidedAt     DateTime?
+  createdAt     DateTime  @default(now())
 }

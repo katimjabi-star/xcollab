@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { ViewType, Locale } from './types';
 
+export type ThemeMode = 'dark' | 'light' | 'system';
+
 // ============================================
 // XCollab — Zustand Store
 // ============================================
@@ -30,6 +32,12 @@ interface AppState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
 
+  // --- Theme ---
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  accent: string;
+  setAccent: (accent: string) => void;
+
   // --- AI Chat Panel ---
   aiChatOpen: boolean;
   setAiChatOpen: (open: boolean) => void;
@@ -53,15 +61,14 @@ interface AppState {
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
 
-  // --- Notifications ---
-  notifications: Array<{id:string; title:string; description:string; type:string; read:boolean; timestamp:string}>;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
+  // --- AI prompt handoff (command palette → chat view) ---
+  pendingAiPrompt: string | null;
+  setPendingAiPrompt: (prompt: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   // Navigation
-  currentView: 'dashboard',
+  currentView: 'create',
   setView: (view) => set({ currentView: view }),
 
   // Selections
@@ -83,6 +90,12 @@ export const useAppStore = create<AppState>((set) => ({
   // Locale
   locale: 'en',
   setLocale: (locale) => set({ locale }),
+
+  // Theme
+  theme: 'dark',
+  setTheme: (theme) => set({ theme }),
+  accent: '#FF4713',
+  setAccent: (accent) => set({ accent }),
 
   // AI Chat
   aiChatOpen: false,
@@ -107,18 +120,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
 
-  // Notifications
-  notifications: [
-    { id: 'n1', title: 'WBP-210 milestone approaching', description: 'Post-Quantum Crypto Module — 3 weeks to deadline', type: 'milestone', read: false, timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString() },
-    { id: 'n2', title: 'Critical risk flagged', description: 'FIPS 140-2 L4 lab availability — 6-month lead time', type: 'risk', read: false, timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
-    { id: 'n3', title: 'Task moved to Review', description: 'FIPS 140-2 L4 test vectors → Review', type: 'task', read: false, timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString() },
-    { id: 'n4', title: 'New member joined', description: 'Omar Al-Farsi joined Hardware Engineering', type: 'info', read: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString() },
-    { id: 'n5', title: 'WBP-100 approval pending', description: 'Hardware Platform scope review needs your sign-off', type: 'approval', read: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString() },
-  ],
-  markNotificationRead: (id) => set((state) => ({
-    notifications: state.notifications.map((n) => n.id === id ? { ...n, read: true } : n),
-  })),
-  markAllNotificationsRead: () => set((state) => ({
-    notifications: state.notifications.map((n) => ({ ...n, read: true })),
-  })),
+  // AI prompt handoff
+  pendingAiPrompt: null,
+  setPendingAiPrompt: (prompt) => set({ pendingAiPrompt: prompt }),
 }));

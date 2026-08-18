@@ -37,17 +37,17 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-xcollab-orange: #FF4713;
-  --color-xcollab-orange-light: #FF6B35;
-  --color-xcollab-orange-dark: #E94A26;
-  --color-xcollab-dark: #0A0A0F;
-  --color-xcollab-surface: #12121A;
-  --color-xcollab-surface-2: #1A1A25;
-  --color-xcollab-surface-3: #222230;
-  --color-xcollab-border: #2A2A3A;
-  --color-xcollab-text: #E8E8ED;
-  --color-xcollab-text-body: #B0B0C0;
-  --color-xcollab-text-muted: #71717A;
+  --color-xcollab-orange: var(--brand);
+  --color-xcollab-orange-light: var(--brand-hover);
+  --color-xcollab-orange-dark: var(--brand);
+  --color-xcollab-dark: var(--bg-0);
+  --color-xcollab-surface: var(--surface);
+  --color-xcollab-surface-2: var(--surface-2);
+  --color-xcollab-surface-3: var(--surface-3);
+  --color-xcollab-border: var(--line);
+  --color-xcollab-text: var(--ink-1);
+  --color-xcollab-text-body: var(--ink-2);
+  --color-xcollab-text-muted: var(--ink-3);
   --color-xcollab-success: #22C55E;
   --color-xcollab-warning: #F59E0B;
   --color-xcollab-danger: #EF4444;
@@ -57,6 +57,14 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+
+/* ============================================
+   XCollab semantic tokens — EDGE Group / Katim
+   Dark ("Obsidian Command") is the default; the
+   .light class flips the ground to "Signal White".
+   The accent (--brand) is user-switchable at runtime:
+   EDGE Orange by default, Katim Teal and others in Settings.
+   ============================================ */
 
 :root {
   /* Spacing scale (8px grid) */
@@ -83,58 +91,70 @@
   --text-4xl: 48px;
 
   --radius: 0.625rem;
-  --background: #0A0A0F;
-  --foreground: #E8E8ED;
-  --card: #12121A;
-  --card-foreground: #E8E8ED;
-  --popover: #12121A;
-  --popover-foreground: #E8E8ED;
-  --primary: #FF4713;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1A1A25;
-  --secondary-foreground: #E8E8ED;
-  --muted: #1A1A25;
-  --muted-foreground: #71717A;
-  --accent: #222230;
-  --accent-foreground: #E8E8ED;
+
+  /* Brand accent (runtime-switchable) */
+  --brand: #FF4713;
+  --brand-hover: color-mix(in srgb, var(--brand) 82%, white);
+  --brand-fg: #FFFFFF;
+
+  /* Obsidian Command (dark) ramp */
+  --bg-0: #050507;
+  --bg-1: #0A0A0E;
+  --surface: #101017;
+  --surface-2: #171720;
+  --surface-3: #1F1F2A;
+  --line: #26262F;
+  --line-strong: #34343F;
+  --ink-1: #F2F2F5;
+  --ink-2: #A9A9B7;
+  --ink-3: #787886;
+
+  /* shadcn mappings */
+  --background: var(--bg-0);
+  --foreground: var(--ink-1);
+  --card: var(--surface);
+  --card-foreground: var(--ink-1);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink-1);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink-1);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-3);
+  --accent: var(--surface-3);
+  --accent-foreground: var(--ink-1);
   --destructive: #EF4444;
-  --border: #2A2A3A;
-  --input: #2A2A3A;
-  --ring: #FF4713;
-  --chart-1: #FF4713;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
   --chart-2: #FF6B35;
   --chart-3: #FFA94D;
   --chart-4: #FFC078;
   --chart-5: #444B52;
-  --sidebar: #0D0D14;
-  --sidebar-foreground: #E8E8ED;
-  --sidebar-primary: #FF4713;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1A1A25;
-  --sidebar-accent-foreground: #E8E8ED;
-  --sidebar-border: #2A2A3A;
-  --sidebar-ring: #FF4713;
+  --sidebar: var(--bg-1);
+  --sidebar-foreground: var(--ink-1);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-fg);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--ink-1);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--brand);
 }
 
-.dark {
-  --background: #0A0A0F;
-  --foreground: #E8E8ED;
-  --card: #12121A;
-  --card-foreground: #E8E8ED;
-  --popover: #12121A;
-  --popover-foreground: #E8E8ED;
-  --primary: #FF4713;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1A1A25;
-  --secondary-foreground: #E8E8ED;
-  --muted: #1A1A25;
-  --muted-foreground: #71717A;
-  --accent: #222230;
-  --accent-foreground: #E8E8ED;
-  --destructive: #EF4444;
-  --border: #2A2A3A;
-  --input: #2A2A3A;
-  --ring: #FF4713;
+/* Signal White (light) ramp */
+.light {
+  --bg-0: #F4F4F1;
+  --bg-1: #FBFBF9;
+  --surface: #FFFFFF;
+  --surface-2: #F3F3EF;
+  --surface-3: #EAEAE4;
+  --line: #E0DFD8;
+  --line-strong: #CBCAC2;
+  --ink-1: #141317;
+  --ink-2: #4A4952;
+  --ink-3: #8B8A94;
 }
 
 @layer base {
@@ -143,10 +163,17 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-geist-sans), 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Ambient brand wash at the top of the ground plane */
+    background-image: radial-gradient(
+      1100px 520px at 78% -12%,
+      color-mix(in srgb, var(--brand) 5%, transparent),
+      transparent 70%
+    );
+    background-attachment: fixed;
   }
 }
 
@@ -165,16 +192,30 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.14);
 }
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.14);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
 
-/* ---- Glow Effects ---- */
+/* ---- Glow Effects (brand-aware) ---- */
 .glow-orange {
-  box-shadow: 0 0 20px rgba(255, 71, 19, 0.15), 0 0 40px rgba(255, 71, 19, 0.05);
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--brand) 15%, transparent),
+    0 0 40px color-mix(in srgb, var(--brand) 5%, transparent);
 }
 .glow-orange-sm {
-  box-shadow: 0 0 10px rgba(255, 71, 19, 0.1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 10%, transparent);
 }
 .text-glow {
-  text-shadow: 0 0 20px rgba(255, 71, 19, 0.3);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.glow-brand-logo {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.glow-brand-avatar {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 /* ---- Glass Card Effect ---- */
@@ -193,10 +234,23 @@
   border-radius: inherit;
   pointer-events: none;
 }
+.light .card-glass {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), transparent);
+}
+.light .card-glass::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+}
 
 /* ---- Card Depth Shadow ---- */
 .card-depth {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 71, 19, 0.06);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 1px color-mix(in srgb, var(--brand) 6%, transparent);
+}
+.light .card-depth {
+  box-shadow:
+    0 1px 2px rgba(20, 19, 23, 0.06),
+    0 4px 16px rgba(20, 19, 23, 0.05);
 }
 
 /* ---- Card Hover Micro-Interaction ---- */
@@ -206,7 +260,13 @@
 .card-hover:hover {
   transform: scale(1.005);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 71, 19, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 1px color-mix(in srgb, var(--brand) 8%, transparent);
+}
+.light .card-hover:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 4px 14px rgba(20, 19, 23, 0.1);
 }
 
 /* ---- Section Accent Bar ---- */
@@ -222,7 +282,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 16px;
-  background: #FF4713;
+  background: var(--brand);
   border-radius: 2px;
 }
 [dir="rtl"] .section-accent::before {
@@ -236,15 +296,15 @@
   overflow: hidden;
 }
 .progress-orange [data-slot="indicator"] {
-  background: linear-gradient(90deg, #FF4713, #FF6B35);
-  box-shadow: 0 0 8px rgba(255, 71, 19, 0.4);
+  background: linear-gradient(90deg, var(--brand), var(--brand-hover));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 40%, transparent);
 }
 
 /* ---- Grid Background Pattern ---- */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(255, 71, 19, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 71, 19, 0.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--brand) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--brand) 3%, transparent) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -258,7 +318,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #FF4713, #FF6B35, #FF4713);
+  background: linear-gradient(135deg, var(--brand), var(--brand-hover), var(--brand));
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
@@ -278,8 +338,8 @@
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: rgba(255, 71, 19, 0.06);
-  border: 1px solid rgba(255, 71, 19, 0.1);
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 10%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

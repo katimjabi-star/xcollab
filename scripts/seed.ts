@@ -31,7 +31,7 @@ async function seed() {
   const alice = await db.member.create({ data: { name: 'Alice Al-Rashid', email: 'alice@edgegroup.ae', role: 'team-lead', organizationId: org.id, teamId: hwTeam.id } })
   const bob = await db.member.create({ data: { name: 'Bob Chen', email: 'bob@edgegroup.ae', role: 'member', organizationId: org.id, teamId: fwTeam.id } })
   const charlie = await db.member.create({ data: { name: 'Charlie Santos', email: 'charlie@edgegroup.ae', role: 'member', organizationId: org.id, teamId: secTeam.id } })
-  const diana = await db.member.create({ data: { name: 'Diana Kallio', email: 'diana@edgegroup.fi', role: 'team-lead', organizationId: org.id, teamId: swTeam.id } })
+  const diana = await db.member.create({ data: { name: 'Diana Kallio', email: 'diana@edgegroup.ae', role: 'team-lead', organizationId: org.id, teamId: swTeam.id } })
   const emma = await db.member.create({ data: { name: 'Emma Zhang', email: 'emma@edgegroup.ae', role: 'member', organizationId: org.id, teamId: qaTeam.id } })
   const frank = await db.member.create({ data: { name: 'Frank Muller', email: 'frank@kerno.com', role: 'vendor', organizationId: org.id, teamId: vendorTeam.id } })
   const grace = await db.member.create({ data: { name: 'Grace Hassan', email: 'grace@edgegroup.ae', role: 'admin', organizationId: org.id, teamId: pmTeam.id } })

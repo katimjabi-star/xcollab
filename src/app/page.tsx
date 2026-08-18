@@ -4,7 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import AppLayout from '@/components/layout/AppLayout';
 import CommandPalette from '@/components/CommandPalette';
+import CreateProgramView from '@/components/views/CreateProgramView';
 import DashboardView from '@/components/views/DashboardView';
+import InboxView from '@/components/views/InboxView';
 import WBPExplorerView from '@/components/views/WBPExplorerView';
 import KanbanView from '@/components/views/KanbanView';
 import DependenciesView from '@/components/views/DependenciesView';
@@ -16,7 +18,9 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import type { ViewType } from '@/lib/types';
 
 const VIEW_COMPONENTS: Record<ViewType, React.ComponentType> = {
+  create: CreateProgramView,
   dashboard: DashboardView,
+  inbox: InboxView,
   wbp: WBPExplorerView,
   kanban: KanbanView,
   dependencies: DependenciesView,

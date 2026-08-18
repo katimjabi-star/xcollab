@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRightLeft, Inbox } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import ErrorState from '@/components/ErrorState';
 import { useAppStore } from '@/lib/store';
+import { useProgram } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
-import type { WBPFlat, DependencyWithWBPs, ProgramDashboardData } from '@/lib/types';
+import type { WBPFlat } from '@/lib/types';
 
 const HEALTH_COLORS: Record<string, string> = {
   'on-track': '#22C55E',
@@ -77,21 +79,10 @@ function flattenDeps(wbps: WBPFlat[]): Edge[] {
 export default function DependenciesView() {
   const { locale } = useAppStore();
   const { t } = useTranslation(locale);
-  const [data, setData] = useState<ProgramDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error, refetch } = useProgram();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    fetch('/api/program')
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   const { nodes, edges } = useMemo(() => {
     if (!data) return { nodes: [] as FlatWBP[], edges: [] as Edge[] };
@@ -137,6 +128,10 @@ export default function DependenciesView() {
   const svgW = nodes.length > 0 ? Math.max(...nodes.map((n) => n.x)) + 300 : 800;
   const svgH = nodes.length > 0 ? Math.max(...nodes.map((n) => n.y)) + 200 : 500;
 
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -150,9 +145,9 @@ export default function DependenciesView() {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <div className="empty-state-icon">
-          <ArrowRightLeft className="w-8 h-8 text-[#71717A]" />
+          <ArrowRightLeft className="w-8 h-8 text-[var(--ink-3)]" />
         </div>
-        <p className="text-sm text-[#71717A]">{t('dependencies.noDependencies')}</p>
+        <p className="text-sm text-[var(--ink-3)]">{t('dependencies.noDependencies')}</p>
       </div>
     );
   }
@@ -160,22 +155,22 @@ export default function DependenciesView() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-1.5 h-6 bg-[#FF4713] rounded-full" />
-        <ArrowRightLeft className="w-5 h-5 text-[#FF4713]" />
-        <h2 className="text-xl font-bold text-[#E8E8ED]">{t('dependencies.title')}</h2>
-        <Badge variant="outline" className="text-[11px] ms-2 border-xcollab-border/60 text-[#71717A]">
+        <div className="w-1.5 h-6 bg-[var(--brand)] rounded-full" />
+        <ArrowRightLeft className="w-5 h-5 text-[var(--brand)]" />
+        <h2 className="text-xl font-bold text-[var(--ink-1)]">{t('dependencies.title')}</h2>
+        <Badge variant="outline" className="text-[11px] ms-2 border-xcollab-border/60 text-[var(--ink-3)]">
           {validEdges.length} {t('dependencies.title').toLowerCase()}
         </Badge>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 mb-6 text-xs text-[#71717A]">
+      <div className="flex items-center gap-6 mb-6 text-xs text-[var(--ink-3)]">
         <div className="flex items-center gap-1.5">
           <div className="w-6 h-0 border-t-2 border-[#EF4444]" />
           <span>{t('dependencies.blocks')}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-6 h-0 border-t-2 border-dashed border-[#71717A]" />
+          <div className="w-6 h-0 border-t-2 border-dashed border-[var(--ink-3)]" />
           <span>{t('dependencies.relatesTo')}</span>
         </div>
       </div>
@@ -250,7 +245,7 @@ export default function DependenciesView() {
                   <Card
                     className={`cursor-pointer transition-all rounded-xl border card-glass ${
                       selectedId === node.id
-                        ? 'border-[#FF4713]/50 glow-orange-sm'
+                        ? 'border-[var(--brand)]/50 glow-orange-sm'
                         : 'border-xcollab-border/40 hover:border-xcollab-border/80'
                     }`}
                     style={{
@@ -266,7 +261,7 @@ export default function DependenciesView() {
                             boxShadow: `0 0 8px ${HEALTH_COLORS[node.health] || '#71717A'}40`,
                           }}
                         />
-                        <span className="text-[11px] font-mono text-[#71717A]">{node.code}</span>
+                        <span className="text-[11px] font-mono text-[var(--ink-3)]">{node.code}</span>
                         <div className="ms-auto">
                           <span
                             className="w-2.5 h-2.5 rounded-full block"
@@ -274,7 +269,7 @@ export default function DependenciesView() {
                           />
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-[#B0B0C0] line-clamp-2 leading-snug">
+                      <p className="text-sm font-medium text-[var(--ink-2)] line-clamp-2 leading-snug">
                         {node.name}
                       </p>
                     </CardContent>
