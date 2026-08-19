@@ -35,6 +35,31 @@ interface Dictionary {
   statPackages: string;
   statTasks: string;
   statChain: string;
+  statusTodo: string;
+  statusInProgress: string;
+  statusBlocked: string;
+  statusDone: string;
+  actorHuman: string;
+  actorAi: string;
+  actorService: string;
+  severityLow: string;
+  severityMedium: string;
+  severityHigh: string;
+  severityCritical: string;
+  colSeq: string;
+  colActor: string;
+  colAction: string;
+  colModel: string;
+  colTime: string;
+  colHash: string;
+  colPrevHash: string;
+  chainIntact: string;
+  chainBrokenAt: string;
+  backToPrograms: string;
+  notFound: string;
+  openProgram: string;
+  estimateDaysSuffix: string;
+  ledgerEmpty: string;
 }
 
 export const STRINGS: Record<UiLanguage, Dictionary> = {
@@ -74,6 +99,31 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     statPackages: "Work packages",
     statTasks: "Tasks",
     statChain: "Chain integrity",
+    statusTodo: "To do",
+    statusInProgress: "In progress",
+    statusBlocked: "Blocked",
+    statusDone: "Done",
+    actorHuman: "Human",
+    actorAi: "AI",
+    actorService: "Service",
+    severityLow: "Low",
+    severityMedium: "Medium",
+    severityHigh: "High",
+    severityCritical: "Critical",
+    colSeq: "Seq",
+    colActor: "Actor",
+    colAction: "Action",
+    colModel: "Model",
+    colTime: "Occurred at",
+    colHash: "Hash",
+    colPrevHash: "Previous hash",
+    chainIntact: "Every entry verifies against its content hash and links to its predecessor.",
+    chainBrokenAt: "Chain verification failed",
+    backToPrograms: "Back to programs",
+    notFound: "Program not found.",
+    openProgram: "Open",
+    estimateDaysSuffix: "days",
+    ledgerEmpty: "No ledger entries yet. Generate a program to create the first one.",
   },
   ar: {
     brand: "إكس‌كولاب",
@@ -110,5 +160,30 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     statPackages: "حزم العمل",
     statTasks: "المهام",
     statChain: "سلامة السلسلة",
+    statusTodo: "قيد الانتظار",
+    statusInProgress: "قيد التنفيذ",
+    statusBlocked: "معلّق",
+    statusDone: "مكتمل",
+    actorHuman: "إنسان",
+    actorAi: "ذكاء اصطناعي",
+    actorService: "خدمة",
+    severityLow: "منخفضة",
+    severityMedium: "متوسطة",
+    severityHigh: "مرتفعة",
+    severityCritical: "حرجة",
+    colSeq: "التسلسل",
+    colActor: "الفاعل",
+    colAction: "الإجراء",
+    colModel: "النموذج",
+    colTime: "وقت الحدوث",
+    colHash: "البصمة",
+    colPrevHash: "البصمة السابقة",
+    chainIntact: "كل إدخال يتحقق من بصمته ويرتبط بسابقه.",
+    chainBrokenAt: "فشل التحقق من السلسلة",
+    backToPrograms: "العودة إلى البرامج",
+    notFound: "البرنامج غير موجود.",
+    openProgram: "فتح",
+    estimateDaysSuffix: "أيام",
+    ledgerEmpty: "لا توجد إدخالات بعد. ولّد برنامجًا لإنشاء أول إدخال.",
   },
 };

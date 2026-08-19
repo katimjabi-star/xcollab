@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { AppShell } from "../components/app-shell.tsx";
+import { UiProvider } from "../lib/ui-context.tsx";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +19,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <UiProvider>
+          <AppShell>{children}</AppShell>
+        </UiProvider>
+      </body>
     </html>
   );
 }

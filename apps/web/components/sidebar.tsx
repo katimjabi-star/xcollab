@@ -1,33 +1,43 @@
+import Link from "next/link";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+import { NAV_ITEMS } from "../lib/nav.ts";
+import { BrandLogo } from "./brand-logo.tsx";
 
-const NAV_ICONS = { overview: "▦", programs: "◫", ledger: "⛓", teams: "◔" } as const;
+interface SidebarProps {
+  uiLanguage: UiLanguage;
+  pathname: string;
+}
 
-export function Sidebar({ uiLanguage }: { uiLanguage: UiLanguage }) {
+export function Sidebar({ uiLanguage, pathname }: SidebarProps) {
   const t = STRINGS[uiLanguage];
-  const items = [
-    { icon: NAV_ICONS.overview, label: t.navOverview, active: true },
-    { icon: NAV_ICONS.programs, label: t.navPrograms, active: false },
-    { icon: NAV_ICONS.ledger, label: t.navLedger, active: false },
-    { icon: NAV_ICONS.teams, label: t.navTeams, active: false },
-  ];
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
   return (
     <aside className="sidebar">
-      <span className="brand">{t.brand}</span>
+      <span className="brand">
+        <BrandLogo />
+      </span>
       <nav className="nav" aria-label="primary">
-        {items.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className={item.active ? "nav-item active" : "nav-item"}
-            disabled={!item.active}
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={isActive(item.href) ? "nav-item active" : "nav-item"}
           >
             <span className="nav-icon" aria-hidden>
               {item.icon}
             </span>
-            <span className="nav-label">{item.label}</span>
-            {item.active ? null : <span className="nav-soon">{t.navSoon}</span>}
-          </button>
+            <span className="nav-label">{t[item.labelKey]}</span>
+          </Link>
         ))}
+        <span className="nav-item" aria-disabled>
+          <span className="nav-icon" aria-hidden>
+            ◔
+          </span>
+          <span className="nav-label">{t.navTeams}</span>
+          <span className="nav-soon">{t.navSoon}</span>
+        </span>
       </nav>
       <div className="sidebar-foot">
         <span className="workspace-dot" aria-hidden />

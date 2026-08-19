@@ -211,6 +211,7 @@ body {
   width: 100%;
   border: none;
   background: none;
+  text-decoration: none;
   color: var(--text-medium);
   font: inherit;
   font-size: 0.92rem;
@@ -325,6 +326,38 @@ body {
   color: var(--text-brand);
 }
 
+/* ---- XCollab wordmark ---- */
+.logo {
+  display: inline-block;
+  font-family: var(--font-latin);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text-highest);
+  line-height: 1;
+  user-select: none;
+}
+
+.logo-x {
+  color: transparent;
+  -webkit-text-stroke: 1.4px var(--text-highest);
+}
+
+.logo-b {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-bar {
+  position: absolute;
+  top: -0.34em;
+  inset-inline-start: 0.06em;
+  width: 0.92em;
+  height: 0.24em;
+  background: var(--brand);
+}
+
 /* ---- Stats row ---- */
 .stats-row {
   display: grid;
@@ -364,6 +397,136 @@ body {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-medium);
+}
+
+/* ---- Data table (ledger explorer) ---- */
+.table-wrap {
+  overflow-x: auto;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-card);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.data-table th {
+  text-align: start;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--divider-low);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--divider-low);
+  color: var(--text-high);
+  vertical-align: top;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.hash {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+.banner {
+  border-radius: var(--radius-card);
+  padding: 0.8rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ---- Status pills (task states) ---- */
+.status-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.12rem 0.6rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill.todo {
+  background: var(--surface-thin);
+  color: var(--text-medium);
+}
+
+.status-pill.in_progress {
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
+}
+
+.status-pill.blocked {
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  color: var(--warning);
+}
+
+.status-pill.done {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.back-link {
+  color: var(--text-brand);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-link:hover .program-card {
+  border-color: var(--chip-selected-border);
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--divider-low);
+  font-size: 0.9rem;
+  color: var(--text-high);
+}
+
+.task-list li:last-child {
+  border-bottom: none;
+}
+
+.task-meta {
+  color: var(--text-medium);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .programs-grid {
@@ -550,12 +713,15 @@ button:focus-visible {
   font-weight: 600;
 }
 
-.chip.good {
+/* Shared success/error variant: chain-state chip and ledger banner stay in lockstep. */
+.chip.good,
+.banner.good {
   background: var(--success-tint);
   color: var(--success);
 }
 
-.chip.bad {
+.chip.bad,
+.banner.bad {
   background: var(--error-tint);
   color: var(--error);
 }
