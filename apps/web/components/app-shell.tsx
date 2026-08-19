@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { routeLabelKey } from "../lib/nav.ts";
 import { useUi } from "../lib/ui-context.tsx";
 import { Sidebar } from "./sidebar.tsx";
+import { UserMenu } from "./user-menu.tsx";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { language, toggleLanguage, themeMode, cycleTheme, t, dir } = useUi();
@@ -29,6 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button type="button" className="lang-toggle" onClick={toggleLanguage}>
               {t.languageToggle}
             </button>
+            <UserMenu />
           </div>
         </header>
         {children}

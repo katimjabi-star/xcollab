@@ -82,6 +82,12 @@ interface Dictionary {
   undo: string;
   close: string;
   lastTaskInPackage: string;
+  signIn: string;
+  signInHint: string;
+  signingIn: string;
+  sessionExpired: string;
+  signOut: string;
+  loggedInAs: string;
 }
 
 export const STRINGS: Record<UiLanguage, Dictionary> = {
@@ -168,6 +174,12 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     undo: "Undo",
     close: "Close",
     lastTaskInPackage: "This is the last task in its package and can't be deleted.",
+    signIn: "Sign in",
+    signInHint: "Sign in with your workspace account to continue.",
+    signingIn: "Signing in…",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    signOut: "Sign out",
+    loggedInAs: "Signed in as",
   },
   ar: {
     brand: "إكس‌كولاب",
@@ -251,5 +263,11 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     undo: "تراجع",
     close: "إغلاق",
     lastTaskInPackage: "هذه آخر مهمة في حزمتها ولا يمكن حذفها.",
+    signIn: "تسجيل الدخول",
+    signInHint: "سجّل الدخول بحساب مساحة العمل للمتابعة.",
+    signingIn: "جارٍ تسجيل الدخول…",
+    sessionExpired: "انتهت صلاحية الجلسة. يُرجى تسجيل الدخول مجددًا.",
+    signOut: "تسجيل الخروج",
+    loggedInAs: "مسجَّل الدخول باسم",
   },
 };

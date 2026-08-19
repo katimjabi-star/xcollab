@@ -82,6 +82,8 @@
   --info: #2563eb;
   --surface-thin: rgba(152, 155, 157, 0.16); /* surface/transparent/thin */
   --state-pressed: rgba(0, 0, 0, 0.12); /* state/pressed */
+  --avatar-bg: #cccccc;
+  --avatar-fg: #3d3d3d;
   --font-latin: "Inter", -apple-system, "Segoe UI", Arial, sans-serif;
   --font-arabic: "Cairo", "Noto Sans Arabic", "Inter", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -121,6 +123,8 @@
     --info: #3b82f6;
     --surface-thin: rgba(179, 180, 181, 0.12);
     --state-pressed: rgba(255, 255, 255, 0.1);
+    --avatar-bg: #3d3d3d;
+    --avatar-fg: #cccccc;
   }
 }
 
@@ -154,6 +158,8 @@
   --info: #3b82f6;
   --surface-thin: rgba(179, 180, 181, 0.12);
   --state-pressed: rgba(255, 255, 255, 0.1);
+  --avatar-bg: #3d3d3d;
+  --avatar-fg: #cccccc;
 }
 
 * {
@@ -1448,6 +1454,252 @@ button:focus-visible {
   }
 
   .toast {
+    animation: none;
+  }
+}
+
+/* ---- Auth: login gate + user menu ---- */
+
+/* =========================================================
+   A. LOGIN GATE — full-viewport, replaces .app entirely
+   ========================================================= */
+.login-gate {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 1.25rem;
+  background: var(--background);
+  text-align: center;
+}
+
+/* Scale the existing wordmark up without touching .logo itself. */
+.login-gate .logo {
+  font-size: 2.6rem;
+}
+
+.login-tagline {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-medium);
+  max-width: 34ch;
+  text-wrap: balance;
+}
+
+/* KDS high-emphasis CTA — same skin as .generate-btn. */
+.login-cta {
+  border: none;
+  border-radius: var(--radius);
+  background: var(--button-primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 2.5rem;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.login-cta:hover {
+  opacity: 0.9;
+}
+
+/* While redirecting to Keycloak (label swaps to t.signingIn). */
+.login-cta:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Shown only when the gate was reached via an expired session
+   (t.sessionExpired). Omitted from the DOM otherwise. */
+.login-note {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--error);
+  background: var(--error-tint);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+}
+
+/* "Sovereign deployment · <workspace>" — pinned visually to the bottom
+   by the spacer margins, stays in normal flow. */
+.login-foot {
+  margin-top: auto;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-low);
+}
+
+/* Push the brand block toward optical center despite the footer. */
+.login-body {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* =========================================================
+   B. USER MENU — topbar, after .lang-toggle
+   z-index: trigger sits in .topbar (10); menu 20 stays under
+   panel overlay (29), panel (30), toasts (40).
+   ========================================================= */
+.user-menu {
+  position: relative;
+}
+
+/* Trigger: avatar + username, pill skin matching .lang-toggle. */
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border-low);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem 0.2rem 0.25rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+/* Logical padding flip for RTL: keep avatar snug on the inline-start side. */
+[dir="rtl"] .user-menu-trigger {
+  padding: 0.2rem 0.25rem 0.2rem 0.75rem;
+}
+
+.user-menu-trigger:hover {
+  border-color: var(--chip-selected-border);
+}
+
+.user-menu-trigger:active {
+  background: var(--state-pressed);
+}
+
+.avatar {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: var(--avatar-bg);
+  color: var(--avatar-fg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.user-menu-name {
+  max-width: 10rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Popover — KDS solid surface, never translucent. --card family only. */
+.user-menu-popover {
+  position: absolute;
+  inset-block-start: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  min-width: 14rem;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 24px var(--state-pressed);
+  padding: 0.4rem;
+  z-index: 20;
+  animation: user-menu-in 150ms ease;
+}
+
+@keyframes user-menu-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.25rem; /* vertical only — RTL-safe */
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Identity header: "Signed in as" eyebrow, full name, email. */
+.user-menu-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.65rem 0.6rem;
+  border-bottom: 1px solid var(--divider-low);
+  margin-bottom: 0.3rem;
+}
+
+.user-menu-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+.user-menu-fullname {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-highest);
+}
+
+.user-menu-email {
+  font-size: 0.8rem;
+  color: var(--text-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr; /* email is always LTR, even in AR UI */
+  text-align: start;
+}
+
+/* Sign out item — destructive-tinted menu row. */
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--error);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.user-menu-item:hover {
+  background: var(--error-tint);
+}
+
+@media (max-width: 900px) {
+  .user-menu-name {
+    display: none;
+  }
+
+  .user-menu-trigger {
+    padding: 0.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-menu-popover {
     animation: none;
   }
 }

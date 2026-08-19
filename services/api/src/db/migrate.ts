@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 
 const APP_ROLE_PASSWORD = process.env.APP_DB_PASSWORD ?? "app_dev_only";
 
@@ -8,7 +8,25 @@ const APP_ROLE_PASSWORD = process.env.APP_DB_PASSWORD ?? "app_dev_only";
  * SELECT on ledger_entries — UPDATE/DELETE are never granted.
  * occurred_at is stored as the exact ISO string used in the content hash.
  */
+// Serializes concurrent migrate() calls (e.g. parallel test workers): Postgres
+// throws "tuple concurrently updated" on concurrent GRANTs to the same objects.
+const MIGRATE_LOCK_KEY = 727_001;
+
 export async function migrate(admin: Pool): Promise<void> {
+  const client = await admin.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock($1)", [MIGRATE_LOCK_KEY]);
+    try {
+      await runMigration(client);
+    } finally {
+      await client.query("SELECT pg_advisory_unlock($1)", [MIGRATE_LOCK_KEY]);
+    }
+  } finally {
+    client.release();
+  }
+}
+
+async function runMigration(admin: PoolClient): Promise<void> {
   await admin.query(`
     CREATE TABLE IF NOT EXISTS programs (
       workspace_id TEXT NOT NULL,

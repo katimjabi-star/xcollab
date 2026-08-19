@@ -2,10 +2,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { verifyChain, type LedgerEntry, type Program, type Task } from "@xcollab/core";
 import { AiGateway } from "@xcollab/ai-gateway";
-import type { Hono } from "hono";
 import { migrate } from "../src/db/migrate.ts";
 import { WorkGraphRepository } from "../src/repository.ts";
 import { createApp } from "../src/app.ts";
+import { getAccessToken } from "./keycloak.ts";
 
 const ADMIN_URL =
   process.env.DATABASE_URL ?? "postgres://xcollab:xcollab_dev_only@localhost:5432/xcollab";
@@ -18,7 +18,8 @@ const gateway = new AiGateway([]);
 let admin: Pool;
 let appPool: Pool;
 let repo: WorkGraphRepository;
-let app: Hono;
+let app: ReturnType<typeof createApp>;
+let token: string;
 
 beforeAll(async () => {
   admin = new Pool({ connectionString: ADMIN_URL });
@@ -26,6 +27,7 @@ beforeAll(async () => {
   appPool = new Pool({ connectionString: APP_URL });
   repo = new WorkGraphRepository(appPool);
   app = createApp(repo, gateway);
+  token = await getAccessToken();
 });
 
 afterAll(async () => {
@@ -46,12 +48,10 @@ function findTask(program: Program | null, taskId: string): Task | undefined {
 }
 
 async function api(method: string, path: string, body?: unknown): Promise<Response> {
-  return app.request(path, {
-    method,
-    ...(body === undefined
-      ? {}
-      : { body: JSON.stringify(body), headers: { "content-type": "application/json" } }),
-  });
+  const headers: Record<string, string> = { authorization: `Bearer ${token}` };
+  if (body === undefined) return app.request(path, { method, headers });
+  headers["content-type"] = "application/json";
+  return app.request(path, { method, headers, body: JSON.stringify(body) });
 }
 
 async function ledgerLength(): Promise<number> {
@@ -96,7 +96,7 @@ describe("POST /api/programs/:programId/tasks", () => {
     const ledger = await repo.getLedger(WORKSPACE);
     const last = ledger.at(-1);
     expect(last?.action).toBe("task.create");
-    expect(last?.actor).toEqual({ kind: "human", id: "web-user" });
+    expect(last?.actor).toEqual({ kind: "human", id: "jabbir" });
     expect(JSON.parse(last?.input ?? "{}")).toEqual({
       programId: program.id,
       packageId: pkg.id,
@@ -162,7 +162,7 @@ describe("PATCH /api/programs/:programId/tasks/:taskId (generalized update)", ()
     const ledger = await repo.getLedger(WORKSPACE);
     const last = ledger.at(-1);
     expect(last?.action).toBe("task.update");
-    expect(last?.actor).toEqual({ kind: "human", id: "web-user" });
+    expect(last?.actor).toEqual({ kind: "human", id: "jabbir" });
     expect(JSON.parse(last?.input ?? "{}")).toEqual({
       programId: program.id,
       taskId: task.id,

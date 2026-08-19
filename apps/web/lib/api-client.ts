@@ -31,8 +31,22 @@ export class ApiError extends Error {
   }
 }
 
+let authTokenProvider: (() => string | null) | null = null;
+
+/**
+ * Register the access-token source (called once by AuthProvider). When the
+ * provider returns a token, every request carries "Authorization: Bearer";
+ * otherwise requests go out bare and a 401 surfaces as ApiError(401).
+ */
+export function setAuthTokenProvider(fn: () => string | null): void {
+  authTokenProvider = fn;
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const headers = new Headers(init?.headers);
+  const token = authTokenProvider ? authTokenProvider() : null;
+  if (token) headers.set("authorization", `Bearer ${token}`);
+  const response = await fetch(url, { ...init, headers });
   if (!response.ok) {
     throw new ApiError(response.status, `${init?.method ?? "GET"} ${url} → ${response.status}`);
   }
