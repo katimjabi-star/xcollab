@@ -1006,3 +1006,448 @@ button:focus-visible {
   color: var(--text-low);
   text-align: center;
 }
+
+/* ---- Task panel, quick-add, toasts ---- */
+
+/* =========================================================
+   A. TASK DETAIL SIDE PANEL
+   z-index map: .topbar 10 · overlay 29 · panel 30 · toasts 40
+   ========================================================= */
+
+/* Fixed, full-height, docked to the inline-end edge. Closed state parks it
+   past that edge via inset-inline-end (a logical property), so LTR/RTL flip
+   is automatic — no translateX, no [dir] overrides anywhere in this file. */
+.task-panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: calc(-1 * min(26rem, 100vw));
+  width: min(26rem, 100vw);
+  background: var(--surface);
+  border-inline-start: 1px solid var(--divider-low);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  visibility: hidden;
+  transition: inset-inline-end 200ms ease, visibility 0s linear 200ms;
+}
+
+.task-panel.open {
+  inset-inline-end: 0;
+  visibility: visible;
+  transition: inset-inline-end 200ms ease;
+}
+
+/* Content region: carries the program-language dir (the aside itself must keep
+   the app UI dir so docking matches the .main padding side). Fills the aside
+   and reproduces its column layout for head/body/foot. */
+.task-panel-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Scrim — mobile/narrow only. Token-only color; blur separates panel from
+   content in both themes without hardcoding a scrim color. */
+.task-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: var(--state-pressed);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.task-panel-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* >=1101px: docked mode — no scrim; content yields via padding on .main. */
+@media (min-width: 1101px) {
+  .task-panel-overlay {
+    display: none;
+  }
+
+  .app.task-panel-docked .main {
+    padding-inline-end: 26rem;
+    transition: padding 200ms ease;
+  }
+}
+
+/* ---- Panel header: name input + close ---- */
+.task-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--divider-low);
+}
+
+/* Borderless editable name. Hover/focus reveal the editable affordance. */
+.task-panel-name {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--text-highest);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius);
+  transition: background-color 150ms ease;
+}
+
+.task-panel-name:hover,
+.task-panel-name:focus-visible {
+  background: var(--surface-thin);
+}
+
+.task-panel-close {
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.task-panel-close:hover {
+  background: var(--surface-thin);
+  color: var(--text-high);
+}
+
+/* ---- Panel body: scrollable sections ---- */
+.task-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Status <select> — composed onto the existing pill:
+   class="status-pill status-select {todo|in_progress|blocked|done}".
+   Background/text colors come from the existing .status-pill.* rules. */
+.status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding-inline-end: 1.4rem; /* chevron room */
+  align-self: start;
+}
+
+.status-select-wrap {
+  position: relative;
+  display: inline-block;
+  align-self: start;
+}
+
+.status-select-wrap::after {
+  content: "▾";
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  inset-block-start: 50%;
+  translate: 0 -50%; /* vertical only — RTL-safe */
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: var(--text-medium);
+}
+
+/* ---- Fields grid: start date / due date / estimate / assignee role ---- */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.9rem;
+}
+
+.field-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+}
+
+/* Shared input skin — mirrors .mission-form controls. */
+.panel-input,
+.panel-textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+  color-scheme: light dark;
+  transition: border-color 150ms ease;
+}
+
+.panel-input::placeholder,
+.panel-textarea::placeholder,
+.quick-add-input::placeholder {
+  color: var(--text-low);
+}
+
+.panel-input:hover,
+.panel-textarea:hover {
+  border-color: var(--chip-selected-border);
+}
+
+.panel-textarea {
+  min-height: 6rem;
+  resize: vertical;
+  padding: 0.6rem 0.75rem;
+}
+
+/* Focus ring parity with the existing global rule (which only covers
+   .mission-form controls and buttons). */
+.panel-input:focus-visible,
+.panel-textarea:focus-visible,
+.task-panel-name:focus-visible,
+.status-select:focus-visible,
+.quick-add-input:focus-visible {
+  outline: 2px solid var(--button-primary);
+  outline-offset: 2px;
+}
+
+/* Activity list reuses .stack / .stack .date verbatim — no new list classes.
+   Empty state reuses .empty. */
+
+/* ---- Panel footer: delete with inline confirm ---- */
+.task-panel-foot {
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid var(--divider-low);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-btn {
+  border: 1px solid var(--border-low);
+  background: none;
+  color: var(--error);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.delete-btn:hover {
+  background: var(--error-tint);
+  border-color: var(--error);
+}
+
+/* Armed confirm state ("Sure?", 3s) */
+.delete-btn.confirm {
+  background: var(--error-tint);
+  border-color: var(--error);
+  font-weight: 600;
+}
+
+/* Last task in its package (schema requires >=1 task per package) */
+.delete-btn:disabled {
+  color: var(--text-low);
+  border-color: var(--border-low);
+  background: none;
+  cursor: not-allowed;
+}
+
+/* Clickable task row in List view — full-width borderless button wrapping
+   the row content so rows stay keyboard-operable. */
+.task-row-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background-color 150ms ease;
+}
+
+.task-row-btn:hover {
+  background: var(--surface-thin);
+}
+
+/* =========================================================
+   B. QUICK-ADD
+   ========================================================= */
+
+/* List view: "+ Add task" ghost row at the bottom of each package list. */
+.quick-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.5rem 0.25rem;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.quick-add-row:hover {
+  color: var(--text-brand);
+  background: var(--surface-thin);
+}
+
+/* Board view: "+" button at each column footer. */
+.quick-add-btn {
+  margin: 0 0.6rem 0.6rem;
+  border: 1px dashed var(--border-low);
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.quick-add-btn:hover {
+  color: var(--text-brand);
+  border-color: var(--chip-selected-border);
+  background: var(--surface-thin);
+}
+
+/* Shared inline name input both quick-adds expand into. */
+.quick-add-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-high);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+}
+
+/* Board variant needs the column-body inset the button had. */
+.board-col-body .quick-add-input,
+.quick-add-input.in-board {
+  margin: 0 0 0.1rem;
+}
+
+/* =========================================================
+   C. TOASTS
+   ========================================================= */
+
+.toast-stack {
+  position: fixed;
+  inset-block-end: 1.25rem;
+  inset-inline-end: 1.25rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: min(22rem, calc(100vw - 2.5rem));
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-card);
+  padding: 0.7rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-high);
+  animation: toast-in 200ms ease;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem; /* vertical only — RTL-safe */
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Applied ~200ms before removal from the DOM. */
+.toast.leaving {
+  opacity: 0;
+  translate: 0 0.35rem;
+  transition: opacity 200ms ease, translate 200ms ease;
+}
+
+.toast-undo {
+  margin-inline-start: auto;
+  border: none;
+  background: none;
+  color: var(--text-brand);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms ease;
+}
+
+.toast-undo:hover {
+  background: var(--chip-selected);
+}
+
+/* =========================================================
+   Reduced motion — all three surfaces
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .task-panel,
+  .task-panel.open,
+  .task-panel-overlay,
+  .toast.leaving,
+  .app.task-panel-docked .main {
+    transition: none;
+  }
+
+  .toast {
+    animation: none;
+  }
+}

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "../components/app-shell.tsx";
+import { Toasts } from "../components/toasts.tsx";
+import { ToastProvider } from "../lib/toast-context.tsx";
 import { UiProvider } from "../lib/ui-context.tsx";
 import "./globals.css";
 
@@ -21,7 +23,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <UiProvider>
-          <AppShell>{children}</AppShell>
+          <ToastProvider>
+            <AppShell>{children}</AppShell>
+            <Toasts />
+          </ToastProvider>
         </UiProvider>
       </body>
     </html>

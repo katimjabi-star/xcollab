@@ -11,6 +11,9 @@ export const TaskSchema = z.object({
   status: TaskStatusSchema,
   estimateDays: z.number().positive(),
   assigneeRole: z.string().min(1).optional(),
+  startDate: z.iso.date().optional(),
+  dueDate: z.iso.date().optional(),
+  description: z.string().max(4000).optional(),
 });
 export type Task = z.infer<typeof TaskSchema>;
 

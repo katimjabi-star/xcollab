@@ -96,12 +96,20 @@ function titleFromMission(mission: string, language: Language): string {
   return `${TEXT.programPrefix[language]} ${head}`;
 }
 
-function buildTasks(template: PhaseTemplate, language: Language, phaseIndex: number): Task[] {
+function buildTasks(
+  template: PhaseTemplate,
+  language: Language,
+  phaseIndex: number,
+  phaseWindow: { start: string; days: number },
+): Task[] {
+  const count = template.tasks[language].length;
   return template.tasks[language].map((name, i) => ({
     id: `task-${phaseIndex + 1}-${i + 1}`,
     name,
     status: "todo" as const,
     estimateDays: 3 + i,
+    startDate: addDays(phaseWindow.start, Math.round((phaseWindow.days * i) / count)),
+    dueDate: addDays(phaseWindow.start, Math.round((phaseWindow.days * (i + 1)) / count)),
   }));
 }
 
@@ -115,11 +123,15 @@ export function synthesizeProgram(brief: ProgramBrief): Program {
   const timeline = brief.timeline ?? DEFAULT_TIMELINE;
   const totalDays = daysBetween(timeline.start, timeline.end);
 
+  const phaseDays = Math.max(1, Math.floor(totalDays / PHASES.length));
   const packages: WorkPackage[] = PHASES.map((phase, i) => ({
     id: `wbp-${i + 1}`,
     name: phase.name[language],
     scope: phase.scope[language],
-    tasks: buildTasks(phase, language, i),
+    tasks: buildTasks(phase, language, i, {
+      start: addDays(timeline.start, phaseDays * i),
+      days: phaseDays,
+    }),
     dependsOn: i === 0 ? [] : [`wbp-${i}`],
   }));
 
