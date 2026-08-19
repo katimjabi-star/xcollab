@@ -21,12 +21,12 @@ export interface InteractionMetadata {
 }
 
 export class ProgramGenerationError extends Error {
-  constructor(
-    message: string,
-    readonly adapterId: string,
-  ) {
+  readonly adapterId: string;
+
+  constructor(message: string, adapterId: string) {
     super(message);
     this.name = "ProgramGenerationError";
+    this.adapterId = adapterId;
   }
 }
 
@@ -36,7 +36,11 @@ export interface GenerationResult {
 }
 
 export class AiGateway {
-  constructor(private readonly adapters: ModelAdapter[]) {}
+  private readonly adapters: ModelAdapter[];
+
+  constructor(adapters: ModelAdapter[]) {
+    this.adapters = adapters;
+  }
 
   async generateProgram(brief: ProgramBrief): Promise<GenerationResult> {
     const input = JSON.stringify(brief);
