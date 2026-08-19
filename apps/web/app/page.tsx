@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Program } from "@xcollab/core";
 import { createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+import { cycleThemeMode, THEME_STORAGE_KEY, type ThemeMode } from "../lib/theme.ts";
 import { ProgramView } from "../components/program-view.tsx";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -11,6 +12,7 @@ const WORKSPACE = "hq";
 
 export default function Home() {
   const [language, setLanguage] = useState<UiLanguage>("en");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const [mission, setMission] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -35,7 +37,23 @@ export default function Home() {
 
   useEffect(() => {
     refresh().catch(() => setError(STRINGS.en.errorGeneric));
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") setThemeMode(stored);
   }, [refresh]);
+
+  function onThemeToggle() {
+    const next = cycleThemeMode(themeMode);
+    setThemeMode(next);
+    window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    if (next === "system") {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = next;
+    }
+  }
+
+  const themeLabel =
+    themeMode === "light" ? t.themeLight : themeMode === "dark" ? t.themeDark : t.themeSystem;
 
   async function onGenerate(event: React.FormEvent) {
     event.preventDefault();
@@ -62,13 +80,19 @@ export default function Home() {
     <main className="shell" dir={dir} lang={language}>
       <header className="masthead">
         <span className="brand">{t.brand}</span>
-        <button
-          type="button"
-          className="lang-toggle"
-          onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-        >
-          {t.languageToggle}
-        </button>
+        <div className="masthead-controls">
+          <button type="button" className="theme-toggle" onClick={onThemeToggle}>
+            {themeMode === "dark" ? "◐ " : themeMode === "light" ? "○ " : "◑ "}
+            {themeLabel}
+          </button>
+          <button
+            type="button"
+            className="lang-toggle"
+            onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+          >
+            {t.languageToggle}
+          </button>
+        </div>
       </header>
 
       <section className="hero">

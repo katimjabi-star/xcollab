@@ -1,52 +1,159 @@
-:root {
-  --ground: #f7f6f2;
-  --surface: #ffffff;
-  --ink: #1b2430;
-  --ink-soft: #5b6673;
-  --line: #e3e1da;
-  --accent: #0e7a6e;
-  --accent-ink: #ffffff;
-  --accent-soft: #e3f1ef;
-  --good: #0e7a4a;
-  --bad: #b3352e;
-  --chip-good-bg: #e5f3ec;
-  --chip-bad-bg: #f9e8e7;
-  --font-body:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Arabic", "Helvetica Neue", Arial,
-    sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+/* Katim Design System (KDS) port — token values mirror X4Mahara
+   native/androidApp .../theme/Color.kt (EDGE Brand Guidelines V9).
+   Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter_regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter_medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter_semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter_bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo_regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo_medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo_semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo_bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
 }
 
+/* ---- Light (KDS light mode) ---- */
+:root {
+  --background: #f2f2f7; /* MaharaLightBackground */
+  --card: #fafafa; /* card/default */
+  --surface: #ffffff;
+  --sheet: #f0f0f0; /* background/sheet */
+  --border: #e9e9e9; /* EDGE Charcoal Light */
+  --border-low: rgba(149, 153, 157, 0.18); /* border/lowEmphasis #95999D2E */
+  --divider-low: rgba(20, 20, 21, 0.06); /* divider/lowEmphasis #1414150F */
+  --input-line: rgba(149, 153, 157, 0.48); /* input/line/focused #95999D7A */
+  --text-highest: #000000; /* text/highestEmphasis */
+  --text: #323232; /* EDGE Charcoal Dark */
+  --text-high: rgba(0, 0, 0, 0.85); /* text/highEmphasis */
+  --text-medium: rgba(0, 0, 0, 0.65); /* text/mediumEmphasis */
+  --text-low: rgba(0, 0, 0, 0.35); /* text/lowEmphasis */
+  --subtext: #4a4a4a; /* EDGE Charcoal Standard */
+  --muted: #a4a4a4; /* EDGE Charcoal Mid */
+  --brand: #ff5622; /* EDGE Orange */
+  --button-primary: #ff4713; /* button/highEmphasis/primary (brand500) */
+  --text-brand: #ff4713; /* text/primary */
+  --on-primary: #ffffff;
+  --chip-selected: #fdded7; /* surface/solid/primaryLowEmphasis */
+  --chip-selected-border: #ffa78f; /* border/primaryLowEmphasis */
+  --success: #34c759;
+  --success-tint: rgba(52, 199, 89, 0.12);
+  --error: #ff3b30;
+  --error-tint: rgba(255, 59, 48, 0.1);
+  --warning: #baa35e;
+  --info: #2563eb;
+  --surface-thin: rgba(152, 155, 157, 0.16); /* surface/transparent/thin */
+  --state-pressed: rgba(0, 0, 0, 0.12); /* state/pressed */
+  --font-latin: "Inter", -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-arabic: "Cairo", "Noto Sans Arabic", "Inter", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px; /* KDS radius/default */
+  --radius-card: 10px; /* KDS card frame */
+}
+
+/* ---- Dark (KDS dark mode) — same tokens redefined, twice-guarded ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #10161d;
-    --surface: #18202a;
-    --ink: #e8ecf1;
-    --ink-soft: #93a0ae;
-    --line: #26303c;
-    --accent: #35b3a4;
-    --accent-ink: #08211e;
-    --accent-soft: #16332f;
-    --good: #4cc38a;
-    --bad: #e5766f;
-    --chip-good-bg: #14261e;
-    --chip-bad-bg: #2e1a19;
+    --background: #121212;
+    --card: #212121;
+    --surface: #1e1e1e;
+    --sheet: #262626;
+    --border: #2c2c2c;
+    --border-low: rgba(176, 178, 181, 0.12);
+    --divider-low: rgba(242, 242, 243, 0.04);
+    --input-line: rgba(176, 178, 181, 0.4);
+    --text-highest: #ffffff;
+    --text: #ffffff;
+    --text-high: rgba(255, 255, 255, 0.85);
+    --text-medium: rgba(255, 255, 255, 0.65);
+    --text-low: rgba(255, 255, 255, 0.35);
+    --subtext: #aaaaaa;
+    --muted: #666666;
+    --brand: #ff5622;
+    --button-primary: #f55c36;
+    --text-brand: #f55c36;
+    --on-primary: #ffffff;
+    --chip-selected: #341a14;
+    --chip-selected-border: #792f15;
+    --success: #32d74b;
+    --success-tint: rgba(50, 215, 75, 0.14);
+    --error: #ff453a;
+    --error-tint: rgba(255, 69, 58, 0.14);
+    --warning: #baa35e;
+    --info: #3b82f6;
+    --surface-thin: rgba(179, 180, 181, 0.12);
+    --state-pressed: rgba(255, 255, 255, 0.1);
   }
 }
 
 :root[data-theme="dark"] {
-  --ground: #10161d;
-  --surface: #18202a;
-  --ink: #e8ecf1;
-  --ink-soft: #93a0ae;
-  --line: #26303c;
-  --accent: #35b3a4;
-  --accent-ink: #08211e;
-  --accent-soft: #16332f;
-  --good: #4cc38a;
-  --bad: #e5766f;
-  --chip-good-bg: #14261e;
-  --chip-bad-bg: #2e1a19;
+  --background: #121212;
+  --card: #212121;
+  --surface: #1e1e1e;
+  --sheet: #262626;
+  --border: #2c2c2c;
+  --border-low: rgba(176, 178, 181, 0.12);
+  --divider-low: rgba(242, 242, 243, 0.04);
+  --input-line: rgba(176, 178, 181, 0.4);
+  --text-highest: #ffffff;
+  --text: #ffffff;
+  --text-high: rgba(255, 255, 255, 0.85);
+  --text-medium: rgba(255, 255, 255, 0.65);
+  --text-low: rgba(255, 255, 255, 0.35);
+  --subtext: #aaaaaa;
+  --muted: #666666;
+  --brand: #ff5622;
+  --button-primary: #f55c36;
+  --text-brand: #f55c36;
+  --on-primary: #ffffff;
+  --chip-selected: #341a14;
+  --chip-selected-border: #792f15;
+  --success: #32d74b;
+  --success-tint: rgba(50, 215, 75, 0.14);
+  --error: #ff453a;
+  --error-tint: rgba(255, 69, 58, 0.14);
+  --warning: #baa35e;
+  --info: #3b82f6;
+  --surface-thin: rgba(179, 180, 181, 0.12);
+  --state-pressed: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -55,11 +162,17 @@
 }
 
 body {
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--font-body);
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-latin);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+[dir="rtl"],
+[lang="ar"] {
+  font-family: var(--font-arabic);
 }
 
 .shell {
@@ -73,45 +186,62 @@ body {
 
 .masthead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
+.masthead-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .brand {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-brand);
 }
 
-.lang-toggle {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
+.lang-toggle,
+.theme-toggle {
+  border: 1px solid var(--border-low);
+  background: var(--surface-thin);
+  color: var(--text-high);
   border-radius: 999px;
   padding: 0.3rem 0.9rem;
+  font: inherit;
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-.lang-toggle:hover {
-  border-color: var(--accent);
+.lang-toggle:hover,
+.theme-toggle:hover {
+  border-color: var(--chip-selected-border);
+}
+
+.lang-toggle:active,
+.theme-toggle:active {
+  background: var(--state-pressed);
 }
 
 .hero h1 {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.015em;
+  color: var(--text-highest);
   text-wrap: balance;
   max-width: 28ch;
 }
 
 .mission-form {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-card);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -119,29 +249,33 @@ body {
 }
 
 .mission-form label {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--text-medium);
 }
 
 .mission-form textarea {
   width: 100%;
   min-height: 6.5rem;
   resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--ground);
-  color: var(--ink);
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius);
+  background: var(--surface-thin);
+  color: var(--text-high);
   font: inherit;
   padding: 0.75rem 0.9rem;
+}
+
+.mission-form textarea::placeholder {
+  color: var(--text-low);
 }
 
 .mission-form textarea:focus-visible,
 .mission-form input:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--button-primary);
   outline-offset: 2px;
 }
 
@@ -159,24 +293,30 @@ button:focus-visible {
 }
 
 .form-row input[type="date"] {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--ground);
-  color: var(--ink);
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius);
+  background: var(--surface-thin);
+  color: var(--text-high);
   font: inherit;
   padding: 0.45rem 0.6rem;
+  color-scheme: light dark;
 }
 
 .generate-btn {
   margin-inline-start: auto;
   border: none;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-radius: var(--radius);
+  background: var(--button-primary);
+  color: var(--on-primary);
   font: inherit;
-  font-weight: 650;
+  font-weight: 600;
   padding: 0.65rem 1.4rem;
   cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.generate-btn:hover {
+  opacity: 0.9;
 }
 
 .generate-btn:disabled {
@@ -185,7 +325,7 @@ button:focus-visible {
 }
 
 .error-note {
-  color: var(--bad);
+  color: var(--error);
   font-size: 0.9rem;
 }
 
@@ -194,13 +334,14 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--divider-low);
   padding-bottom: 0.5rem;
 }
 
 .section-head h2 {
   font-size: 1.05rem;
-  font-weight: 650;
+  font-weight: 600;
+  color: var(--text-highest);
 }
 
 .chip {
@@ -211,24 +352,24 @@ button:focus-visible {
 }
 
 .chip.good {
-  background: var(--chip-good-bg);
-  color: var(--good);
+  background: var(--success-tint);
+  color: var(--success);
 }
 
 .chip.bad {
-  background: var(--chip-bad-bg);
-  color: var(--bad);
+  background: var(--error-tint);
+  color: var(--error);
 }
 
 .empty {
-  color: var(--ink-soft);
+  color: var(--text-medium);
 }
 
 .program-card {
   margin-top: 1rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-card);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -237,11 +378,12 @@ button:focus-visible {
 
 .program-card > header h3 {
   font-size: 1.15rem;
-  font-weight: 650;
+  font-weight: 600;
+  color: var(--text-highest);
 }
 
 .program-meta {
-  color: var(--ink-soft);
+  color: var(--text-medium);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
@@ -253,36 +395,38 @@ button:focus-visible {
 }
 
 .pkg {
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius);
   padding: 0.8rem 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  background: var(--ground);
+  background: var(--surface-thin);
 }
 
 .pkg strong {
   font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-high);
 }
 
 .pkg .scope {
-  color: var(--ink-soft);
+  color: var(--text-medium);
   font-size: 0.82rem;
 }
 
 .pkg .count {
-  color: var(--accent);
+  color: var(--text-brand);
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .subhead {
-  font-size: 0.78rem;
-  font-weight: 650;
+  font-size: 0.76rem;
+  font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--text-medium);
 }
 
 .stack {
@@ -295,6 +439,7 @@ button:focus-visible {
 
 .stack li {
   font-size: 0.9rem;
+  color: var(--text-high);
   display: flex;
   gap: 0.6rem;
   align-items: baseline;
@@ -303,7 +448,7 @@ button:focus-visible {
 .stack .date {
   font-family: var(--font-mono);
   font-size: 0.78rem;
-  color: var(--ink-soft);
+  color: var(--text-medium);
   white-space: nowrap;
 }
 
