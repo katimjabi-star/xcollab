@@ -1,0 +1,20 @@
+{
+  "name": "@xcollab/eval-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@xcollab/ai-gateway": "workspace:*",
+    "@xcollab/core": "workspace:*",
+    "@xcollab/synthesizer": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
