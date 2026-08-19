@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { LanguageSchema, verifyChain } from "@xcollab/core";
+import { LanguageSchema, TaskStatusSchema, verifyChain } from "@xcollab/core";
 import type { AiGateway } from "@xcollab/ai-gateway";
 import type { WorkGraphRepository } from "./repository.ts";
 
@@ -11,6 +11,11 @@ const CreateProgramRequestSchema = z.object({
   language: LanguageSchema,
   timeline: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
   teamHints: z.array(z.string().min(1)).max(20).optional(),
+});
+
+const UpdateTaskStatusRequestSchema = z.object({
+  workspaceId: z.string().min(1),
+  status: TaskStatusSchema,
 });
 
 export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
@@ -44,6 +49,21 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
     if (!workspaceId) return c.json({ error: "workspaceId is required" }, 400);
     const program = await repo.getProgram(workspaceId, c.req.param("id"));
     return program ? c.json({ program }) : c.json({ error: "not found" }, 404);
+  });
+
+  app.patch("/api/programs/:programId/tasks/:taskId", async (c) => {
+    const parsed = UpdateTaskStatusRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
+    }
+    const result = await repo.updateTaskStatus(
+      parsed.data.workspaceId,
+      c.req.param("programId"),
+      c.req.param("taskId"),
+      parsed.data.status,
+      { kind: "human", id: "web-user" },
+    );
+    return result ? c.json(result) : c.json({ error: "not found" }, 404);
   });
 
   app.get("/api/ledger", async (c) => {

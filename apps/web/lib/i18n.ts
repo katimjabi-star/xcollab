@@ -60,6 +60,11 @@ interface Dictionary {
   openProgram: string;
   estimateDaysSuffix: string;
   ledgerEmpty: string;
+  viewSwitcherLabel: string;
+  viewList: string;
+  viewBoard: string;
+  boardColumnEmpty: string;
+  taskMoveFailed: string;
 }
 
 export const STRINGS: Record<UiLanguage, Dictionary> = {
@@ -124,6 +129,11 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     openProgram: "Open",
     estimateDaysSuffix: "days",
     ledgerEmpty: "No ledger entries yet. Generate a program to create the first one.",
+    viewSwitcherLabel: "View",
+    viewList: "List",
+    viewBoard: "Board",
+    boardColumnEmpty: "No tasks in this status.",
+    taskMoveFailed: "Couldn't move the task. It was returned to its previous column.",
   },
   ar: {
     brand: "إكس‌كولاب",
@@ -185,5 +195,10 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     openProgram: "فتح",
     estimateDaysSuffix: "أيام",
     ledgerEmpty: "لا توجد إدخالات بعد. ولّد برنامجًا لإنشاء أول إدخال.",
+    viewSwitcherLabel: "طريقة العرض",
+    viewList: "قائمة",
+    viewBoard: "لوحة",
+    boardColumnEmpty: "لا توجد مهام في هذه الحالة.",
+    taskMoveFailed: "تعذّر نقل المهمة، وأُعيدت إلى عمودها السابق.",
   },
 };

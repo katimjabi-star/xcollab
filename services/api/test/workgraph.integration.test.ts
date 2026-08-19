@@ -70,6 +70,78 @@ describe("program creation with ledgered generation", () => {
   });
 });
 
+describe("task status update with ledgered mutation", () => {
+  it("updates the task, appends a ledger row, and keeps the chain valid", async () => {
+    const generation = await gateway.generateProgram({
+      mission: "Status update test program",
+      language: "en",
+    });
+    const created = await repo.createProgram(WORKSPACE, generation, {
+      kind: "human",
+      id: "tester",
+    });
+    const task = created.program.packages[0]?.tasks[0];
+    expect(task).toBeDefined();
+    if (!task) throw new Error("program has no tasks");
+    const fromStatus = task.status;
+
+    const result = await repo.updateTaskStatus(
+      WORKSPACE,
+      created.program.id,
+      task.id,
+      "in_progress",
+      { kind: "human", id: "web-user" },
+    );
+    expect(result).not.toBeNull();
+    const updatedTask = result?.program.packages
+      .flatMap((p) => p.tasks)
+      .find((t) => t.id === task.id);
+    expect(updatedTask?.status).toBe("in_progress");
+
+    const persisted = await repo.getProgram(WORKSPACE, created.program.id);
+    const persistedTask = persisted?.packages.flatMap((p) => p.tasks).find((t) => t.id === task.id);
+    expect(persistedTask?.status).toBe("in_progress");
+
+    const ledger = await repo.getLedger(WORKSPACE);
+    const last = ledger.at(-1);
+    expect(last?.action).toBe("task.status_update");
+    expect(last?.actor).toEqual({ kind: "human", id: "web-user" });
+    expect(last?.input).toBe(
+      JSON.stringify({
+        programId: created.program.id,
+        taskId: task.id,
+        from: fromStatus,
+        to: "in_progress",
+      }),
+    );
+    expect(last?.output).toBe(JSON.stringify({ applied: true }));
+    expect(last?.seq).toBe(result?.ledgerSeq);
+    expect(verifyChain(ledger as LedgerEntry[])).toEqual({ valid: true });
+  });
+
+  it("returns null for an unknown taskId and appends no ledger row", async () => {
+    const programs = await repo.listPrograms(WORKSPACE);
+    const program = programs[0];
+    if (!program) throw new Error("no program in workspace");
+    const before = (await repo.getLedger(WORKSPACE)).length;
+
+    const result = await repo.updateTaskStatus(WORKSPACE, program.id, "task-does-not-exist", "done", {
+      kind: "human",
+      id: "web-user",
+    });
+    expect(result).toBeNull();
+    expect((await repo.getLedger(WORKSPACE)).length).toBe(before);
+  });
+
+  it("returns null for an unknown programId", async () => {
+    const result = await repo.updateTaskStatus(WORKSPACE, "prog-does-not-exist", "t1", "done", {
+      kind: "human",
+      id: "web-user",
+    });
+    expect(result).toBeNull();
+  });
+});
+
 describe("ledger append-only enforcement (database layer, not convention)", () => {
   it("denies UPDATE on ledger entries to the app role", async () => {
     await expect(
