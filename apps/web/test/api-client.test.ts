@@ -6,6 +6,7 @@ import {
   deleteTask,
   getLedger,
   listPrograms,
+  setAuthTokenProvider,
   updateTask,
   updateTaskStatus,
 } from "../lib/api-client.ts";
@@ -23,7 +24,10 @@ function mockFetch(status: number, body: unknown): ReturnType<typeof vi.fn> {
   return fn;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  setAuthTokenProvider(() => null);
+});
 
 describe("api client", () => {
   it("POSTs a program brief and returns the created program", async () => {
@@ -177,5 +181,31 @@ describe("api client", () => {
     await expect(
       deleteTask(BASE, { workspaceId: "hq", programId: "prog-1", taskId: "task-only" }),
     ).rejects.toMatchObject({ name: "ApiError", status: 409 });
+  });
+
+  it("attaches Authorization: Bearer when the token provider returns a token", async () => {
+    setAuthTokenProvider(() => "tok-123");
+    const fn = mockFetch(200, { programs: [] });
+    await listPrograms(BASE, "hq");
+    const [, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok-123");
+  });
+
+  it("keeps content-type intact alongside the Authorization header", async () => {
+    setAuthTokenProvider(() => "tok-123");
+    const fn = mockFetch(201, { program: { id: "p" }, ledgerSeq: 1, generatedBy: "m" });
+    await createProgram(BASE, { workspaceId: "hq", mission: "m", language: "en" });
+    const [, init] = fn.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get("authorization")).toBe("Bearer tok-123");
+    expect(headers.get("content-type")).toBe("application/json");
+  });
+
+  it("sends no Authorization header when the provider returns null", async () => {
+    setAuthTokenProvider(() => null);
+    const fn = mockFetch(200, { programs: [] });
+    await listPrograms(BASE, "hq");
+    const [, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 });

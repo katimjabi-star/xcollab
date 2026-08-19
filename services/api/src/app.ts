@@ -3,9 +3,8 @@ import { cors } from "hono/cors";
 import { z } from "zod";
 import { LanguageSchema, TaskSchema, verifyChain } from "@xcollab/core";
 import type { AiGateway } from "@xcollab/ai-gateway";
+import { createAuthMiddleware, type AuthEnv } from "./auth.ts";
 import type { LedgerActor, TaskFieldChanges, WorkGraphRepository } from "./repository.ts";
-
-const WEB_USER: LedgerActor = { kind: "human", id: "web-user" };
 
 const CreateProgramRequestSchema = z.object({
   workspaceId: z.string().min(1),
@@ -52,11 +51,19 @@ const CreateTaskRequestSchema = z.object({
   description: TaskSchema.shape.description,
 });
 
-export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
-  const app = new Hono();
+export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<AuthEnv> {
+  const app = new Hono<AuthEnv>();
   app.use("/api/*", cors({ origin: ["http://localhost:3000"] }));
 
+  // Registered before the auth middleware so it stays open without a token.
   app.get("/api/health", (c) => c.json({ ok: true }));
+
+  app.use("/api/*", createAuthMiddleware());
+
+  const humanActor = (c: { get: (key: "username") => string }): LedgerActor => ({
+    kind: "human",
+    id: c.get("username"),
+  });
 
   app.post("/api/programs", async (c) => {
     const parsed = CreateProgramRequestSchema.safeParse(await c.req.json().catch(() => null));
@@ -100,7 +107,7 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
       c.req.param("programId"),
       c.req.param("taskId"),
       changes,
-      WEB_USER,
+      humanActor(c),
     );
     return result ? c.json(result) : c.json({ error: "not found" }, 404);
   });
@@ -116,7 +123,7 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
       c.req.param("programId"),
       packageId,
       task,
-      WEB_USER,
+      humanActor(c),
     );
     return result ? c.json(result, 201) : c.json({ error: "not found" }, 404);
   });
@@ -128,7 +135,7 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono {
       workspaceId,
       c.req.param("programId"),
       c.req.param("taskId"),
-      WEB_USER,
+      humanActor(c),
     );
     if (result.outcome === "deleted") {
       return c.json({ program: result.program, ledgerSeq: result.ledgerSeq });
