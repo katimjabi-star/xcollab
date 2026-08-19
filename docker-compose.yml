@@ -35,7 +35,11 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin_dev_only
     ports:
       - "8081:8080"
+    volumes:
+      - ./keycloak/themes/xcollab:/opt/keycloak/themes/xcollab:ro
+      - keycloakdata:/opt/keycloak/data
 
 volumes:
   pgdata:
   miniodata:
+  keycloakdata:

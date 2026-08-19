@@ -1,0 +1,227 @@
+/* XCollab login theme — Katim Design System over Keycloak's v2 (PatternFly 5) login.
+   Deliberately single-theme dark: the login page is a brand surface. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/inter_regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/inter_medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/inter_semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("../fonts/cairo_regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("../fonts/cairo_semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --xc-bg: #121212;
+  --xc-card: #1e1e1e;
+  --xc-field: #262626;
+  --xc-border: #2a2a2a;
+  --xc-border-strong: #3d3d3d;
+  --xc-text: rgba(255, 255, 255, 0.85);
+  --xc-text-mid: rgba(255, 255, 255, 0.65);
+  --xc-text-low: rgba(255, 255, 255, 0.35);
+  --xc-accent: #ff5622;
+  --xc-cta: #f55c36;
+  --xc-error: #ff6b6b;
+  --xc-font: "Inter", "Cairo", system-ui, -apple-system, sans-serif;
+}
+
+html[dir="rtl"] body,
+html[lang="ar"] body {
+  --xc-font: "Cairo", "Inter", system-ui, sans-serif;
+}
+
+body.pf-v5-c-login__page,
+.pf-v5-c-login {
+  background: var(--xc-bg);
+  background-image: radial-gradient(60rem 40rem at 85% -10%, rgba(255, 86, 34, 0.07), transparent 60%);
+  font-family: var(--xc-font);
+  color: var(--xc-text);
+}
+
+/* Brand wordmark (markup comes from realm displayNameHtml) */
+#kc-header-wrapper.pf-v5-c-brand {
+  display: flex;
+  justify-content: center;
+  padding-block-end: 8px;
+}
+.xc-logo {
+  font-family: var(--xc-font);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--xc-text);
+  text-transform: none;
+  display: inline-flex;
+  align-items: baseline;
+}
+.xc-logo-x {
+  color: transparent;
+  -webkit-text-stroke: 1.6px rgba(255, 255, 255, 0.92);
+}
+.xc-logo-b {
+  position: relative;
+}
+.xc-logo-b::before {
+  content: "";
+  position: absolute;
+  inset-inline: 8%;
+  top: 0.1em;
+  height: 0.12em;
+  border-radius: 2px;
+  background: var(--xc-accent);
+}
+
+/* Card */
+.pf-v5-c-login__main {
+  background: var(--xc-card);
+  border: 1px solid var(--xc-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.pf-v5-c-login__main-header .pf-v5-c-title {
+  font-family: var(--xc-font);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--xc-text);
+}
+
+/* Fields */
+.pf-v5-c-form__label-text {
+  font-family: var(--xc-font);
+  font-size: 13px;
+  color: var(--xc-text-mid);
+}
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--xc-field);
+  background: var(--xc-field);
+  border-radius: 6px;
+}
+.pf-v5-c-form-control input,
+input.pf-v5-c-form-control,
+.pf-v5-c-form-control > input {
+  background: transparent;
+  color: var(--xc-text);
+  font-family: var(--xc-font);
+  font-size: 14px;
+}
+.pf-v5-c-form-control input:focus,
+input.pf-v5-c-form-control:focus {
+  outline: none;
+}
+.pf-v5-c-form-control,
+.pf-v5-c-form-control::after {
+  border-color: var(--xc-border-strong) !important;
+}
+.pf-v5-c-form-control:focus-within {
+  outline: 3px solid rgba(255, 86, 34, 0.3);
+  outline-offset: 1px;
+}
+.pf-v5-c-form-control:focus-within,
+.pf-v5-c-form-control:focus-within::after {
+  border-color: var(--xc-accent) !important;
+}
+/* Input group (password + reveal button) reads as one dark field */
+.pf-v5-c-input-group {
+  background: var(--xc-field);
+  border-radius: 6px;
+}
+.pf-v5-c-input-group__item .pf-v5-c-button,
+.pf-v5-c-input-group__item .pf-v5-c-button.pf-m-control {
+  background: var(--xc-field);
+  color: var(--xc-text-mid);
+  border-color: var(--xc-border-strong);
+}
+
+/* Primary action */
+.pf-v5-c-button.pf-m-primary {
+  background: var(--xc-cta);
+  color: #ffffff;
+  font-family: var(--xc-font);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background 120ms ease-out, transform 100ms ease-out;
+}
+.pf-v5-c-button.pf-m-primary:hover {
+  background: #ff6a45;
+}
+.pf-v5-c-button.pf-m-primary:active {
+  transform: scale(0.97);
+}
+.pf-v5-c-button.pf-m-primary:focus-visible {
+  outline: 3px solid rgba(255, 86, 34, 0.3);
+  outline-offset: 2px;
+}
+
+/* Links, checkbox, helper text */
+.pf-v5-c-button.pf-m-link,
+a {
+  color: var(--xc-accent);
+  font-family: var(--xc-font);
+}
+.pf-v5-c-check__label,
+.pf-v5-c-helper-text__item-text,
+.pf-v5-c-login__main-footer-band-item {
+  color: var(--xc-text-mid);
+  font-family: var(--xc-font);
+  font-size: 13px;
+}
+
+/* Errors */
+.pf-v5-c-alert.pf-m-danger {
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  border-radius: 8px;
+}
+.pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title,
+.pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text {
+  color: var(--xc-error);
+}
+
+/* Locale switcher: quiet, top corner of card */
+.pf-v5-c-login__main-header-utilities .pf-v5-c-menu-toggle {
+  color: var(--xc-text-mid);
+  font-family: var(--xc-font);
+  font-size: 13px;
+}
+.pf-v5-c-menu {
+  background: var(--xc-card);
+  border: 1px solid var(--xc-border);
+}
+.pf-v5-c-menu__item {
+  color: var(--xc-text);
+  font-family: var(--xc-font);
+}
+.pf-v5-c-menu__item:hover {
+  background: var(--xc-field);
+}
+
+/* Footer tagline */
+.pf-v5-c-login__footer,
+#kc-info {
+  color: var(--xc-text-low);
+  font-family: var(--xc-font);
+  font-size: 12px;
+}
