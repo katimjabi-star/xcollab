@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
+import {
+  ApiError,
+  createProgram,
+  getLedger,
+  listPrograms,
+  updateTaskStatus,
+} from "../lib/api-client.ts";
 
 const BASE = "http://localhost:4000";
 
@@ -51,5 +57,33 @@ describe("api client", () => {
     const ledger = await getLedger(BASE, "hq");
     expect(ledger.verification.valid).toBe(true);
     expect(ledger.entries).toHaveLength(1);
+  });
+
+  it("PATCHes a task status and returns the updated program with the ledger seq", async () => {
+    const fn = mockFetch(200, { program: { id: "prog-1" }, ledgerSeq: 7 });
+    const result = await updateTaskStatus(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      taskId: "task-9",
+      status: "done",
+    });
+    expect(result.program.id).toBe("prog-1");
+    expect(result.ledgerSeq).toBe(7);
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/programs/prog-1/tasks/task-9`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ workspaceId: "hq", status: "done" });
+  });
+
+  it("throws ApiError carrying the status when the task PATCH fails", async () => {
+    mockFetch(404, { error: "task not found" });
+    await expect(
+      updateTaskStatus(BASE, {
+        workspaceId: "hq",
+        programId: "prog-1",
+        taskId: "missing",
+        status: "blocked",
+      }),
+    ).rejects.toMatchObject({ name: "ApiError", status: 404 });
   });
 });

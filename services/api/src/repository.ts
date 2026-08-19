@@ -6,6 +6,7 @@ import {
   ProgramSchema,
   type LedgerEntry,
   type Program,
+  type Task,
 } from "@xcollab/core";
 import type { GenerationResult } from "@xcollab/ai-gateway";
 
@@ -88,6 +89,70 @@ export class WorkGraphRepository {
         ...(generation.interaction.modelId ? { modelId: generation.interaction.modelId } : {}),
         input: generation.interaction.input,
         output: generation.interaction.output,
+      });
+
+      await client.query("COMMIT");
+      return { program, ledgerSeq: seq };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Human-originated mutation: task status change and its ledger row commit in
+   * ONE transaction (ADR 0002). Returns null when the program or task is
+   * missing — the transaction rolls back and no ledger row is appended.
+   */
+  async updateTaskStatus(
+    workspaceId: string,
+    programId: string,
+    taskId: string,
+    status: Task["status"],
+    actor: LedgerActor,
+  ): Promise<{ program: Program; ledgerSeq: number } | null> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [workspaceId]);
+
+      const result = await client.query<{ data: unknown }>(
+        "SELECT data FROM programs WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
+        [workspaceId, programId],
+      );
+      const row = result.rows[0];
+      if (!row) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+      const stored = ProgramSchema.parse(row.data);
+
+      let fromStatus: Task["status"] | null = null;
+      const packages = stored.packages.map((pkg) => ({
+        ...pkg,
+        tasks: pkg.tasks.map((task) => {
+          if (task.id !== taskId) return task;
+          fromStatus = task.status;
+          return { ...task, status };
+        }),
+      }));
+      if (fromStatus === null) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+      const program = ProgramSchema.parse({ ...stored, packages });
+
+      await client.query(
+        "UPDATE programs SET data = $3 WHERE workspace_id = $1 AND id = $2",
+        [workspaceId, programId, JSON.stringify(program)],
+      );
+      const seq = await this.appendWithClient(client, workspaceId, {
+        actor,
+        action: "task.status_update",
+        input: JSON.stringify({ programId, taskId, from: fromStatus, to: status }),
+        output: JSON.stringify({ applied: true }),
       });
 
       await client.query("COMMIT");

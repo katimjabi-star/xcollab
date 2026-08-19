@@ -1,4 +1,4 @@
-import type { LedgerEntry, Program } from "@xcollab/core";
+import type { LedgerEntry, Program, Task } from "@xcollab/core";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 export const WORKSPACE = "hq";
@@ -56,4 +56,30 @@ export async function listPrograms(base: string, workspaceId: string): Promise<P
 
 export function getLedger(base: string, workspaceId: string): Promise<LedgerResult> {
   return request<LedgerResult>(`${base}/api/ledger?workspaceId=${encodeURIComponent(workspaceId)}`);
+}
+
+export interface UpdateTaskStatusInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+  status: Task["status"];
+}
+
+export interface UpdateTaskStatusResult {
+  program: Program;
+  ledgerSeq: number;
+}
+
+export function updateTaskStatus(
+  base: string,
+  { workspaceId, programId, taskId, status }: UpdateTaskStatusInput,
+): Promise<UpdateTaskStatusResult> {
+  return request<UpdateTaskStatusResult>(
+    `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workspaceId, status }),
+    },
+  );
 }

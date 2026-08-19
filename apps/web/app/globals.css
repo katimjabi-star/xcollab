@@ -821,3 +821,188 @@ button:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 1rem;
 }
+
+/* ---- Kanban board ---- */
+
+/* ---- Board view: view switcher (List | Board) ---- */
+.view-switcher {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  background: var(--surface-thin);
+  border: 1px solid var(--border-low);
+  border-radius: 999px;
+}
+
+.view-switcher button {
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.view-switcher button:hover {
+  color: var(--text-high);
+}
+
+.view-switcher button[aria-pressed="true"] {
+  background: var(--chip-selected);
+  color: var(--text-brand);
+  font-weight: 600;
+  cursor: default;
+}
+
+/* ---- Board layout ---- */
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .board {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+  }
+
+  .board-col {
+    flex: 0 0 16rem;
+  }
+}
+
+/* ---- Column ---- */
+.board-col {
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-top-width: 3px;
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  min-height: 10rem;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+/* Status accents — same hues as .status-pill text colors. border-top is
+   physically top in both directions; no RTL handling needed. */
+.board-col.todo { border-top-color: var(--text-medium); }
+.board-col.in_progress { border-top-color: var(--info); }
+.board-col.blocked { border-top-color: var(--warning); }
+.board-col.done { border-top-color: var(--success); }
+
+/* Dragover highlight. Inline/bottom borders only, so the 3px status accent
+   on top survives regardless of rule order. */
+.board-col.dragover {
+  background: var(--state-pressed);
+  border-inline-color: var(--chip-selected-border);
+  border-bottom-color: var(--chip-selected-border);
+}
+
+.board-col-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem 0.45rem;
+}
+
+.board-col-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+}
+
+.board-col-count {
+  min-width: 1.4rem;
+  text-align: center;
+  border-radius: 999px;
+  background: var(--surface-thin);
+  color: var(--text-medium);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.05rem 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem 0.7rem;
+  flex: 1;
+}
+
+/* ---- Task card ---- */
+.board-card {
+  background: var(--surface-thin);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 150ms ease, opacity 150ms ease, background-color 150ms ease;
+}
+
+.board-card:hover {
+  border-color: var(--chip-selected-border);
+}
+
+.board-card:active {
+  cursor: grabbing;
+}
+
+.board-card.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.board-card-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-card-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-high);
+}
+
+.board-card-meta {
+  font-size: 0.78rem;
+  color: var(--text-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Failure-revert flash on the card after an optimistic move is rolled back */
+.board-card.revert-error {
+  border-color: var(--error);
+  background: var(--error-tint);
+}
+
+/* ---- Empty column state ---- */
+.board-col-empty {
+  margin: 0.35rem 0.6rem 0.7rem;
+  border: 1px dashed var(--border-low);
+  border-radius: var(--radius);
+  padding: 1.1rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-low);
+  text-align: center;
+}
