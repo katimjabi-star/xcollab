@@ -2,30 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Program } from "@xcollab/core";
-import { createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
-import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
-import { cycleThemeMode, THEME_STORAGE_KEY, type ThemeMode } from "../lib/theme.ts";
+import { API_BASE, WORKSPACE, createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
+import { useUi } from "../lib/ui-context.tsx";
 import { ProgramView } from "../components/program-view.tsx";
-import { Sidebar } from "../components/sidebar.tsx";
 import { StatsRow } from "../components/stats-row.tsx";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-const WORKSPACE = "hq";
-
 export default function Home() {
-  const [language, setLanguage] = useState<UiLanguage>("en");
-  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
+  const { language, t } = useUi();
   const [mission, setMission] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [ledgerValid, setLedgerValid] = useState<boolean | null>(null);
   const [ledgerCount, setLedgerCount] = useState(0);
-
-  const t = STRINGS[language];
-  const dir = language === "ar" ? "rtl" : "ltr";
 
   const refresh = useCallback(async () => {
     const [list, ledger] = await Promise.all([
@@ -38,30 +29,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => setError(STRINGS.en.errorGeneric));
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") setThemeMode(stored);
+    refresh().catch(() => setError(true));
   }, [refresh]);
-
-  function onThemeToggle() {
-    const next = cycleThemeMode(themeMode);
-    setThemeMode(next);
-    window.localStorage.setItem(THEME_STORAGE_KEY, next);
-    if (next === "system") {
-      delete document.documentElement.dataset.theme;
-    } else {
-      document.documentElement.dataset.theme = next;
-    }
-  }
-
-  const themeLabel =
-    themeMode === "light" ? t.themeLight : themeMode === "dark" ? t.themeDark : t.themeSystem;
 
   async function onGenerate(event: React.FormEvent) {
     event.preventDefault();
     if (!mission.trim() || busy) return;
     setBusy(true);
-    setError(null);
+    setError(false);
     try {
       await createProgram(API_BASE, {
         workspaceId: WORKSPACE,
@@ -72,100 +47,73 @@ export default function Home() {
       setMission("");
       await refresh();
     } catch {
-      setError(t.errorGeneric);
+      setError(true);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="app" dir={dir} lang={language}>
-      <Sidebar uiLanguage={language} />
-      <main className="main">
-        <header className="topbar">
-          <h1 className="page-title">{t.navOverview}</h1>
-          <div className="masthead-controls">
-            <button type="button" className="theme-toggle" onClick={onThemeToggle}>
-              {themeMode === "dark" ? "◐ " : themeMode === "light" ? "○ " : "◑ "}
-              {themeLabel}
-            </button>
-            <button
-              type="button"
-              className="lang-toggle"
-              onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-            >
-              {t.languageToggle}
-            </button>
+    <div className="content">
+      <section className="hero">
+        <h2>{t.tagline}</h2>
+      </section>
+
+      <StatsRow
+        programs={programs}
+        ledgerValid={ledgerValid}
+        ledgerCount={ledgerCount}
+        uiLanguage={language}
+      />
+
+      <form className="mission-form" onSubmit={onGenerate}>
+        <label htmlFor="mission">{t.missionLabel}</label>
+        <textarea
+          id="mission"
+          value={mission}
+          onChange={(e) => setMission(e.target.value)}
+          placeholder={t.missionPlaceholder}
+          required
+        />
+        <div className="form-row">
+          <div className="field">
+            <label htmlFor="start">{t.timelineStart}</label>
+            <input id="start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </div>
-        </header>
-
-        <div className="content">
-          <section className="hero">
-            <h2>{t.tagline}</h2>
-          </section>
-
-          <StatsRow
-            programs={programs}
-            ledgerValid={ledgerValid}
-            ledgerCount={ledgerCount}
-            uiLanguage={language}
-          />
-
-          <form className="mission-form" onSubmit={onGenerate}>
-            <label htmlFor="mission">{t.missionLabel}</label>
-            <textarea
-              id="mission"
-              value={mission}
-              onChange={(e) => setMission(e.target.value)}
-              placeholder={t.missionPlaceholder}
-              required
-            />
-            <div className="form-row">
-              <div className="field">
-                <label htmlFor="start">{t.timelineStart}</label>
-                <input
-                  id="start"
-                  type="date"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="end">{t.timelineEnd}</label>
-                <input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
-              </div>
-              <button className="generate-btn" type="submit" disabled={busy}>
-                {busy ? t.generating : t.generate}
-              </button>
-            </div>
-            {error ? (
-              <p className="error-note" role="alert">
-                {error}
-              </p>
-            ) : null}
-          </form>
-
-          <section>
-            <div className="section-head">
-              <h2>{t.programsHeading}</h2>
-              {ledgerValid === null ? null : (
-                <span className={`chip ${ledgerValid ? "good" : "bad"}`}>
-                  {ledgerValid ? t.ledgerVerified : t.ledgerInvalid} · {ledgerCount}
-                </span>
-              )}
-            </div>
-            {programs.length === 0 ? (
-              <p className="empty">{t.emptyState}</p>
-            ) : (
-              <div className="programs-grid">
-                {programs.map((program) => (
-                  <ProgramView key={program.id} program={program} uiLanguage={language} />
-                ))}
-              </div>
-            )}
-          </section>
+          <div className="field">
+            <label htmlFor="end">{t.timelineEnd}</label>
+            <input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+          </div>
+          <button className="generate-btn" type="submit" disabled={busy}>
+            {busy ? t.generating : t.generate}
+          </button>
         </div>
-      </main>
+        {error ? (
+          <p className="error-note" role="alert">
+            {t.errorGeneric}
+          </p>
+        ) : null}
+      </form>
+
+      <section>
+        <div className="section-head">
+          <h2>{t.programsHeading}</h2>
+          {ledgerValid === null ? null : (
+            <span className={`chip ${ledgerValid ? "good" : "bad"}`}>
+              {ledgerValid ? t.ledgerVerified : t.ledgerInvalid} · {ledgerCount}
+            </span>
+          )}
+        </div>
+        {programs.length === 0 ? (
+          <p className="empty">{t.emptyState}</p>
+        ) : (
+          <div className="programs-grid">
+            {programs.map((program) => (
+              <ProgramView key={program.id} program={program} uiLanguage={language} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
