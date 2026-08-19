@@ -10,12 +10,24 @@ import {
 } from "@xcollab/core";
 import type { GenerationResult } from "@xcollab/ai-gateway";
 
+import {
+  createTaskTx,
+  deleteTaskTx,
+  updateTaskTx,
+  type AppendFn,
+  type DeleteTaskResult,
+  type NewTaskInput,
+  type TaskFieldChanges,
+} from "./repository-tasks.ts";
+
+export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
+
 export interface LedgerActor {
   kind: "human" | "ai" | "service";
   id: string;
 }
 
-interface AppendInput {
+export interface AppendInput {
   actor: LedgerActor;
   action: string;
   modelId?: string;
@@ -101,10 +113,16 @@ export class WorkGraphRepository {
     }
   }
 
+  /** Bound append so task transactions ledger through the same chain logic. */
+  private readonly append: AppendFn = (client, workspaceId, input) =>
+    this.appendWithClient(client, workspaceId, input);
+
   /**
    * Human-originated mutation: task status change and its ledger row commit in
    * ONE transaction (ADR 0002). Returns null when the program or task is
    * missing — the transaction rolls back and no ledger row is appended.
+   * Status-only convenience over updateTask; keeps the "task.status_update"
+   * ledger action.
    */
   async updateTaskStatus(
     workspaceId: string,
@@ -113,56 +131,46 @@ export class WorkGraphRepository {
     status: Task["status"],
     actor: LedgerActor,
   ): Promise<{ program: Program; ledgerSeq: number } | null> {
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [workspaceId]);
+    return this.updateTask(workspaceId, programId, taskId, { status }, actor);
+  }
 
-      const result = await client.query<{ data: unknown }>(
-        "SELECT data FROM programs WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
-        [workspaceId, programId],
-      );
-      const row = result.rows[0];
-      if (!row) {
-        await client.query("ROLLBACK");
-        return null;
-      }
-      const stored = ProgramSchema.parse(row.data);
+  /**
+   * Applies a subset of task field changes in ONE transaction. Ledger action is
+   * "task.status_update" when status is the only change key, "task.update"
+   * (with a per-field {from, to} map) otherwise.
+   */
+  async updateTask(
+    workspaceId: string,
+    programId: string,
+    taskId: string,
+    changes: TaskFieldChanges,
+    actor: LedgerActor,
+  ): Promise<{ program: Program; ledgerSeq: number } | null> {
+    return updateTaskTx(this.pool, this.append, workspaceId, programId, taskId, changes, actor);
+  }
 
-      let fromStatus: Task["status"] | null = null;
-      const packages = stored.packages.map((pkg) => ({
-        ...pkg,
-        tasks: pkg.tasks.map((task) => {
-          if (task.id !== taskId) return task;
-          fromStatus = task.status;
-          return { ...task, status };
-        }),
-      }));
-      if (fromStatus === null) {
-        await client.query("ROLLBACK");
-        return null;
-      }
-      const program = ProgramSchema.parse({ ...stored, packages });
+  /** Adds a task to a package; null when the program or package is unknown. */
+  async createTask(
+    workspaceId: string,
+    programId: string,
+    packageId: string,
+    input: NewTaskInput,
+    actor: LedgerActor,
+  ): Promise<{ program: Program; task: Task; ledgerSeq: number } | null> {
+    return createTaskTx(this.pool, this.append, workspaceId, programId, packageId, input, actor);
+  }
 
-      await client.query(
-        "UPDATE programs SET data = $3 WHERE workspace_id = $1 AND id = $2",
-        [workspaceId, programId, JSON.stringify(program)],
-      );
-      const seq = await this.appendWithClient(client, workspaceId, {
-        actor,
-        action: "task.status_update",
-        input: JSON.stringify({ programId, taskId, from: fromStatus, to: status }),
-        output: JSON.stringify({ applied: true }),
-      });
-
-      await client.query("COMMIT");
-      return { program, ledgerSeq: seq };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
-    }
+  /**
+   * Removes a task; "last_task" (no write, no ledger row) when it is the only
+   * task in its package, because WorkPackageSchema requires tasks.min(1).
+   */
+  async deleteTask(
+    workspaceId: string,
+    programId: string,
+    taskId: string,
+    actor: LedgerActor,
+  ): Promise<DeleteTaskResult> {
+    return deleteTaskTx(this.pool, this.append, workspaceId, programId, taskId, actor);
   }
 
   /** Non-mutating model interactions are ledgered through the same chain. */

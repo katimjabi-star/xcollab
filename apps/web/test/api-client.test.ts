@@ -2,8 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   createProgram,
+  createTask,
+  deleteTask,
   getLedger,
   listPrograms,
+  updateTask,
   updateTaskStatus,
 } from "../lib/api-client.ts";
 
@@ -85,5 +88,94 @@ describe("api client", () => {
         status: "blocked",
       }),
     ).rejects.toMatchObject({ name: "ApiError", status: 404 });
+  });
+
+  it("PATCHes arbitrary task fields via updateTask, nulls clearing optionals", async () => {
+    const fn = mockFetch(200, { program: { id: "prog-1" }, ledgerSeq: 8 });
+    const result = await updateTask(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      taskId: "task-9",
+      patch: { name: "Renamed", estimateDays: 2.5, dueDate: null },
+    });
+    expect(result.ledgerSeq).toBe(8);
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/programs/prog-1/tasks/task-9`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({
+      workspaceId: "hq",
+      name: "Renamed",
+      estimateDays: 2.5,
+      dueDate: null,
+    });
+  });
+
+  it("throws ApiError carrying the status when updateTask fails", async () => {
+    mockFetch(400, { error: "invalid patch" });
+    await expect(
+      updateTask(BASE, {
+        workspaceId: "hq",
+        programId: "prog-1",
+        taskId: "task-9",
+        patch: { name: "" },
+      }),
+    ).rejects.toMatchObject({ name: "ApiError", status: 400 });
+  });
+
+  it("POSTs a new task into a package via createTask", async () => {
+    const fn = mockFetch(201, {
+      program: { id: "prog-1" },
+      task: { id: "task-new", status: "todo" },
+      ledgerSeq: 9,
+    });
+    const result = await createTask(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      packageId: "pkg-1",
+      name: "New task",
+    });
+    expect(result.task.id).toBe("task-new");
+    expect(result.ledgerSeq).toBe(9);
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/programs/prog-1/tasks`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      workspaceId: "hq",
+      packageId: "pkg-1",
+      name: "New task",
+    });
+  });
+
+  it("throws ApiError 404 when createTask targets an unknown package", async () => {
+    mockFetch(404, { error: "package not found" });
+    await expect(
+      createTask(BASE, {
+        workspaceId: "hq",
+        programId: "prog-1",
+        packageId: "missing",
+        name: "New task",
+      }),
+    ).rejects.toMatchObject({ name: "ApiError", status: 404 });
+  });
+
+  it("DELETEs a task with workspaceId as a query parameter", async () => {
+    const fn = mockFetch(200, { program: { id: "prog-1" }, ledgerSeq: 10 });
+    const result = await deleteTask(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      taskId: "task-9",
+    });
+    expect(result.program.id).toBe("prog-1");
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/programs/prog-1/tasks/task-9?workspaceId=hq`);
+    expect(init.method).toBe("DELETE");
+    expect(init.body).toBeUndefined();
+  });
+
+  it("throws ApiError 409 when deleting the last task in a package", async () => {
+    mockFetch(409, { error: "last task in package" });
+    await expect(
+      deleteTask(BASE, { workspaceId: "hq", programId: "prog-1", taskId: "task-only" }),
+    ).rejects.toMatchObject({ name: "ApiError", status: 409 });
   });
 });

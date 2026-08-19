@@ -1,8 +1,31 @@
 import type { Program, Task } from "@xcollab/core";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
+import { TaskQuickAdd } from "./quick-add.tsx";
 
 type Severity = Program["risks"][number]["severity"];
+
+/** The three spans of a task row — shared between plain and clickable rows. */
+function TaskRowContent({
+  task,
+  statusLabel,
+  estimateSuffix,
+}: {
+  task: Task;
+  statusLabel: string;
+  estimateSuffix: string;
+}) {
+  return (
+    <>
+      <span>{task.name}</span>
+      <span className="task-meta">
+        {task.estimateDays} {estimateSuffix}
+        {task.assigneeRole ? ` · ${task.assigneeRole}` : ""}
+      </span>
+      <span className={`status-pill ${task.status}`}>{statusLabel}</span>
+    </>
+  );
+}
 
 /** Shared card header — the single copy of the name/timeline/mission block. */
 export function ProgramCardHeader({
@@ -27,10 +50,16 @@ export function ProgramView({
   program,
   uiLanguage,
   detail = false,
+  onTaskSelect,
+  onProgramUpdate,
 }: {
   program: Program;
   uiLanguage: UiLanguage;
   detail?: boolean;
+  /** When provided, task rows become buttons that open the task panel. */
+  onTaskSelect?: (taskId: string) => void;
+  /** When provided, each package gains a quick-add row. */
+  onProgramUpdate?: (program: Program) => void;
 }) {
   const t = STRINGS[uiLanguage];
   const statusLabels: Record<Task["status"], string> = {
@@ -58,20 +87,42 @@ export function ProgramView({
               <strong>{pkg.name}</strong>
               <span className="scope">{pkg.scope}</span>
               {detail ? (
-                <ul className="task-list">
-                  {pkg.tasks.map((task) => (
-                    <li key={task.id}>
-                      <span>{task.name}</span>
-                      <span className="task-meta">
-                        {task.estimateDays} {t.estimateDaysSuffix}
-                        {task.assigneeRole ? ` · ${task.assigneeRole}` : ""}
-                      </span>
-                      <span className={`status-pill ${task.status}`}>
-                        {statusLabels[task.status]}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="task-list">
+                    {pkg.tasks.map((task) => (
+                      <li key={task.id}>
+                        {onTaskSelect ? (
+                          <button
+                            type="button"
+                            className="task-row-btn"
+                            onClick={() => onTaskSelect(task.id)}
+                          >
+                            <TaskRowContent
+                              task={task}
+                              statusLabel={statusLabels[task.status]}
+                              estimateSuffix={t.estimateDaysSuffix}
+                            />
+                          </button>
+                        ) : (
+                          <TaskRowContent
+                            task={task}
+                            statusLabel={statusLabels[task.status]}
+                            estimateSuffix={t.estimateDaysSuffix}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {onProgramUpdate ? (
+                    <TaskQuickAdd
+                      variant="list"
+                      programId={program.id}
+                      packageId={pkg.id}
+                      uiLanguage={uiLanguage}
+                      onProgramUpdate={onProgramUpdate}
+                    />
+                  ) : null}
+                </>
               ) : (
                 <span className="count">
                   {pkg.tasks.length} {t.tasksLabel}

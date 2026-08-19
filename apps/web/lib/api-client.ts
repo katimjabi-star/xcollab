@@ -83,3 +83,91 @@ export function updateTaskStatus(
     },
   );
 }
+
+/**
+ * PATCH payload — any subset of the mutable Task fields. String-valued
+ * optional fields accept `null`, meaning "clear the field" server-side.
+ */
+export interface TaskPatch {
+  name?: string;
+  status?: Task["status"];
+  estimateDays?: number;
+  assigneeRole?: string | null;
+  startDate?: string | null;
+  dueDate?: string | null;
+  description?: string | null;
+}
+
+export interface UpdateTaskInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+  patch: TaskPatch;
+}
+
+export interface TaskMutationResult {
+  program: Program;
+  ledgerSeq: number;
+}
+
+export function updateTask(
+  base: string,
+  { workspaceId, programId, taskId, patch }: UpdateTaskInput,
+): Promise<TaskMutationResult> {
+  return request<TaskMutationResult>(
+    `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workspaceId, ...patch }),
+    },
+  );
+}
+
+export interface CreateTaskInput {
+  workspaceId: string;
+  programId: string;
+  packageId: string;
+  name: string;
+  estimateDays?: number;
+  assigneeRole?: string;
+  startDate?: string;
+  dueDate?: string;
+  description?: string;
+}
+
+export interface CreateTaskResult {
+  program: Program;
+  task: Task;
+  ledgerSeq: number;
+}
+
+export function createTask(
+  base: string,
+  { programId, ...body }: CreateTaskInput,
+): Promise<CreateTaskResult> {
+  return request<CreateTaskResult>(
+    `${base}/api/programs/${encodeURIComponent(programId)}/tasks`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export interface DeleteTaskInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+}
+
+export function deleteTask(
+  base: string,
+  { workspaceId, programId, taskId }: DeleteTaskInput,
+): Promise<TaskMutationResult> {
+  const path = `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}`;
+  return request<TaskMutationResult>(`${path}?workspaceId=${encodeURIComponent(workspaceId)}`, {
+    method: "DELETE",
+  });
+}

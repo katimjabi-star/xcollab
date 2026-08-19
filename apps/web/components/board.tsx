@@ -7,6 +7,7 @@ import { API_BASE, WORKSPACE, updateTaskStatus } from "../lib/api-client.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
 import { ProgramCardHeader } from "./program-view.tsx";
+import { TaskQuickAdd } from "./quick-add.tsx";
 
 /** Fixed column order — never derived from object-key order. */
 const ORDER: Task["status"][] = ["todo", "in_progress", "blocked", "done"];
@@ -39,10 +40,13 @@ export function Board({
   program,
   uiLanguage,
   onProgramUpdate,
+  onTaskSelect,
 }: {
   program: Program;
   uiLanguage: UiLanguage;
   onProgramUpdate: (program: Program) => void;
+  /** When provided, clicking a card (not dragging it) opens the task panel. */
+  onTaskSelect?: (taskId: string) => void;
 }) {
   const t = STRINGS[uiLanguage];
   const statusLabels: Record<Task["status"], string> = {
@@ -61,6 +65,8 @@ export function Board({
   // In-flight guard: drops for a task with a pending PATCH are ignored (avoids revert races).
   const pendingTasks = useRef(new Set<string>());
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Suppress the click event some browsers fire right after a drag ends.
+  const justDragged = useRef(false);
 
   useEffect(
     () => () => {
@@ -72,6 +78,9 @@ export function Board({
   const cards: BoardCard[] = program.packages.flatMap((pkg) =>
     pkg.tasks.map((task) => ({ task, packageId: pkg.id, packageName: pkg.name })),
   );
+  // Board columns are status-scoped; quick-add lands in the first work package
+  // (its eyebrow on the new card makes the placement visible immediately).
+  const firstPackageId = program.packages[0]?.id;
   const effectiveStatus = (task: Task): Task["status"] => overrides[task.id] ?? task.status;
 
   const clearOverride = (taskId: string) => {
@@ -169,7 +178,21 @@ export function Board({
                           event.dataTransfer.effectAllowed = "move";
                           setDraggingId(task.id);
                         }}
-                        onDragEnd={() => setDraggingId(null)}
+                        onDragEnd={() => {
+                          setDraggingId(null);
+                          justDragged.current = true;
+                          // A post-drag click (if any) fires before this macrotask.
+                          window.setTimeout(() => {
+                            justDragged.current = false;
+                          }, 0);
+                        }}
+                        onClick={() => {
+                          if (justDragged.current) {
+                            justDragged.current = false;
+                            return;
+                          }
+                          onTaskSelect?.(task.id);
+                        }}
                       >
                         <span className="board-card-eyebrow">{packageName}</span>
                         <span className="board-card-name">{task.name}</span>
@@ -181,6 +204,16 @@ export function Board({
                     ))
                   )}
                 </div>
+                {firstPackageId ? (
+                  <TaskQuickAdd
+                    variant="board"
+                    programId={program.id}
+                    packageId={firstPackageId}
+                    status={status}
+                    uiLanguage={uiLanguage}
+                    onProgramUpdate={onProgramUpdate}
+                  />
+                ) : null}
               </section>
             );
           })}

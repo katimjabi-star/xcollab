@@ -65,6 +65,23 @@ interface Dictionary {
   viewBoard: string;
   boardColumnEmpty: string;
   taskMoveFailed: string;
+  taskName: string;
+  taskStatus: string;
+  taskStartDate: string;
+  taskDueDate: string;
+  taskEstimate: string;
+  taskAssigneeRole: string;
+  taskDescription: string;
+  taskActivity: string;
+  addTask: string;
+  deleteTask: string;
+  confirmDelete: string;
+  taskCreated: string;
+  taskDeleted: string;
+  taskUpdated: string;
+  undo: string;
+  close: string;
+  lastTaskInPackage: string;
 }
 
 export const STRINGS: Record<UiLanguage, Dictionary> = {
@@ -134,6 +151,23 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     viewBoard: "Board",
     boardColumnEmpty: "No tasks in this status.",
     taskMoveFailed: "Couldn't move the task. It was returned to its previous column.",
+    taskName: "Task name",
+    taskStatus: "Status",
+    taskStartDate: "Start date",
+    taskDueDate: "Due date",
+    taskEstimate: "Estimate (days)",
+    taskAssigneeRole: "Assignee role",
+    taskDescription: "Description",
+    taskActivity: "Activity",
+    addTask: "Add task",
+    deleteTask: "Delete task",
+    confirmDelete: "Sure?",
+    taskCreated: "Task created",
+    taskDeleted: "Task deleted",
+    taskUpdated: "Task updated",
+    undo: "Undo",
+    close: "Close",
+    lastTaskInPackage: "This is the last task in its package and can't be deleted.",
   },
   ar: {
     brand: "إكس‌كولاب",
@@ -200,5 +234,22 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     viewBoard: "لوحة",
     boardColumnEmpty: "لا توجد مهام في هذه الحالة.",
     taskMoveFailed: "تعذّر نقل المهمة، وأُعيدت إلى عمودها السابق.",
+    taskName: "اسم المهمة",
+    taskStatus: "الحالة",
+    taskStartDate: "تاريخ البدء",
+    taskDueDate: "تاريخ الاستحقاق",
+    taskEstimate: "التقدير (أيام)",
+    taskAssigneeRole: "دور المكلَّف",
+    taskDescription: "الوصف",
+    taskActivity: "النشاط",
+    addTask: "إضافة مهمة",
+    deleteTask: "حذف المهمة",
+    confirmDelete: "متأكد؟",
+    taskCreated: "تم إنشاء المهمة",
+    taskDeleted: "تم حذف المهمة",
+    taskUpdated: "تم تحديث المهمة",
+    undo: "تراجع",
+    close: "إغلاق",
+    lastTaskInPackage: "هذه آخر مهمة في حزمتها ولا يمكن حذفها.",
   },
 };
