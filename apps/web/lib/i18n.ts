@@ -25,6 +25,16 @@ interface Dictionary {
   themeLight: string;
   themeDark: string;
   themeSystem: string;
+  navOverview: string;
+  navPrograms: string;
+  navLedger: string;
+  navTeams: string;
+  navSoon: string;
+  workspace: string;
+  statPrograms: string;
+  statPackages: string;
+  statTasks: string;
+  statChain: string;
 }
 
 export const STRINGS: Record<UiLanguage, Dictionary> = {
@@ -54,6 +64,16 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     themeLight: "Light",
     themeDark: "Dark",
     themeSystem: "Auto",
+    navOverview: "Overview",
+    navPrograms: "Programs",
+    navLedger: "AI Ledger",
+    navTeams: "Teams",
+    navSoon: "Soon",
+    workspace: "HQ Workspace",
+    statPrograms: "Programs",
+    statPackages: "Work packages",
+    statTasks: "Tasks",
+    statChain: "Chain integrity",
   },
   ar: {
     brand: "إكس‌كولاب",
@@ -80,5 +100,15 @@ export const STRINGS: Record<UiLanguage, Dictionary> = {
     themeLight: "فاتح",
     themeDark: "داكن",
     themeSystem: "تلقائي",
+    navOverview: "نظرة عامة",
+    navPrograms: "البرامج",
+    navLedger: "سجل الذكاء الاصطناعي",
+    navTeams: "الفرق",
+    navSoon: "قريبًا",
+    workspace: "مساحة عمل المقر",
+    statPrograms: "البرامج",
+    statPackages: "حزم العمل",
+    statTasks: "المهام",
+    statChain: "سلامة السلسلة",
   },
 };
