@@ -7,9 +7,16 @@ export const metadata: Metadata = {
   description: "AI-native program orchestration — describe the mission, the program builds itself.",
 };
 
+/* Runs before first paint so a pinned theme never flashes the wrong mode.
+   Mirrors the mobile contract: only "system" consults the OS. */
+const THEME_BOOTSTRAP = `(function(){try{var m=localStorage.getItem("xcollab.theme");if(m==="light"||m==="dark"){document.documentElement.dataset.theme=m;}}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+      </head>
       <body>{children}</body>
     </html>
   );
