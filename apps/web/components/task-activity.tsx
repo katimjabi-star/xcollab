@@ -1,5 +1,30 @@
 import type { LedgerEntry } from "@xcollab/core";
-import type { UiLanguage } from "../lib/i18n.ts";
+import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+
+/** Ledger action code → i18n sentence key. Shared with the ledger page so
+    both surfaces humanize identically; unknown codes fall back to the raw
+    string (which always stays available in the title tooltip for auditors). */
+const ACTION_KEYS: Record<string, keyof (typeof STRINGS)["en"]> = {
+  "program.generate": "actionProgramGenerate",
+  "program.update": "actionProgramUpdate",
+  "task.create": "actionTaskCreate",
+  "task.update": "actionTaskUpdate",
+  "task.status_update": "actionTaskStatusUpdate",
+  "task.delete": "actionTaskDelete",
+  "team.create": "actionTeamCreate",
+  "team.update": "actionTeamUpdate",
+  "team.member_add": "actionTeamMemberAdd",
+  "team.member_remove": "actionTeamMemberRemove",
+  "team.delete": "actionTeamDelete",
+  "doc.attach": "actionDocAttach",
+  "doc.remove": "actionDocRemove",
+};
+
+/** "doc.attach" → "attached a file"; unknown codes return the code itself. */
+export function humanizeAction(action: string, lang: UiLanguage): string {
+  const key = ACTION_KEYS[action];
+  return key ? STRINGS[lang][key] : action;
+}
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
@@ -25,7 +50,8 @@ export function actorInitials(name: string): string {
 }
 
 /** Read-only ledger feed for one task: 20px initials avatar, actor username,
-    raw ledger action, relative timestamp in the active UI locale. */
+    humanized action sentence (raw code in the tooltip), relative timestamp
+    in the active UI locale. */
 export function TaskActivity({
   entries,
   uiLanguage,
@@ -43,8 +69,9 @@ export function TaskActivity({
           <span className="activity-avatar" aria-hidden>
             {actorInitials(entry.actor.id)}
           </span>
-          <span className="activity-text">
-            <span className="activity-actor">{entry.actor.id}</span> {entry.action}
+          <span className="activity-text" title={entry.action}>
+            <span className="activity-actor">{entry.actor.id}</span>{" "}
+            {humanizeAction(entry.action, uiLanguage)}
           </span>
           <time className="activity-time" dateTime={entry.occurredAt}>
             {formatRelativeTime(entry.occurredAt, uiLanguage)}

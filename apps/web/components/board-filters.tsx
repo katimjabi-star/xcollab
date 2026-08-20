@@ -7,6 +7,7 @@ import type { BoardFilter, BoardSort, DueFilter } from "../lib/board-filter.ts";
 import {
   EMPTY_FILTER,
   anyFilterActive,
+  carryForeignParams,
   parseBoardQuery,
   serializeBoardQuery,
 } from "../lib/board-filter.ts";
@@ -36,9 +37,9 @@ export function useBoardQuery(): {
   const { filter, sort } = parseBoardQuery(search);
   const apply = (nextFilter: BoardFilter, nextSort: BoardSort) => {
     const params = serializeBoardQuery(nextFilter, nextSort);
-    // Params outside filter/sort (the page's ?view=board) must survive a rewrite.
-    const view = search.get("view");
-    if (view) params.set("view", view);
+    // Every param the board doesn't own (?view=, ?task= deep links, …) must
+    // survive a rewrite — copy them all, not just the ones we know about.
+    carryForeignParams(params, search.entries());
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
@@ -230,7 +231,7 @@ export function BoardFilterBar({
             aria-label={`${t.removeFilter}: ${chip.label}`}
             onClick={chip.onRemove}
           >
-            {chip.label}
+            <span className="board-filter-chip-label">{chip.label}</span>
             <Icon icon={X} size={12} />
           </button>
         ))}

@@ -30,6 +30,13 @@
   color: var(--text-highest);
 }
 
+/* Page-level title (ledger/teams/settings headers): the app's one 15px/600.
+   Section heads inside a page stay 13px. */
+.section-head .page-title {
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+
 .empty {
   color: var(--text-medium);
   font-size: var(--text-md);
@@ -41,6 +48,11 @@
 }
 
 .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start; /* don't stretch the hit area across the page */
+  min-block-size: 24px; /* ≥24px hit target (audit #5) */
   color: var(--text-brand);
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
@@ -98,14 +110,39 @@
 
 .stat-tile {
   background: var(--card);
-  border: 1px solid var(--border-low);
+  border: 1px solid var(--elev-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   min-height: 60px;
   justify-content: center;
+}
+
+/* Tiles link to their surface (audit §overview-2) — quiet at rest, card
+   hover ladder on pointer (dark answers with the bg step, light adds border). */
+a.stat-tile {
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+a.stat-tile:hover {
+  border-color: var(--elev-border-strong);
+  background: var(--card-hover);
+}
+a.stat-tile:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* 12px secondary line under the value ("59 verified entries" context) */
+.stat-sub {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
 }
 
 .stat-label {
@@ -195,7 +232,10 @@
   gap: var(--space-1);
 }
 
-.form-row input[type="date"] {
+/* One meta row (audit §overview-1): Start · Target end · Parent · Team
+   as labeled fields on the 4px scale, primary action pinned inline-end. */
+.form-row input[type="date"],
+.form-row select {
   height: 32px;
   border: 1px solid var(--input-line);
   border-radius: var(--radius-md);
@@ -208,41 +248,16 @@
   transition: border-color var(--dur-fast) var(--ease-out);
 }
 
-.form-row input[type="date"]:hover {
+.form-row select {
+  max-inline-size: 240px;
+}
+
+.form-row input[type="date"]:hover,
+.form-row select:hover {
   border-color: var(--border);
 }
 
-/* Optional parent-program row: 12px label + compact select, under the dates */
-.composer-parent-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.composer-parent-row label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-medium);
-}
-
-.composer-parent-row select {
-  height: 32px;
-  max-inline-size: 320px;
-  border: 1px solid var(--input-line);
-  border-radius: var(--radius-md);
-  background: var(--surface-thin);
-  color: var(--text-high);
-  font: inherit;
-  font-size: var(--text-md);
-  padding-inline: var(--space-2);
-  transition: border-color var(--dur-fast) var(--ease-out);
-}
-
-.composer-parent-row select:hover {
-  border-color: var(--border);
-}
-
-.composer-parent-row select:focus-visible {
+.form-row select:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: 1px;
 }
@@ -261,12 +276,14 @@
   padding-inline: var(--space-4);
   cursor: pointer;
   transition:
+    background-color var(--dur-fast) var(--ease-out),
     opacity var(--dur-fast) var(--ease-out),
     transform 100ms var(--ease-out);
 }
 
+/* Hover increases contrast via the hover token — never an opacity drop (audit #14) */
 .generate-btn:hover {
-  opacity: 0.92;
+  background: var(--button-primary-hover);
 }
 
 .generate-btn:active {
@@ -336,6 +353,13 @@
   white-space: nowrap;
 }
 
+/* Inline completion signal on overview rows (audit §overview-3): the 8px
+   .in-track/.in-fill pair from views.css, fixed 64px wide. */
+.program-row .in-track {
+  flex: none;
+  inline-size: 64px;
+}
+
 /* Skeleton twin of a 36px row (overview + ledger) */
 .row-skeleton {
   display: flex;
@@ -365,8 +389,9 @@
 .program-tile {
   height: 100%;
   background: var(--card);
-  border: 1px solid var(--border-low);
+  border: 1px solid var(--elev-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
   padding: var(--space-3); /* 12px */
   display: flex;
   flex-direction: column;
@@ -415,27 +440,73 @@
   overflow: hidden;
 }
 
-.program-tile-counts {
+/* Footer row: counts/dates start, team + language chips end (audit
+   §projects-2/3 — language demoted, footer via margin-block-start auto). */
+.program-tile-foot {
   margin-block-start: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.program-tile-counts {
   font-size: var(--text-sm);
   color: var(--text-medium);
+  min-width: 0;
+}
+
+.program-tile-foot-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: none;
 }
 
 .program-tile-dates {
   display: block;
   font-size: var(--text-sm);
-  color: var(--text-low);
+  color: var(--text-medium); /* meaningful metadata ≥ medium emphasis (audit #12) */
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Program hierarchy: root card + compact indented sub-program rows.
-   Depth indentation comes inline via padding-inline-start (logical → RTL
-   mirrors); directional corner icons flip via .icon-directional. */
+/* ---- Program hierarchy: sub-projects live INSIDE the parent card as an
+   indented section under a hairline (audit #10) — the wrapper carries the
+   card chrome and the nested tile goes chromeless. Depth indentation comes
+   inline via padding-inline-start (logical → RTL mirrors); directional
+   corner icons flip via .icon-directional. */
 .program-tree-item {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
+}
+
+.program-tree-item.has-children {
+  gap: 0;
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+}
+
+/* Nested tile: no chrome of its own; concentric child radius (audit #20) */
+.program-tree-item.has-children .program-tile {
+  border: none;
+  background: none;
+  box-shadow: none;
+  border-radius: calc(var(--radius-lg) - 1px);
+}
+
+.program-tree-item.has-children > .card-link {
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+}
+
+.program-tree-item.has-children > .card-link:hover .program-tile {
+  border: none;
+  box-shadow: none;
+  background: var(--card-hover);
 }
 
 .subprogram-rows {
@@ -445,6 +516,12 @@
   margin-inline-start: var(--space-2);
   display: flex;
   flex-direction: column;
+}
+
+.program-tree-item.has-children > .subprogram-rows {
+  margin-inline-start: 0;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-block-start: 1px solid var(--hairline);
 }
 
 .subprogram-row {
@@ -751,8 +828,9 @@ button.task-row:active {
 .table-wrap {
   overflow-x: auto;
   background: var(--card);
-  border: 1px solid var(--border-low);
+  border: 1px solid var(--elev-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
 }
 
 .data-table {
@@ -802,10 +880,30 @@ button.task-row:active {
   white-space: nowrap;
 }
 
+/* Click-to-copy hash button — mono chip look, no button chrome */
+button.hash-copy {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: copy;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+button.hash-copy:hover {
+  color: var(--text-high);
+}
+
+button.hash-copy:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
 .time-rel {
   font-size: var(--text-sm);
   color: var(--text-medium);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums; /* the one aligned numeric column (audit #19) */
 }
 
 /* Actor chip: initials avatar for humans, glyph for ai/service */

@@ -88,9 +88,11 @@ export function BoardColumn({
         <span className="board-col-count">{count}</span>
         <div className="board-col-actions">
           {packageId ? (
+            /* "+" stays visible at rest (quiet, --text-low) so first-time users
+               can discover it; collapse remains hover/focus-revealed. */
             <button
               type="button"
-              className="board-col-action"
+              className="board-col-action rest-visible"
               aria-label={`${t.addTask}: ${label}`}
               onClick={() => setQuickAddOpen(true)}
             >

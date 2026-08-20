@@ -41,11 +41,13 @@ function severityLabels(t: Strings): Record<Severity, string> {
   };
 }
 
+/** Metric-card anatomy (brief §metric-cards): muted label row above a large
+    tabular-nums value. */
 function MetricTile({ value, label, alert = false }: { value: string; label: string; alert?: boolean }) {
   return (
     <div className={alert ? "in-tile in-tile-alert" : "in-tile"}>
-      <span className="in-tile-value num">{value}</span>
       <span className="in-tile-label">{label}</span>
+      <span className="in-tile-value num">{value}</span>
     </div>
   );
 }
@@ -180,7 +182,9 @@ export function InsightsView({
               <div key={ms.id} className={ms.state === "past" ? "in-ms-row past" : "in-ms-row"}>
                 <Icon icon={Diamond} size={12} className="in-ms-icon" />
                 <span className="in-ms-name">{ms.name}</span>
-                <span className="in-ms-date num">{ms.dueDate}</span>
+                <span className="in-ms-date num" title={ms.dueDate}>
+                  {dateFormat.format(new Date(`${ms.dueDate}T00:00:00`))}
+                </span>
               </div>
             ))
           )}

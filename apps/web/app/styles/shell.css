@@ -52,7 +52,10 @@
   color: var(--text-medium);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .sidebar-toggle:hover {
@@ -62,6 +65,7 @@
 
 .sidebar-toggle:active {
   background: var(--state-pressed);
+  transform: scale(0.97);
 }
 
 /* ---- Primary nav: 32px rows, 16px icons, 6px-radius hover tints ---- */
@@ -245,7 +249,10 @@
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .lang-toggle:hover,
@@ -257,6 +264,7 @@
 .lang-toggle:active,
 .theme-toggle:active {
   background: var(--state-pressed);
+  transform: scale(0.97);
 }
 
 /* Edge-to-edge working surface — no centered max-width column */
@@ -346,11 +354,12 @@
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  transition: background-color var(--dur-fast) var(--ease-out), transform 160ms var(--ease-out);
 }
 
+/* Hover INCREASES contrast — darker primary step, never an opacity fade */
 .login-cta:hover {
-  opacity: 0.9;
+  background: var(--button-primary-hover);
 }
 
 .login-cta:active {
@@ -411,7 +420,10 @@
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .user-menu-trigger:hover {
@@ -421,6 +433,7 @@
 
 .user-menu-trigger:active {
   background: var(--state-pressed);
+  transform: scale(0.97);
 }
 
 .avatar {
@@ -521,6 +534,7 @@
     border-bottom: 1px solid var(--hairline);
     padding: var(--space-2) var(--space-3);
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
   }
 
   .nav {

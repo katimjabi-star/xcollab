@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { Bot, Server, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { LedgerEntry } from "@xcollab/core";
 import { ApiError, getLedger } from "../../lib/api-client.ts";
+import { useToasts } from "../../lib/toast-context.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
+import { humanizeAction } from "../../components/task-activity.tsx";
 import { Icon } from "../../components/ui/icon.tsx";
 import { Skeleton } from "../../components/ui/skeleton.tsx";
 
@@ -19,11 +21,22 @@ function useSkeletonGate(loaded: boolean): boolean {
   return pastDelay && !loaded;
 }
 
-function shortHash(hash: string) {
+/** Truncated mono hash, click-to-copy (full value in the tooltip). */
+function HashChip({ hash, copyLabel }: { hash: string; copyLabel: string }) {
+  const { push } = useToasts();
+  const copy = () => {
+    // navigator.clipboard is undefined on insecure origins — fail soft.
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(hash))
+      .then(() => push({ message: copyLabel }))
+      .catch(() => {
+        /* no clipboard — the tooltip still exposes the full hash */
+      });
+  };
   return (
-    <span className="hash" title={hash} dir="ltr">
+    <button type="button" className="hash hash-copy" title={hash} dir="ltr" onClick={copy}>
       {hash.slice(0, 12)}…
-    </span>
+    </button>
   );
 }
 
@@ -51,10 +64,13 @@ function initials(id: string): string {
   return (chars.join("") || id.slice(0, 2)).toUpperCase();
 }
 
+/** Actor chip; the model id (when present) rides in the tooltip instead of
+    spending a mostly-empty table column (audit §ledger). */
 function ActorChip({ entry, label }: { entry: LedgerEntry; label: string }) {
   const kind = entry.actor.kind;
+  const title = entry.modelId ? `${label} · ${entry.modelId}` : label;
   return (
-    <span className="actor-chip" title={label}>
+    <span className="actor-chip" title={title}>
       {kind === "human" ? (
         <span className="actor-initials" aria-hidden>
           {initials(entry.actor.id)}
@@ -109,7 +125,7 @@ export default function LedgerPage() {
     return (
       <div className="content">
         <div className="section-head">
-          <h2>{t.ledgerHeading}</h2>
+          <h2 className="page-title">{t.ledgerHeading}</h2>
         </div>
         {showSkeleton ? <LedgerSkeleton label={t.skeletonLoading} /> : null}
       </div>
@@ -130,7 +146,7 @@ export default function LedgerPage() {
   return (
     <div className="content">
       <div className="section-head">
-        <h2>{t.ledgerHeading}</h2>
+        <h2 className="page-title">{t.ledgerHeading}</h2>
       </div>
 
       {/* Compact 32px verification strip */}
@@ -155,7 +171,6 @@ export default function LedgerPage() {
                 <th>{t.colSeq}</th>
                 <th>{t.colActor}</th>
                 <th>{t.colAction}</th>
-                <th>{t.colModel}</th>
                 <th>{t.colTime}</th>
                 <th>{t.colPrevHash}</th>
                 <th>{t.colHash}</th>
@@ -168,23 +183,19 @@ export default function LedgerPage() {
                   <td>
                     <ActorChip entry={entry} label={actorLabels[entry.actor.kind]} />
                   </td>
-                  <td>{entry.action}</td>
-                  <td>
-                    {entry.modelId ? (
-                      <span className="hash" dir="ltr">
-                        {entry.modelId}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
+                  {/* Humanized sentence; raw code stays in the tooltip. */}
+                  <td title={entry.action}>{humanizeAction(entry.action, language)}</td>
                   <td>
                     <span className="time-rel" title={entry.occurredAt}>
                       {relativeTime(entry.occurredAt, rtf)}
                     </span>
                   </td>
-                  <td>{shortHash(entry.prevHash)}</td>
-                  <td>{shortHash(entry.hash)}</td>
+                  <td>
+                    <HashChip hash={entry.prevHash} copyLabel={t.hashCopied} />
+                  </td>
+                  <td>
+                    <HashChip hash={entry.hash} copyLabel={t.hashCopied} />
+                  </td>
                 </tr>
               ))}
             </tbody>

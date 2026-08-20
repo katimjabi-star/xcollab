@@ -217,6 +217,7 @@ export function TaskPanelFields({
               id="task-panel-assignee"
               type="text"
               className="prop-input"
+              placeholder="—"
               value={assignee}
               onChange={(event) => setAssignee(event.target.value)}
               onBlur={commitAssignee}
@@ -275,6 +276,7 @@ export function TaskPanelFields({
           id="task-panel-description"
           className="panel-textarea"
           maxLength={4000}
+          placeholder={t.taskDescriptionPlaceholder}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           onBlur={commitDescription}

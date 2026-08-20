@@ -138,6 +138,12 @@ export function Board({
   const packages = program.packages.map((pkg) => ({ id: pkg.id, name: pkg.name }));
   const users = useWorkspaceUsers();
   const namesByUsername = new Map(users.map((user) => [user.username, fullName(user)]));
+  // One shared formatter per render — cards show "Oct 3" (ar digits in Arabic),
+  // matching the list view; raw ISO survives only in tooltips.
+  const dateFormat = new Intl.DateTimeFormat(uiLanguage === "ar" ? "ar" : "en", {
+    month: "short",
+    day: "numeric",
+  });
 
   const clearOverride = (taskId: string) => {
     setOverrides((prev) =>
@@ -254,6 +260,7 @@ export function Board({
                     assigneeName={
                       card.task.assignee ? namesByUsername.get(card.task.assignee) : undefined
                     }
+                    dateFormat={dateFormat}
                     dragging={draggingId === card.task.id}
                     revertError={revertErrorId === card.task.id}
                     moveTargets={moveTargets}

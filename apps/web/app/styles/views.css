@@ -13,7 +13,7 @@
 /* ---- Timeline: horizontal scroll lives inside the view ---- */
 .tl-region { display: flex; flex-direction: column; min-width: 0; }
 .tl-scroller {
-  overflow: auto; max-block-size: calc(100vh - 200px);
+  overflow: auto; max-block-size: calc(100vh - 200px); overscroll-behavior: contain;
   border: 1px solid var(--elev-border); border-radius: var(--radius-lg);
   background: var(--surface); box-shadow: var(--shadow-raised);
 }
@@ -35,8 +35,25 @@
   border-inline-start: 1px solid var(--hairline);
 }
 
-/* Milestone lane: diamond markers, names in the title tooltip */
+/* Week grid: 1px Monday ticks + weekend tint, painted behind lanes (decor) */
+.tl-tick { position: absolute; inset-block-start: 28px; inset-block-end: 0; inline-size: 1px; background: var(--divider-low); pointer-events: none; }
+.tl-weekend { position: absolute; inset-block-start: 28px; inset-block-end: 0; background: var(--surface-thin); opacity: 0.45; pointer-events: none; }
+
+/* "Today" pinned in the sticky month header, just after the today rule */
+.tl-today-chip {
+  position: absolute; inset-block-start: 50%; transform: translateY(-50%);
+  padding-inline: var(--space-1); border-radius: var(--radius-sm); background: var(--surface);
+  font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--brand);
+  white-space: nowrap; pointer-events: none;
+}
+
+/* Milestone lane: diamond markers + inline name when the lane has room */
 .tl-ms-row { block-size: 28px; border-block-end: 1px solid var(--hairline); }
+.tl-ms-label {
+  position: absolute; inset-block-start: 50%; transform: translateY(-50%);
+  font-size: var(--text-sm); color: var(--text-medium);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
 .tl-ms-name { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-medium); }
 .tl-diamond {
   position: absolute; inset-block-start: 50%; inline-size: 9px; block-size: 9px;
@@ -63,11 +80,19 @@
 .tl-task-name { display: block; line-height: 27px; font-size: var(--text-md); color: var(--text-high); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tl-nodates { display: inline-flex; align-items: center; block-size: 100%; padding-inline: var(--space-2); font-size: var(--text-sm); color: var(--text-low); }
 
-/* Bars: status tint bg + full-strength 1px fg edge; done muted; overdue tinted */
+/* Bars: status tint bg + full-strength 1px fg edge; done muted; overdue tinted.
+   Blocked adds a dashed edge — status is never carried by hue alone. */
 .tl-bar { position: absolute; inset-block-start: 50%; transform: translateY(-50%); block-size: 16px; min-inline-size: 6px; border-radius: var(--radius-full); border: 1px solid; }
 .tl-bar-todo { background: var(--status-todo-bg); border-color: var(--status-todo-fg); }
 .tl-bar-in_progress { background: var(--status-in-progress-bg); border-color: var(--status-in-progress-fg); }
-.tl-bar-blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-fg); }
+.tl-bar-blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-fg); border-style: dashed; }
+
+/* Task identity beside the bar (rendered only when the lane has room) */
+.tl-bar-label {
+  position: absolute; inset-block-start: 50%; transform: translateY(-50%);
+  font-size: var(--text-sm); color: var(--text-medium);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
 .tl-bar-done { background: var(--status-done-bg); border-color: var(--status-done-fg); opacity: 0.55; }
 .tl-bar-overdue { background: var(--status-overdue-bg); border-color: var(--status-overdue-fg); }
 
@@ -81,9 +106,13 @@
   display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);
   background: var(--surface); border: 1px solid var(--elev-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised);
 }
-.in-tile-value { font-size: var(--text-2xl); font-weight: var(--weight-semibold); color: var(--text-highest); font-variant-numeric: tabular-nums; }
-.in-tile-label { font-size: var(--text-sm); color: var(--text-medium); }
-.in-tile-alert { background: var(--status-overdue-bg); border-color: var(--status-overdue-fg); }
+/* Metric-card anatomy (brief §metric-cards): 13px muted label above a
+   24px tabular value (scale tokens top out at 20px, so the value size is
+   set directly per the brief's 24–28px prescription). */
+.in-tile-value { font-size: 24px; line-height: 1.2; font-weight: var(--weight-semibold); color: var(--text-highest); font-variant-numeric: tabular-nums; }
+.in-tile-label { font-size: var(--text-md); color: var(--text-medium); }
+/* Alert tile: tinted border, not the app's only saturated frame */
+.in-tile-alert { background: var(--status-overdue-bg); border-color: var(--status-overdue-bg); }
 .in-tile-alert .in-tile-value, .in-tile-alert .in-tile-label { color: var(--status-overdue-fg); }
 
 /* ---- Insights: section cards ---- */
@@ -103,13 +132,15 @@
 .in-track { display: block; block-size: 8px; border-radius: var(--radius-full); background: var(--surface-thin); overflow: hidden; }
 .in-fill { display: block; block-size: 100%; border-radius: var(--radius-full); background: var(--status-done-fg); }
 
-/* Status breakdown: one stacked bar + legend */
+/* Status breakdown: one stacked bar + legend. Segments use the tint bg +
+   1px fg keyline (the timeline bars' language) — raw fg fills read near-black
+   in light and overpower dark. Legend dots share the classes. */
 .in-stack { display: flex; block-size: 12px; border-radius: var(--radius-full); overflow: hidden; background: var(--surface-thin); }
 .in-seg { display: block; block-size: 100%; }
-.in-seg-todo { background: var(--status-todo-fg); }
-.in-seg-in_progress { background: var(--status-in-progress-fg); }
-.in-seg-blocked { background: var(--status-blocked-fg); }
-.in-seg-done { background: var(--status-done-fg); }
+.in-seg-todo { background: var(--status-todo-bg); box-shadow: inset 0 0 0 1px var(--status-todo-fg); }
+.in-seg-in_progress { background: var(--status-in-progress-bg); box-shadow: inset 0 0 0 1px var(--status-in-progress-fg); }
+.in-seg-blocked { background: var(--status-blocked-bg); box-shadow: inset 0 0 0 1px var(--status-blocked-fg); }
+.in-seg-done { background: var(--status-done-bg); box-shadow: inset 0 0 0 1px var(--status-done-fg); }
 .in-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); color: var(--text-medium); }
 .in-legend li { display: inline-flex; align-items: center; gap: var(--space-1); }
 .in-dot { display: inline-block; inline-size: 8px; block-size: 8px; border-radius: 50%; }

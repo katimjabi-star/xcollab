@@ -2,7 +2,22 @@
    the 2026-08 design-language brief. Contract: every COLOR token is defined
    in ALL THREE theme blocks (bare :root light / media-guarded dark /
    [data-theme="dark"] override). Scale tokens (type, spacing, radii, motion)
-   are theme-independent and live once in bare :root. */
+   are theme-independent and live once in bare :root.
+
+   2026-08 polish sprint — NEW tokens (available to all sheets):
+   --elev-border-strong  hover/active border, one ladder step above --elev-border
+   --popover             overlay surface — one step above --card in dark
+   --popover-border      overlay border, strongest ladder step
+   --card-hover          card bg raised one step on hover (dark hover ≠ border-only)
+   --ring                full-strength accent ring color; --focus-ring derives
+                         from it (color-mix @30%) — single source for focus
+   --ease-in-out         on-screen moves; --ease-drawer: drawer/panel slides
+   --dur-slow            300ms ceiling for entries
+   CHANGED values (names kept): --ease-out is now the brief's entry curve;
+   --elev-border is alpha (hue-tinted light / white-alpha dark); --shadow-raised
+   and --shadow-overlay are layered ambient+direct in light and NONE in dark
+   (dark elevation = surface ladder + borders, zero shadows); dark --border is
+   white-alpha oklch(1 0 0 / 10%). color-scheme is set per theme block. */
 
 :root {
   /* ---- Type scale: 13px UI base; hierarchy via weight + color, not size ---- */
@@ -34,10 +49,14 @@
   --radius: 8px; /* legacy KDS default — pre-sprint sheets still reference it */
   --radius-card: 10px; /* legacy KDS card frame */
 
-  /* ---- Motion: fast ease-out for bg/color; nothing animates on data render ---- */
-  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  /* ---- Motion: nothing animates on data render; entries ≤300ms, exits faster.
+     Entry curve per brief §motion; never ease-in. ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --dur-fast: 120ms;
   --dur-med: 200ms;
+  --dur-slow: 300ms;
 
   /* ---- Focus ring: 3px EDGE orange @30% (color half lives per-theme) ---- */
   --focus-ring-width: 3px;
@@ -50,6 +69,7 @@
 
 /* ---- Light (KDS light mode) ---- */
 :root {
+  color-scheme: light;
   --background: #f2f2f7; /* MaharaLightBackground */
   --card: #fafafa; /* card/default */
   --surface: #ffffff;
@@ -85,8 +105,10 @@
   --avatar-bg: #cccccc;
   --avatar-fg: #3d3d3d;
 
-  /* Focus ring — #FF5622 @ 30% */
-  --focus-ring: rgba(255, 86, 34, 0.3);
+  /* Focus ring — single source: --ring is the full-strength accent, the soft
+     3px ring derives from it at 30% */
+  --ring: #ff5622;
+  --focus-ring: color-mix(in oklab, var(--ring) 30%, transparent);
 
   /* Semantic status — full-strength fg + 10-15% tint bg, never saturated fills */
   --status-todo-fg: #5c6470;
@@ -102,10 +124,20 @@
   --status-at-risk-fg: #b45309;
   --status-at-risk-bg: rgba(234, 138, 9, 0.13);
 
-  /* Elevation — light: hairline + soft shadow; overlays get the layered pair */
-  --elev-border: #e9e9e9;
-  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Elevation — light: alpha hairline borders (hue-tinted toward the blue-ish
+     bg) + layered ambient+direct shadows. Raised = cards; overlay = popovers,
+     dragged cards, panel. */
+  --elev-border: oklch(0.2 0.01 286 / 8%);
+  --elev-border-strong: oklch(0.2 0.01 286 / 15%);
+  --popover: #ffffff;
+  --popover-border: oklch(0.2 0.01 286 / 10%);
+  --card-hover: #ffffff;
+  --shadow-raised:
+    0 0 0 1px oklch(0.16 0.01 286 / 4%), 0 1px 2px oklch(0.16 0.01 286 / 6%),
+    0 4px 12px -6px oklch(0.16 0.01 286 / 5%);
+  --shadow-overlay:
+    0 0 0 1px oklch(0.16 0.01 286 / 5%), 0 4px 8px -2px oklch(0.16 0.01 286 / 8%),
+    0 16px 32px -12px oklch(0.16 0.01 286 / 12%);
 
   /* Toasts sit on a dark surface in BOTH themes */
   --toast-bg: #1e1e1e;
@@ -117,12 +149,13 @@
 /* ---- Dark (KDS dark mode) — same tokens redefined, twice-guarded ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --background: #121212;
     --card: #212121;
     --surface: #1e1e1e;
     --surface-sidebar: #1a1a1a;
     --sheet: #262626;
-    --border: #2c2c2c;
+    --border: oklch(1 0 0 / 10%); /* white-alpha — reads on any dark surface */
     --border-low: rgba(176, 178, 181, 0.12);
     --divider-low: rgba(242, 242, 243, 0.04);
     --hairline: rgba(242, 242, 243, 0.07);
@@ -152,7 +185,8 @@
     --avatar-bg: #3d3d3d;
     --avatar-fg: #cccccc;
 
-    --focus-ring: rgba(255, 86, 34, 0.3);
+    --ring: #ff6a45; /* accent lifted for dark bg */
+    --focus-ring: color-mix(in oklab, var(--ring) 30%, transparent);
 
     --status-todo-fg: #9aa2ad;
     --status-todo-bg: rgba(154, 162, 173, 0.13);
@@ -167,10 +201,15 @@
     --status-at-risk-fg: #f0a24b;
     --status-at-risk-bg: rgba(240, 162, 75, 0.13);
 
-    /* Dark elevation: 1px subtle borders; shadows only on overlays */
-    --elev-border: #2a2e33;
+    /* Dark elevation: ZERO shadows — a white-alpha border ladder plus the
+       surface ladder (#121212 → card #212121 → hover #262626 → popover) */
+    --elev-border: oklch(1 0 0 / 10%);
+    --elev-border-strong: oklch(1 0 0 / 16%);
+    --popover: #262626;
+    --popover-border: oklch(1 0 0 / 14%);
+    --card-hover: #262626;
     --shadow-raised: none;
-    --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(0, 0, 0, 0.2);
+    --shadow-overlay: none;
 
     --toast-bg: #1e1e1e;
     --toast-fg: rgba(255, 255, 255, 0.92);
@@ -180,12 +219,13 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --background: #121212;
   --card: #212121;
   --surface: #1e1e1e;
   --surface-sidebar: #1a1a1a;
   --sheet: #262626;
-  --border: #2c2c2c;
+  --border: oklch(1 0 0 / 10%); /* white-alpha — reads on any dark surface */
   --border-low: rgba(176, 178, 181, 0.12);
   --divider-low: rgba(242, 242, 243, 0.04);
   --hairline: rgba(242, 242, 243, 0.07);
@@ -215,7 +255,8 @@
   --avatar-bg: #3d3d3d;
   --avatar-fg: #cccccc;
 
-  --focus-ring: rgba(255, 86, 34, 0.3);
+  --ring: #ff6a45; /* accent lifted for dark bg */
+  --focus-ring: color-mix(in oklab, var(--ring) 30%, transparent);
 
   --status-todo-fg: #9aa2ad;
   --status-todo-bg: rgba(154, 162, 173, 0.13);
@@ -230,9 +271,13 @@
   --status-at-risk-fg: #f0a24b;
   --status-at-risk-bg: rgba(240, 162, 75, 0.13);
 
-  --elev-border: #2a2e33;
+  --elev-border: oklch(1 0 0 / 10%);
+  --elev-border-strong: oklch(1 0 0 / 16%);
+  --popover: #262626;
+  --popover-border: oklch(1 0 0 / 14%);
+  --card-hover: #262626;
   --shadow-raised: none;
-  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(0, 0, 0, 0.2);
+  --shadow-overlay: none;
 
   --toast-bg: #1e1e1e;
   --toast-fg: rgba(255, 255, 255, 0.92);

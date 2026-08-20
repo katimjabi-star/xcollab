@@ -6,9 +6,11 @@ import { CornerDownRight } from "lucide-react";
 import type { Program } from "@xcollab/core";
 import { ApiError, listPrograms } from "../../lib/api-client.ts";
 import { STRINGS } from "../../lib/i18n.ts";
+import { setDocumentTitle } from "../../lib/nav.ts";
 import { useUi } from "../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
 import { ProgramCard } from "../../components/program-view.tsx";
+import { programDisplayName } from "../../lib/program-format.ts";
 import { Icon } from "../../components/ui/icon.tsx";
 import { Skeleton } from "../../components/ui/skeleton.tsx";
 
@@ -69,7 +71,7 @@ function SubProgramRows({
             >
               <Icon icon={CornerDownRight} size={14} directional />
               <span className="subprogram-name" dir="auto">
-                {program.name}
+                {programDisplayName(program)}
               </span>
               <span className="subprogram-count num">
                 {taskCount} {t.tasksLabel}
@@ -85,6 +87,11 @@ function SubProgramRows({
 
 export default function ProgramsPage() {
   const { t, language } = useUi();
+  // Re-assert the list title: detail → list keeps the same route label, so
+  // the shell's label-keyed effect won't clear a stale program title.
+  useEffect(() => {
+    setDocumentTitle([t.navPrograms]);
+  }, [t.navPrograms]);
   const { data, error, loaded } = useWorkspaceData(listPrograms);
   const programs = data ? [...data].reverse() : [];
   const showSkeleton = useSkeletonGate(loaded);
@@ -119,14 +126,25 @@ export default function ProgramsPage() {
 
       {roots.length > 0 ? (
         <div className="programs-grid">
-          {roots.map((program) => (
-            <div key={program.id} className="program-tree-item">
-              <Link className="card-link" href={`/projects/${program.id}`}>
-                <ProgramCard program={program} uiLanguage={language} />
-              </Link>
-              <SubProgramRows parentId={program.id} byParent={byParent} depth={0} t={t} />
-            </div>
-          ))}
+          {/* Sub-projects render INSIDE the parent card as an indented section
+              under a hairline (audit #10) — never as floating gutter rows.
+              Parents with children carry the card chrome on the wrapper. */}
+          {roots.map((program) => {
+            const hasChildren = byParent.has(program.id);
+            return (
+              <div
+                key={program.id}
+                className={`program-tree-item${hasChildren ? " has-children" : ""}`}
+              >
+                <Link className="card-link" href={`/projects/${program.id}`}>
+                  <ProgramCard program={program} uiLanguage={language} />
+                </Link>
+                {hasChildren ? (
+                  <SubProgramRows parentId={program.id} byParent={byParent} depth={0} t={t} />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
     </div>

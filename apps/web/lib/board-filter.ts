@@ -124,6 +124,29 @@ export function parseBoardQuery(params: Pick<URLSearchParams, "get">): {
   };
 }
 
+/** URL keys the board owns. Anything else in the query string (?view=,
+    ?task= deep links, …) is foreign and must survive a board rewrite. */
+const BOARD_QUERY_KEYS: ReadonlySet<string> = new Set([
+  "q",
+  "pkg",
+  "role",
+  "assignee",
+  "due",
+  "sort",
+]);
+
+/** Copy every foreign param (any key the board doesn't own) from `current`
+    into `params`, preserving order and repeated values. Returns `params`. */
+export function carryForeignParams(
+  params: URLSearchParams,
+  current: Iterable<[string, string]>,
+): URLSearchParams {
+  for (const [key, value] of current) {
+    if (!BOARD_QUERY_KEYS.has(key)) params.append(key, value);
+  }
+  return params;
+}
+
 /** Serialize filter + sort into URL search params, omitting defaults so the
     pristine board keeps a clean URL. */
 export function serializeBoardQuery(filter: BoardFilter, sort: BoardSort): URLSearchParams {

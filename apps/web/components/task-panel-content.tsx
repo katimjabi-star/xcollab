@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Link2, Trash2, X } from "lucide-react";
+import { ChevronRight, Link2, Trash2, X } from "lucide-react";
 import type { LedgerEntry, Program, Task } from "@xcollab/core";
 import {
   API_BASE,
@@ -15,11 +15,10 @@ import {
 } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { useToasts } from "../lib/toast-context.tsx";
-import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { TaskActivity } from "./task-activity.tsx";
 import { AttachmentsSection } from "./attachments-section.tsx";
-import { STATUS_LABEL_KEYS, TaskPanelFields } from "./task-panel-fields.tsx";
+import { TaskPanelFields } from "./task-panel-fields.tsx";
 
 const DISARM_MS = 3000;
 
@@ -135,6 +134,13 @@ export function TaskPanelContent({
       .catch(() => push({ message: t.errorGeneric }));
   };
 
+  const copyTaskId = () => {
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(task.id))
+      .then(() => push({ message: t.taskIdCopied }))
+      .catch(() => push({ message: t.errorGeneric }));
+  };
+
   const restoreTask = async (programId: string, pkgId: string, snapshot: Task) => {
     try {
       const created = await createTask(API_BASE, {
@@ -198,10 +204,25 @@ export function TaskPanelContent({
 
   return (
     <>
+      {/* Identity anchor: task-ID mono chip (click-to-copy) + section crumb.
+          Status lives only in the property grid below (audit #6). */}
       <div className="task-panel-strip">
-        <Chip variant="status" status={status}>
-          {t[STATUS_LABEL_KEYS[status]]}
-        </Chip>
+        <button
+          type="button"
+          className="panel-id-chip num"
+          dir="ltr"
+          aria-label={t.copyTaskId}
+          title={t.copyTaskId}
+          onClick={copyTaskId}
+        >
+          {task.id}
+        </button>
+        <span className="panel-strip-crumb">
+          <Icon icon={ChevronRight} size={12} directional />
+          <span className="panel-strip-crumb-name" dir="auto">
+            {packageName}
+          </span>
+        </span>
         <div className="task-panel-strip-actions">
           <button
             type="button"

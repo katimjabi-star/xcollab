@@ -6,6 +6,7 @@ import type { Program, Task } from "@xcollab/core";
 import { API_BASE, WORKSPACE, createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
 import { useUi } from "../lib/ui-context.tsx";
 import { StatsRow } from "../components/stats-row.tsx";
+import { programDisplayName, programStatus } from "../lib/program-format.ts";
 import { useWorkspaceTeams } from "../components/teams-data.tsx";
 import { Chip } from "../components/ui/chip.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
@@ -22,13 +23,11 @@ function useSkeletonGate(loaded: boolean): boolean {
   return pastDelay && !loaded;
 }
 
-/** Roll-up status for a program row: blocked > in progress > done > todo. */
-function programStatus(program: Program): Task["status"] {
+/** Completion 0–100 for a program's inline progress track. */
+function completionPct(program: Program): number {
   const tasks = program.packages.flatMap((pkg) => pkg.tasks);
-  if (tasks.some((task) => task.status === "blocked")) return "blocked";
-  if (tasks.length > 0 && tasks.every((task) => task.status === "done")) return "done";
-  if (tasks.some((task) => task.status !== "todo")) return "in_progress";
-  return "todo";
+  if (tasks.length === 0) return 0;
+  return Math.round((tasks.filter((task) => task.status === "done").length / tasks.length) * 100);
 }
 
 function OverviewSkeleton({ label }: { label: string }) {
@@ -152,6 +151,8 @@ export default function Home() {
           placeholder={t.missionPlaceholder}
           required
         />
+        {/* One meta row (audit §overview-1): dates · parent · team, labels
+            above inputs, primary action pinned inline-end. */}
         <div className="form-row">
           <div className="field">
             <label htmlFor="start">{t.timelineStart}</label>
@@ -161,42 +162,40 @@ export default function Home() {
             <label htmlFor="end">{t.timelineEnd}</label>
             <input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
+          {programs.length > 0 ? (
+            <div className="field">
+              <label htmlFor="parent-program">{t.parentProgramLabel}</label>
+              <select
+                id="parent-program"
+                value={parentId}
+                onChange={(e) => setParentId(e.target.value)}
+              >
+                <option value="">{t.parentNone}</option>
+                {programs.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {programDisplayName(program)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          {teams.length > 0 ? (
+            <div className="field">
+              <label htmlFor="program-team">{t.teamLabel}</label>
+              <select id="program-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                <option value="">{t.teamNone}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <button className="generate-btn" type="submit" disabled={busy}>
             {busy ? t.generating : t.generate}
           </button>
         </div>
-        {/* Optional hierarchy: 12px label row under the dates, default none. */}
-        {programs.length > 0 ? (
-          <div className="composer-parent-row">
-            <label htmlFor="parent-program">{t.parentProgramLabel}</label>
-            <select
-              id="parent-program"
-              value={parentId}
-              onChange={(e) => setParentId(e.target.value)}
-            >
-              <option value="">{t.parentNone}</option>
-              {programs.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
-        {/* Optional connected team: 12px label + compact select, None default. */}
-        {teams.length > 0 ? (
-          <div className="composer-parent-row">
-            <label htmlFor="program-team">{t.teamLabel}</label>
-            <select id="program-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-              <option value="">{t.teamNone}</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
         {error ? (
           <p className="error-note" role="alert">
             {t.errorGeneric}
@@ -216,11 +215,16 @@ export default function Home() {
               {recent.map((program) => {
                 const taskCount = program.packages.reduce((n, pkg) => n + pkg.tasks.length, 0);
                 const status = programStatus(program);
+                const pct = completionPct(program);
                 return (
                   <li key={program.id}>
                     <Link className="program-row" href={`/projects/${program.id}`}>
                       <span className="program-row-name" dir="auto">
-                        {program.name}
+                        {programDisplayName(program)}
+                      </span>
+                      {/* Inline completion signal (audit §overview-3) */}
+                      <span className="in-track" role="presentation" title={`${pct}%`}>
+                        <span className="in-fill" style={{ inlineSize: `${pct}%` }} />
                       </span>
                       <span className="program-row-meta">
                         <span className="num">{program.packages.length}</span>{" "}

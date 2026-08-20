@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { ChevronRight, Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { routeLabelKey } from "../lib/nav.ts";
+import { routeLabelKey, setDocumentTitle } from "../lib/nav.ts";
 import { useUi } from "../lib/ui-context.tsx";
 import { Sidebar } from "./sidebar.tsx";
 import { UserMenu } from "./user-menu.tsx";
@@ -30,19 +30,29 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const pageLabel = t[routeLabelKey(pathname)];
+
+  /* "<PageLabel> · XCollab" — detail pages append deeper parts themselves
+     via setDocumentTitle. */
+  useEffect(() => {
+    setDocumentTitle([pageLabel]);
+  }, [pageLabel]);
+
   const themeLabel =
     themeMode === "light" ? t.themeLight : themeMode === "dark" ? t.themeDark : t.themeSystem;
   const themeIcon = themeMode === "light" ? Sun : themeMode === "dark" ? Moon : Monitor;
 
   return (
     <div className={collapsed ? "app sidebar-collapsed" : "app"} dir={dir} lang={language}>
+      <a className="skip-link" href="#main-content">
+        {t.skipToContent}
+      </a>
       <Sidebar
         uiLanguage={language}
         pathname={pathname}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
       />
-      <main className="main">
+      <main className="main" id="main-content">
         <header className="topbar">
           <nav className="breadcrumbs" aria-label="breadcrumb">
             <span className="breadcrumb-root">{t.breadcrumbWorkspace}</span>

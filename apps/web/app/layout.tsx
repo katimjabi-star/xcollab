@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "../components/app-shell.tsx";
 import { AuthGate } from "../components/auth-gate.tsx";
@@ -11,6 +11,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "XCollab",
   description: "AI-native project orchestration — describe the mission, the project builds itself.",
+};
+
+/* Browser chrome color matches --background in each scheme (tokens.css). */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#121212" },
+  ],
 };
 
 /* Runs before first paint so a pinned theme never flashes the wrong mode.

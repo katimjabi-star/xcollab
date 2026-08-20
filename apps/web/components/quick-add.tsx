@@ -132,7 +132,7 @@ export function TaskQuickAdd({
       <input
         className={variant === "board" ? "quick-add-input in-board" : "quick-add-input"}
         autoFocus
-        placeholder={t.addTask}
+        placeholder={t.addTaskPlaceholder}
         aria-label={t.addTask}
         value={value}
         onChange={(event) => setValue(event.target.value)}

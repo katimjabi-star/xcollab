@@ -112,11 +112,50 @@ export function TimelineView({
   const todayInRange = today >= start && today <= end;
   const todayOffset =
     NAME_COL_PX + laneWidth * ((dayIndex(today) - startIdx + 0.5) / totalDays);
+  const todayPct = ((dayIndex(today) - startIdx + 0.5) / totalDays) * 100;
+
+  // Week grid: Monday ticks + Sat/Sun tint bands. Day indices are UTC-epoch
+  // days (epoch day 0 = Thursday), so weekday math is pure arithmetic.
+  const weekTicks: number[] = [];
+  const weekendBands: { from: number; days: number }[] = [];
+  for (let idx = startIdx; idx < startIdx + totalDays; idx++) {
+    if (idx > startIdx && (idx + 3) % 7 === 0) weekTicks.push(idx); // Monday
+    if ((idx + 5) % 7 === 0) weekendBands.push({ from: idx, days: Math.min(2, startIdx + totalDays - idx) }); // Saturday
+  }
+  const dayPx = (idx: number) => NAME_COL_PX + laneWidth * ((idx - startIdx) / totalDays);
+
+  // Milestones sorted by date; a name label renders beside each diamond when
+  // the gap to the next diamond (or the lane end) leaves room for one.
+  const visibleMilestones = program.milestones
+    .filter((ms) => ms.dueDate >= start && ms.dueDate <= end)
+    .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0));
+  const milestonePct = (iso: string) => ((dayIndex(iso) - startIdx + 0.5) / totalDays) * 100;
 
   return (
     <div className="tl-region" dir={program.language === "ar" ? "rtl" : "ltr"}>
       <div className="tl-scroller" tabIndex={0} role="region" aria-label={t.viewTimeline}>
         <div className="tl-inner">
+          {/* Decorative week grid, painted behind rows (first in DOM order) */}
+          {weekendBands.map((band) => (
+            <span
+              key={`we-${band.from}`}
+              className="tl-weekend"
+              aria-hidden="true"
+              style={{
+                insetInlineStart: `${dayPx(band.from)}px`,
+                inlineSize: `${laneWidth * (band.days / totalDays)}px`,
+              }}
+            />
+          ))}
+          {weekTicks.map((idx) => (
+            <span
+              key={`wk-${idx}`}
+              className="tl-tick"
+              aria-hidden="true"
+              style={{ insetInlineStart: `${dayPx(idx)}px` }}
+            />
+          ))}
+
           <div className="tl-row tl-months">
             <span className="tl-namecol" />
             <span className="tl-lane" style={laneStyle}>
@@ -125,6 +164,14 @@ export function TimelineView({
                   {month.label}
                 </span>
               ))}
+              {todayInRange ? (
+                <span
+                  className="tl-today-chip"
+                  style={{ insetInlineStart: `calc(${todayPct}% + 4px)` }}
+                >
+                  {t.timelineTodayLabel}
+                </span>
+              ) : null}
             </span>
           </div>
 
@@ -132,18 +179,33 @@ export function TimelineView({
             <div className="tl-row tl-ms-row">
               <span className="tl-namecol tl-ms-name">{t.milestonesHeading}</span>
               <span className="tl-lane" style={laneStyle}>
-                {program.milestones
-                  .filter((ms) => ms.dueDate >= start && ms.dueDate <= end)
-                  .map((ms) => (
-                    <span
-                      key={ms.id}
-                      className="tl-diamond"
-                      title={`${ms.name} · ${ms.dueDate}`}
-                      style={{
-                        insetInlineStart: `${((dayIndex(ms.dueDate) - startIdx + 0.5) / totalDays) * 100}%`,
-                      }}
-                    />
-                  ))}
+                {visibleMilestones.map((ms, i) => {
+                  const pct = milestonePct(ms.dueDate);
+                  const next = visibleMilestones[i + 1];
+                  const nextPct = next ? milestonePct(next.dueDate) : 100;
+                  const labelPx = (laneWidth * (nextPct - pct)) / 100 - 16;
+                  return (
+                    <Fragment key={ms.id}>
+                      <span
+                        className="tl-diamond"
+                        title={`${ms.name} · ${ms.dueDate}`}
+                        style={{ insetInlineStart: `${pct}%` }}
+                      />
+                      {labelPx >= 48 ? (
+                        <span
+                          className="tl-ms-label"
+                          aria-hidden="true"
+                          style={{
+                            insetInlineStart: `calc(${pct}% + 10px)`,
+                            maxInlineSize: `${labelPx}px`,
+                          }}
+                        >
+                          {ms.name}
+                        </span>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
               </span>
             </div>
           ) : null}
@@ -163,6 +225,10 @@ export function TimelineView({
                 const dates = task.startDate
                   ? `${task.startDate} → ${task.dueDate ?? task.startDate}`
                   : task.dueDate;
+                // Identity beside the bar: label after the bar end when room
+                // remains, so long charts don't force eye-travel to the name column.
+                const barEndPct = bar ? bar.startPct + bar.widthPct : 0;
+                const labelSpacePx = bar ? laneWidth * (1 - barEndPct / 100) - 12 : 0;
                 const content = (
                   <>
                     <span className="tl-namecol tl-task-name" title={task.name}>
@@ -170,14 +236,28 @@ export function TimelineView({
                     </span>
                     <span className="tl-lane" style={laneStyle}>
                       {bar ? (
-                        <span
-                          className={barClass(task, today)}
-                          title={`${task.name} · ${dates}`}
-                          style={{
-                            insetInlineStart: `${bar.startPct}%`,
-                            inlineSize: `${bar.widthPct}%`,
-                          }}
-                        />
+                        <>
+                          <span
+                            className={barClass(task, today)}
+                            title={`${task.name} · ${dates}`}
+                            style={{
+                              insetInlineStart: `${bar.startPct}%`,
+                              inlineSize: `${bar.widthPct}%`,
+                            }}
+                          />
+                          {labelSpacePx >= 48 ? (
+                            <span
+                              className="tl-bar-label"
+                              aria-hidden="true"
+                              style={{
+                                insetInlineStart: `calc(${barEndPct}% + 8px)`,
+                                maxInlineSize: `${labelSpacePx}px`,
+                              }}
+                            >
+                              {task.name}
+                            </span>
+                          ) : null}
+                        </>
                       ) : (
                         <span className="tl-nodates">{t.timelineNoDates}</span>
                       )}

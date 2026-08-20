@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { Program } from "@xcollab/core";
 import { ApiError, listPrograms } from "../../../lib/api-client.ts";
+import { setDocumentTitle } from "../../../lib/nav.ts";
 import { useUi } from "../../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../../lib/use-workspace-data.ts";
 import { ProgramView } from "../../../components/program-view.tsx";
@@ -13,6 +14,8 @@ import { Board } from "../../../components/board.tsx";
 import { TimelineView } from "../../../components/timeline-view.tsx";
 import { InsightsView } from "../../../components/insights-view.tsx";
 import { TaskPanel } from "../../../components/task-panel.tsx";
+import { locateTask } from "../../../components/task-panel-content.tsx";
+import { formatIsoDate, programDisplayName } from "../../../lib/program-format.ts";
 import { Icon } from "../../../components/ui/icon.tsx";
 
 /** Views that persist in ?view=; "list" is the default and keeps a clean URL. */
@@ -22,6 +25,16 @@ type ViewId = "list" | (typeof URL_VIEWS)[number];
 function taskExists(program: Program | null, taskId: string | null): boolean {
   if (!program || !taskId) return false;
   return program.packages.some((pkg) => pkg.tasks.some((task) => task.id === taskId));
+}
+
+/** Open-panel task name for the contextual <title>; null when closed. */
+function openTaskNameOf(
+  program: Program | null,
+  taskId: string | null,
+  panelOpen: boolean,
+): string | null {
+  if (!panelOpen || !program || !taskId) return null;
+  return locateTask(program, taskId)?.task.name ?? null;
 }
 
 /** Parent from the same workspace fetch; a dangling parentId yields no crumb. */
@@ -74,14 +87,19 @@ function ProgramTopline({
           {parent ? (
             <p className="program-parent-crumb">
               <Link href={`/projects/${parent.id}`} dir="auto">
-                {parent.name}
+                {programDisplayName(parent)}
               </Link>
               <Icon icon={ChevronRight} size={12} directional />
             </p>
           ) : null}
-          <h2 className="board-program-name">{program.name}</h2>
-          <span className="board-program-dates">
-            {program.timeline.start} → {program.timeline.end}
+          <h2 className="board-program-name">{programDisplayName(program)}</h2>
+          {/* Locale dates; ISO stays in the tooltip for auditors (audit #4) */}
+          <span
+            className="board-program-dates"
+            title={`${program.timeline.start} → ${program.timeline.end}`}
+          >
+            {formatIsoDate(program.timeline.start, program.language)} →{" "}
+            {formatIsoDate(program.timeline.end, program.language)}
           </span>
         </div>
       ) : null}
@@ -101,13 +119,19 @@ export default function ProgramDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, error, loaded } = useWorkspaceData(listPrograms);
   const [view, setViewState] = useState<ViewId>("list");
-  // View choice lives in ?view= so a reload or shared link keeps the view.
+  // Freshest server state after a task mutation; wins over the initial fetch.
+  const [patched, setPatched] = useState<Program | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  // View choice lives in ?view=, open task in ?task= — a reload or shared
+  // link restores both (the panel's copy-link button emits ?task= URLs).
   // Read post-mount (like the board's collapse state) to avoid a hydration
   // mismatch; useSearchParams here would force Suspense around the whole page.
   useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("view");
-    const match = URL_VIEWS.find((v) => v === raw);
+    const params = new URLSearchParams(window.location.search);
+    const match = URL_VIEWS.find((v) => v === params.get("view"));
     if (match) setViewState(match);
+    const task = params.get("task");
+    if (task) setSelectedTaskId(task);
   }, []);
   const setView = (next: ViewId) => {
     setViewState(next);
@@ -116,16 +140,38 @@ export default function ProgramDetailPage() {
     else url.searchParams.set("view", next);
     window.history.replaceState(null, "", url);
   };
-  // Freshest server state after a task mutation; wins over the initial fetch.
-  const [patched, setPatched] = useState<Program | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  // ?task= mirrors the open panel; replaceState preserves the other params.
+  const syncTaskParam = (taskId: string | null) => {
+    const url = new URL(window.location.href);
+    if (taskId) url.searchParams.set("task", taskId);
+    else url.searchParams.delete("task");
+    window.history.replaceState(null, "", url);
+  };
+  const selectTask = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    syncTaskParam(taskId);
+  };
+  const closePanel = () => {
+    setSelectedTaskId(null);
+    syncTaskParam(null);
+  };
   const fetched = data?.find((p) => p.id === id) ?? null;
   const program = patched && patched.id === id ? patched : fetched;
   const parent = resolveParent(program, data);
   // Panel is open only while the selected task still exists in the program.
   const panelOpen = taskExists(program, selectedTaskId);
-  const closePanel = () => setSelectedTaskId(null);
   const boardMode = view === "board" && program !== null;
+
+  // Contextual <title>: "Task · Program · XCollab" while the panel is open,
+  // else "Program · XCollab" (audit #10). setDocumentTitle wins the race
+  // against the App Router's async metadata re-apply; on route change the
+  // app shell's own call takes over, so no unmount cleanup is needed.
+  const openTaskName = openTaskNameOf(program, selectedTaskId, panelOpen);
+  useEffect(() => {
+    if (!program) return;
+    const programName = programDisplayName(program);
+    setDocumentTitle(openTaskName ? [openTaskName, programName] : [programName]);
+  }, [program, openTaskName]);
 
   return (
     <>
@@ -147,7 +193,7 @@ export default function ProgramDetailPage() {
                 uiLanguage={language}
                 detail
                 parent={parent}
-                onTaskSelect={setSelectedTaskId}
+                onTaskSelect={selectTask}
                 onProgramUpdate={setPatched}
               />
             ) : view === "board" ? (
@@ -158,13 +204,13 @@ export default function ProgramDetailPage() {
                   program={program}
                   uiLanguage={language}
                   onProgramUpdate={setPatched}
-                  onTaskSelect={setSelectedTaskId}
+                  onTaskSelect={selectTask}
                 />
               </Suspense>
             ) : view === "timeline" ? (
-              <TimelineView program={program} uiLanguage={language} onTaskSelect={setSelectedTaskId} />
+              <TimelineView program={program} uiLanguage={language} onTaskSelect={selectTask} />
             ) : (
-              <InsightsView program={program} uiLanguage={language} onTaskSelect={setSelectedTaskId} />
+              <InsightsView program={program} uiLanguage={language} onTaskSelect={selectTask} />
             )}
           </>
         ) : null}
