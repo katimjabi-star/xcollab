@@ -68,7 +68,7 @@ const PHASES: PhaseTemplate[] = [
 ];
 
 const TEXT = {
-  programPrefix: { en: "Program:", ar: "برنامج:" },
+  programPrefix: { en: "Project:", ar: "مشروع:" },
   coreTeam: { en: "Engineering", ar: "الهندسة" },
   milestones: {
     en: ["Kickoff complete", "Design frozen", "Delivery accepted"],

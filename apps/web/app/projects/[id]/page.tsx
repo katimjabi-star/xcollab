@@ -73,7 +73,7 @@ function ProgramTopline({
         <div className="board-program-line" dir={program.language === "ar" ? "rtl" : "ltr"}>
           {parent ? (
             <p className="program-parent-crumb">
-              <Link href={`/programs/${parent.id}`} dir="auto">
+              <Link href={`/projects/${parent.id}`} dir="auto">
                 {parent.name}
               </Link>
               <Icon icon={ChevronRight} size={12} directional />
@@ -132,7 +132,7 @@ export default function ProgramDetailPage() {
       {/* Board mode drops the centered program card: edge-to-edge surface with
           a compact program line; the board owns the remaining viewport. */}
       <div className={boardMode ? "content board-mode" : "content"}>
-        <Link className="back-link" href="/programs">
+        <Link className="back-link" href="/projects">
           <span aria-hidden>{dir === "rtl" ? "→" : "←"}</span> {t.backToPrograms}
         </Link>
 

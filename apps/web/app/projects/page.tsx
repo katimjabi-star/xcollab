@@ -64,7 +64,7 @@ function SubProgramRows({
           <li key={program.id}>
             <Link
               className="subprogram-row"
-              href={`/programs/${program.id}`}
+              href={`/projects/${program.id}`}
               style={{ paddingInlineStart: `calc(var(--space-2) + ${depth} * var(--space-4))` }}
             >
               <Icon icon={CornerDownRight} size={14} directional />
@@ -121,7 +121,7 @@ export default function ProgramsPage() {
         <div className="programs-grid">
           {roots.map((program) => (
             <div key={program.id} className="program-tree-item">
-              <Link className="card-link" href={`/programs/${program.id}`}>
+              <Link className="card-link" href={`/projects/${program.id}`}>
                 <ProgramCard program={program} uiLanguage={language} />
               </Link>
               <SubProgramRows parentId={program.id} byParent={byParent} depth={0} t={t} />
