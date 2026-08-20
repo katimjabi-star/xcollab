@@ -21,9 +21,13 @@ import {
 } from "./repository-tasks.ts";
 
 import { TeamsRepository } from "./repository-teams.ts";
+import { AttachmentsRepository } from "./repository-attachments.ts";
+import { updateProgramTeamTx, type ProgramTeamResult } from "./repository-programs.ts";
 
 export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
 export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
+export type { NewAttachmentInput } from "./repository-attachments.ts";
+export type { ProgramTeamResult } from "./repository-programs.ts";
 
 export interface LedgerActor {
   kind: "human" | "ai" | "service";
@@ -75,11 +79,15 @@ export class WorkGraphRepository {
   /** Team CRUD shares the same chain-append logic and transaction invariants. */
   readonly teams: TeamsRepository;
 
+  /** Attachment metadata shares the same chain-append logic and invariants. */
+  readonly attachments: AttachmentsRepository;
+
   constructor(pool: Pool) {
     this.pool = pool;
-    this.teams = new TeamsRepository(pool, (client, workspaceId, input) =>
-      this.appendWithClient(client, workspaceId, input),
-    );
+    const append: AppendFn = (client, workspaceId, input) =>
+      this.appendWithClient(client, workspaceId, input);
+    this.teams = new TeamsRepository(pool, append);
+    this.attachments = new AttachmentsRepository(pool, append);
   }
 
   /**
@@ -180,6 +188,16 @@ export class WorkGraphRepository {
     actor: LedgerActor,
   ): Promise<DeleteTaskResult> {
     return deleteTaskTx(this.pool, this.append, workspaceId, programId, taskId, actor);
+  }
+
+  /** Links (teamId) or unlinks (null) a workspace team on a program. */
+  async updateProgramTeam(
+    workspaceId: string,
+    programId: string,
+    teamId: string | null,
+    actor: LedgerActor,
+  ): Promise<ProgramTeamResult> {
+    return updateProgramTeamTx(this.pool, this.append, workspaceId, programId, teamId, actor);
   }
 
   /** Non-mutating model interactions are ledgered through the same chain. */

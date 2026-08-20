@@ -41,6 +41,15 @@ export class TeamsRepository {
     return result.rows.map((r) => WorkspaceTeamSchema.parse(r.doc));
   }
 
+  async get(workspaceId: string, teamId: string): Promise<WorkspaceTeam | null> {
+    const result = await this.pool.query<{ doc: unknown }>(
+      "SELECT doc FROM teams WHERE workspace_id = $1 AND id = $2",
+      [workspaceId, teamId],
+    );
+    const row = result.rows[0];
+    return row ? WorkspaceTeamSchema.parse(row.doc) : null;
+  }
+
   /** The caller becomes the sole lead; the id is assigned server-side. */
   async create(
     workspaceId: string,

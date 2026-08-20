@@ -200,3 +200,32 @@
   transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .team-add-member:hover { background: var(--surface-thin); color: var(--text-high); }
+
+/* ---- Expanded team: connected programs (client-join on Program.teamId) ---- */
+.team-programs { border-top: 1px solid var(--hairline); padding: var(--space-1) var(--space-3) var(--space-2); }
+.team-programs-label {
+  display: flex; align-items: center; gap: var(--space-2); min-height: 28px; margin: 0;
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-medium);
+}
+.team-programs-count {
+  font-size: var(--text-sm); background: var(--surface-thin);
+  border-radius: var(--radius-full); padding: 1px var(--space-2); line-height: 1.4;
+}
+.team-programs-empty { font-size: var(--text-sm); color: var(--text-low); padding-block: var(--space-1); margin: 0; }
+.team-programs-list { list-style: none; padding: 0; margin: 0; }
+.team-program-row {
+  display: flex; align-items: center; gap: var(--space-2); min-height: 32px;
+  padding-inline: var(--space-1); border-radius: var(--radius-md);
+  text-decoration: none; color: inherit; font-size: var(--text-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.team-program-row:hover { background: var(--surface-thin); }
+.team-program-row:active { background: var(--state-pressed); }
+.team-program-row:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring); outline-offset: -2px; }
+.team-program-row .icon { flex: none; color: var(--text-low); }
+.team-program-name {
+  flex: 1; min-width: 0; font-weight: var(--weight-medium); color: var(--text-high);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.team-program-count { flex: none; font-size: var(--text-sm); color: var(--text-medium); white-space: nowrap; }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AttachmentSchema,
   LanguageSchema,
   ProgramSchema,
   TaskSchema,
@@ -99,6 +100,45 @@ describe("ProgramSchema.parentId", () => {
 
   it("rejects an empty parentId", () => {
     expect(() => ProgramSchema.parse({ ...validProgram, parentId: "" })).toThrow();
+  });
+});
+
+describe("ProgramSchema.teamId", () => {
+  it("round-trips an optional teamId", () => {
+    expect(ProgramSchema.parse({ ...validProgram, teamId: "team-9" }).teamId).toBe("team-9");
+    expect(ProgramSchema.parse(validProgram).teamId).toBeUndefined();
+  });
+
+  it("rejects an empty teamId", () => {
+    expect(() => ProgramSchema.parse({ ...validProgram, teamId: "" })).toThrow();
+  });
+});
+
+const validAttachment = {
+  id: "att-1",
+  workspaceId: "ws-1",
+  programId: "prog-1",
+  taskId: null,
+  filename: "spec.pdf",
+  contentType: "application/pdf",
+  sizeBytes: 1024,
+  sha256: "a".repeat(64),
+  uploadedBy: "jabbir",
+  createdAt: "2026-08-20T09:00:00.000Z",
+};
+
+describe("AttachmentSchema", () => {
+  it("accepts a program-scoped attachment (taskId null)", () => {
+    expect(AttachmentSchema.parse(validAttachment).taskId).toBeNull();
+  });
+
+  it("accepts a task-scoped attachment", () => {
+    expect(AttachmentSchema.parse({ ...validAttachment, taskId: "task-1" }).taskId).toBe("task-1");
+  });
+
+  it("rejects a malformed sha256 and negative sizes", () => {
+    expect(() => AttachmentSchema.parse({ ...validAttachment, sha256: "zz" })).toThrow();
+    expect(() => AttachmentSchema.parse({ ...validAttachment, sizeBytes: -1 })).toThrow();
   });
 });
 

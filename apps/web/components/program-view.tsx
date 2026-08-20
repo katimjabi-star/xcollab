@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { Program, Task } from "@xcollab/core";
@@ -7,6 +9,8 @@ import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { TaskQuickAdd } from "./quick-add.tsx";
+import { AttachmentsSection } from "./attachments-section.tsx";
+import { ProgramTeamChip, TeamNameChip } from "./teams-program-chip.tsx";
 
 type Severity = Program["risks"][number]["severity"];
 
@@ -130,6 +134,7 @@ export function ProgramCard({
     <article className="program-tile" dir={program.language === "ar" ? "rtl" : "ltr"}>
       <div className="program-tile-head">
         <h3 className="program-tile-name">{program.name}</h3>
+        <TeamNameChip program={program} />
         <span className="mini-chip" dir="auto">
           {program.language === "ar" ? t.langChipAr : t.langChipEn}
         </span>
@@ -187,6 +192,18 @@ export function ProgramView({
   return (
     <article className="program-detail" dir={program.language === "ar" ? "rtl" : "ltr"}>
       <ProgramCardHeader program={program} headingLevel="h2" parent={parent} />
+      {/* Connected-team editor chip — optimistic PATCH, revert + toast on failure. */}
+      <div className="program-head-chips">
+        <ProgramTeamChip program={program} onProgramUpdate={onProgramUpdate} />
+      </div>
+
+      {/* Program-level documents, shared component in program scope. */}
+      <AttachmentsSection
+        programId={program.id}
+        uiLanguage={uiLanguage}
+        heading={t.documentsHeading}
+        collapsible
+      />
 
       <div className="task-groups">
         {program.packages.map((pkg) => (

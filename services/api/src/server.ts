@@ -4,6 +4,7 @@ import { AiGateway, AnthropicAdapter, type ModelAdapter } from "@xcollab/ai-gate
 import { createApp } from "./app.ts";
 import { migrate } from "./db/migrate.ts";
 import { WorkGraphRepository } from "./repository.ts";
+import { AttachmentStore } from "./storage.ts";
 
 const ADMIN_URL =
   process.env.DATABASE_URL ?? "postgres://xcollab:xcollab_dev_only@localhost:5432/xcollab";
@@ -21,8 +22,11 @@ const admin = new Pool({ connectionString: ADMIN_URL });
 await migrate(admin);
 await admin.end();
 
+const store = new AttachmentStore();
+await store.ensureBucket();
+
 const repo = new WorkGraphRepository(new Pool({ connectionString: APP_URL }));
-const app = createApp(repo, new AiGateway(adapters));
+const app = createApp(repo, new AiGateway(adapters), store);
 
 serve({ fetch: app.fetch, port: PORT });
 console.log(

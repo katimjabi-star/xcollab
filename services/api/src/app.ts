@@ -6,6 +6,8 @@ import type { AiGateway } from "@xcollab/ai-gateway";
 import { createAuthMiddleware, type AuthEnv } from "./auth.ts";
 import type { LedgerActor, TaskFieldChanges, WorkGraphRepository } from "./repository.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
+import { registerAttachmentRoutes } from "./routes-attachments.ts";
+import { AttachmentStore } from "./storage.ts";
 
 const CreateProgramRequestSchema = z.object({
   workspaceId: z.string().min(1),
@@ -14,6 +16,13 @@ const CreateProgramRequestSchema = z.object({
   timeline: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
   teamHints: z.array(z.string().min(1)).max(20).optional(),
   parentId: z.string().min(1).optional(),
+  teamId: z.string().min(1).optional(),
+});
+
+/** teamId null unlinks; a string re-links (must be an existing workspace team). */
+const UpdateProgramRequestSchema = z.object({
+  workspaceId: z.string().min(1),
+  teamId: z.string().min(1).nullable(),
 });
 
 const UPDATABLE_TASK_KEYS = [
@@ -55,7 +64,11 @@ const CreateTaskRequestSchema = z.object({
   description: TaskSchema.shape.description,
 });
 
-export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<AuthEnv> {
+export function createApp(
+  repo: WorkGraphRepository,
+  gateway: AiGateway,
+  store: AttachmentStore = new AttachmentStore(),
+): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   app.use("/api/*", cors({ origin: ["http://localhost:3000"] }));
 
@@ -74,13 +87,19 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<A
     if (!parsed.success) {
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
     }
-    const { workspaceId, parentId, ...brief } = parsed.data;
+    const { workspaceId, parentId, teamId, ...brief } = parsed.data;
     if (parentId !== undefined && !(await repo.getProgram(workspaceId, parentId))) {
       return c.json({ error: "unknown_parent" }, 422);
+    }
+    if (teamId !== undefined && !(await repo.teams.get(workspaceId, teamId))) {
+      return c.json({ error: "unknown_team" }, 422);
     }
     const generation = await gateway.generateProgram(brief);
     if (parentId !== undefined) {
       generation.program = { ...generation.program, parentId };
+    }
+    if (teamId !== undefined) {
+      generation.program = { ...generation.program, teamId };
     }
     const { program, ledgerSeq } = await repo.createProgram(workspaceId, generation, {
       kind: "ai",
@@ -100,6 +119,22 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<A
     if (!workspaceId) return c.json({ error: "workspaceId is required" }, 400);
     const program = await repo.getProgram(workspaceId, c.req.param("id"));
     return program ? c.json({ program }) : c.json({ error: "not found" }, 404);
+  });
+
+  app.patch("/api/programs/:id", async (c) => {
+    const parsed = UpdateProgramRequestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
+    }
+    const result = await repo.updateProgramTeam(
+      parsed.data.workspaceId,
+      c.req.param("id"),
+      parsed.data.teamId,
+      humanActor(c),
+    );
+    if (result.outcome === "ok") return c.json({ program: result.program });
+    if (result.outcome === "unknown_team") return c.json({ error: "unknown_team" }, 422);
+    return c.json({ error: "not found" }, 404);
   });
 
   app.patch("/api/programs/:programId/tasks/:taskId", async (c) => {
@@ -157,6 +192,7 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<A
   });
 
   registerTeamRoutes(app, repo);
+  registerAttachmentRoutes(app, repo, store);
 
   app.get("/api/ledger", async (c) => {
     const workspaceId = c.req.query("workspaceId");

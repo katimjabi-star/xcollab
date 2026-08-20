@@ -1,4 +1,5 @@
 export {
+  AttachmentSchema,
   LanguageSchema,
   MilestoneSchema,
   ProgramSchema,
@@ -10,6 +11,7 @@ export {
   TimelineSchema,
   WorkPackageSchema,
   WorkspaceTeamSchema,
+  type Attachment,
   type Language,
   type Program,
   type Task,

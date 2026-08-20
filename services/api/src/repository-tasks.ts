@@ -53,7 +53,7 @@ type MutationOutcome<T> = { commit: true; value: T } | { commit: false; value: T
  * SELECT ... FOR UPDATE, then the step decides commit vs rollback. A rollback
  * leaves the program untouched and appends no ledger row.
  */
-async function runProgramMutation<T>(
+export async function runProgramMutation<T>(
   pool: Pool,
   workspaceId: string,
   programId: string,
@@ -88,7 +88,7 @@ async function runProgramMutation<T>(
 }
 
 /** Validates the candidate program (ProgramSchema.parse) before writing it. */
-async function writeProgram(
+export async function writeProgram(
   client: PoolClient,
   workspaceId: string,
   programId: string,

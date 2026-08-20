@@ -1,0 +1,149 @@
+/* Timeline + Insights sheet — read-only Gantt lanes and CSS-only analytics.
+   Tokens only; logical properties for RTL. Compact one-line rule style to
+   honor the sprint's 300-line file cap. */
+
+/* ---- Compact topline for non-board alternate views ---- */
+.view-topline { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+
+/* Shared accent focus ring */
+.tl-task:focus-visible, .in-task-row:focus-visible, .tl-scroller:focus-visible {
+  outline: none; box-shadow: inset 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+/* ---- Timeline: horizontal scroll lives inside the view ---- */
+.tl-region { display: flex; flex-direction: column; min-width: 0; }
+.tl-scroller {
+  overflow: auto; max-block-size: calc(100vh - 200px);
+  border: 1px solid var(--elev-border); border-radius: var(--radius-lg);
+  background: var(--surface); box-shadow: var(--shadow-raised);
+}
+.tl-inner { position: relative; width: max-content; min-width: 100%; }
+.tl-row { display: flex; align-items: stretch; width: 100%; }
+.tl-namecol {
+  position: sticky; inset-inline-start: 0; z-index: 2; flex: 0 0 200px;
+  display: flex; align-items: center; gap: var(--space-2); padding-inline: var(--space-3);
+  background: var(--surface); border-inline-end: 1px solid var(--hairline); min-width: 0;
+}
+.tl-lane { position: relative; flex: 0 0 auto; }
+
+/* Month header row: sticky against the timeline's own vertical scroll */
+.tl-months { position: sticky; inset-block-start: 0; z-index: 4; block-size: 28px; background: var(--surface); border-block-end: 1px solid var(--hairline); }
+.tl-months .tl-lane { display: flex; }
+.tl-month {
+  display: inline-flex; align-items: center; padding-inline: var(--space-2); min-width: 0;
+  font-size: var(--text-sm); color: var(--text-medium); white-space: nowrap; overflow: hidden;
+  border-inline-start: 1px solid var(--hairline);
+}
+
+/* Milestone lane: diamond markers, names in the title tooltip */
+.tl-ms-row { block-size: 28px; border-block-end: 1px solid var(--hairline); }
+.tl-ms-name { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-medium); }
+.tl-diamond {
+  position: absolute; inset-block-start: 50%; inline-size: 9px; block-size: 9px;
+  margin-inline-start: -5px; transform: translateY(-50%) rotate(45deg);
+  background: var(--surface); border: 1.5px solid var(--text-medium); border-radius: 1px;
+}
+
+/* Sticky 36px package header rows (name + count) */
+.tl-pkg-head { position: sticky; inset-block-start: 28px; z-index: 3; block-size: 36px; background: var(--surface); border-block-end: 1px solid var(--hairline); }
+.tl-pkg-name { font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-high); }
+.tl-pkg-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-pkg-count { font-size: var(--text-sm); font-weight: var(--weight-regular); color: var(--text-medium); font-variant-numeric: tabular-nums; }
+
+/* 28px task rows — the whole row is the click target */
+.tl-task {
+  block-size: 28px; border: none; background: none; padding: 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; text-align: start;
+  border-block-end: 1px solid var(--divider-low);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.tl-task:hover { background: var(--surface-thin); }
+/* Sticky name cells are opaque; an inset tint reproduces the row hover */
+.tl-task:hover .tl-namecol { box-shadow: inset 0 0 0 999px var(--surface-thin); }
+.tl-task-name { display: block; line-height: 27px; font-size: var(--text-md); color: var(--text-high); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-nodates { display: inline-flex; align-items: center; block-size: 100%; padding-inline: var(--space-2); font-size: var(--text-sm); color: var(--text-low); }
+
+/* Bars: status tint bg + full-strength 1px fg edge; done muted; overdue tinted */
+.tl-bar { position: absolute; inset-block-start: 50%; transform: translateY(-50%); block-size: 16px; min-inline-size: 6px; border-radius: var(--radius-full); border: 1px solid; }
+.tl-bar-todo { background: var(--status-todo-bg); border-color: var(--status-todo-fg); }
+.tl-bar-in_progress { background: var(--status-in-progress-bg); border-color: var(--status-in-progress-fg); }
+.tl-bar-blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-fg); }
+.tl-bar-done { background: var(--status-done-bg); border-color: var(--status-done-fg); opacity: 0.55; }
+.tl-bar-overdue { background: var(--status-overdue-bg); border-color: var(--status-overdue-fg); }
+
+/* Today rule: below sticky headers (z1), above lane bars */
+.tl-today { position: absolute; inset-block-start: 28px; inset-block-end: 0; inline-size: 2px; background: var(--brand); opacity: 0.7; z-index: 1; pointer-events: none; }
+
+/* ---- Insights: metric tiles ---- */
+.in-region { display: flex; flex-direction: column; gap: var(--space-5); }
+.in-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
+.in-tile {
+  display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);
+  background: var(--surface); border: 1px solid var(--elev-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised);
+}
+.in-tile-value { font-size: var(--text-2xl); font-weight: var(--weight-semibold); color: var(--text-highest); font-variant-numeric: tabular-nums; }
+.in-tile-label { font-size: var(--text-sm); color: var(--text-medium); }
+.in-tile-alert { background: var(--status-overdue-bg); border-color: var(--status-overdue-fg); }
+.in-tile-alert .in-tile-value, .in-tile-alert .in-tile-label { color: var(--status-overdue-fg); }
+
+/* ---- Insights: section cards ---- */
+.in-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4); align-items: start; }
+.in-section {
+  display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); min-width: 0;
+  background: var(--surface); border: 1px solid var(--elev-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised);
+}
+.in-subhead { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-high); }
+.in-empty { margin: 0; font-size: var(--text-sm); color: var(--text-low); }
+
+/* Progress by work package: 8px tokened bars, 12px labels */
+.in-progress-row { display: flex; flex-direction: column; gap: var(--space-1); }
+.in-progress-label { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-medium); }
+.in-progress-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-progress-pct { color: var(--text-high); font-variant-numeric: tabular-nums; }
+.in-track { display: block; block-size: 8px; border-radius: var(--radius-full); background: var(--surface-thin); overflow: hidden; }
+.in-fill { display: block; block-size: 100%; border-radius: var(--radius-full); background: var(--status-done-fg); }
+
+/* Status breakdown: one stacked bar + legend */
+.in-stack { display: flex; block-size: 12px; border-radius: var(--radius-full); overflow: hidden; background: var(--surface-thin); }
+.in-seg { display: block; block-size: 100%; }
+.in-seg-todo { background: var(--status-todo-fg); }
+.in-seg-in_progress { background: var(--status-in-progress-fg); }
+.in-seg-blocked { background: var(--status-blocked-fg); }
+.in-seg-done { background: var(--status-done-fg); }
+.in-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); color: var(--text-medium); }
+.in-legend li { display: inline-flex; align-items: center; gap: var(--space-1); }
+.in-dot { display: inline-block; inline-size: 8px; block-size: 8px; border-radius: 50%; }
+
+/* Team load: avatar + open/done mini bars */
+.in-load-row { display: flex; align-items: center; gap: var(--space-2); block-size: 28px; }
+.in-load-name { flex: 0 0 30%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); color: var(--text-high); }
+.in-load-bar { flex: 1; display: flex; block-size: 8px; border-radius: var(--radius-full); overflow: hidden; background: var(--surface-thin); }
+.in-load-done { background: var(--status-done-fg); }
+.in-load-open { background: var(--status-todo-fg); }
+.in-load-counts { font-size: var(--text-sm); color: var(--text-medium); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.in-avatar-none { opacity: 0.55; }
+
+/* Overdue task rows → task panel */
+.in-task-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  min-block-size: 32px; padding: var(--space-1) var(--space-2); margin-inline: calc(-1 * var(--space-2));
+  border: none; background: none; border-radius: var(--radius-md); font: inherit; color: inherit;
+  cursor: pointer; text-align: start; transition: background-color var(--dur-fast) var(--ease-out);
+}
+.in-task-row:hover { background: var(--surface-thin); }
+.in-task-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); color: var(--text-high); }
+
+/* Milestones: diamond icon + date; past-due rows in the overdue tint */
+.in-ms-row { display: flex; align-items: center; gap: var(--space-2); min-block-size: 28px; font-size: var(--text-md); color: var(--text-high); }
+.in-ms-icon { color: var(--text-medium); flex: none; }
+.in-ms-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-ms-date { margin-inline-start: auto; font-size: var(--text-sm); color: var(--text-medium); font-variant-numeric: tabular-nums; }
+.in-ms-row.past, .in-ms-row.past .in-ms-icon, .in-ms-row.past .in-ms-date { color: var(--status-overdue-fg); }
+
+/* Risks: 20px severity chips, 10-15% tint bg + full-strength text */
+.in-risk-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.in-risk-chip { display: inline-flex; align-items: center; gap: var(--space-1); block-size: 20px; padding-inline: var(--space-2); border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.in-risk-low { background: var(--status-todo-bg); color: var(--status-todo-fg); }
+.in-risk-medium { background: var(--status-in-progress-bg); color: var(--status-in-progress-fg); }
+.in-risk-high { background: var(--status-at-risk-bg); color: var(--status-at-risk-fg); }
+.in-risk-critical { background: var(--status-overdue-bg); color: var(--status-overdue-fg); }

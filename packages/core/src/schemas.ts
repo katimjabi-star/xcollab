@@ -71,6 +71,8 @@ export const ProgramSchema = z
     id: z.string().min(1),
     /** Optional parent program id (same workspace) for program hierarchies. */
     parentId: z.string().min(1).optional(),
+    /** Optional linked workspace team id (WorkspaceTeamSchema, same workspace). */
+    teamId: z.string().min(1).optional(),
     name: z.string().min(1),
     mission: z.string().min(1),
     language: LanguageSchema,
@@ -95,3 +97,23 @@ export const ProgramSchema = z
     }
   });
 export type Program = z.infer<typeof ProgramSchema>;
+
+/**
+ * File attachment metadata as served by the API. The object content lives in
+ * MinIO under a storage key that never leaves services/api; the sha256 is
+ * ledgered on attach so content tampering is detectable against the chain.
+ */
+export const AttachmentSchema = z.object({
+  id: z.string().min(1),
+  workspaceId: z.string().min(1),
+  programId: z.string().min(1),
+  /** null for program-level documents; a task id for task-scoped ones. */
+  taskId: z.string().min(1).nullable(),
+  filename: z.string().min(1),
+  contentType: z.string().min(1),
+  sizeBytes: z.number().int().nonnegative(),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  uploadedBy: z.string().min(1),
+  createdAt: z.string().min(1),
+});
+export type Attachment = z.infer<typeof AttachmentSchema>;

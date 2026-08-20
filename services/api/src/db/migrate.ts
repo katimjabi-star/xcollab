@@ -60,6 +60,24 @@ async function runMigration(admin: PoolClient): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS teams_workspace_id_idx ON teams (workspace_id);
+
+    -- Attachment metadata; the file content lives in MinIO under storage_key.
+    -- task_id NULL means a program-level document.
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      program_id TEXT NOT NULL,
+      task_id TEXT,
+      filename TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      size_bytes BIGINT NOT NULL,
+      sha256 TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      storage_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS attachments_workspace_program_idx
+      ON attachments (workspace_id, program_id);
   `);
 
   const quotedPassword = `'${APP_ROLE_PASSWORD.replaceAll("'", "''")}'`;
@@ -75,6 +93,7 @@ async function runMigration(admin: PoolClient): Promise<void> {
   await admin.query(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON programs TO xcollab_app;
     GRANT SELECT, INSERT, UPDATE, DELETE ON teams TO xcollab_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON attachments TO xcollab_app;
     GRANT SELECT, INSERT ON ledger_entries TO xcollab_app;
     REVOKE UPDATE, DELETE ON ledger_entries FROM xcollab_app;
   `);

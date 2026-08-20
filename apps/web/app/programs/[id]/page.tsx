@@ -10,8 +10,14 @@ import { useUi } from "../../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../../lib/use-workspace-data.ts";
 import { ProgramView } from "../../../components/program-view.tsx";
 import { Board } from "../../../components/board.tsx";
+import { TimelineView } from "../../../components/timeline-view.tsx";
+import { InsightsView } from "../../../components/insights-view.tsx";
 import { TaskPanel } from "../../../components/task-panel.tsx";
 import { Icon } from "../../../components/ui/icon.tsx";
+
+/** Views that persist in ?view=; "list" is the default and keeps a clean URL. */
+const URL_VIEWS = ["board", "timeline", "insights"] as const;
+type ViewId = "list" | (typeof URL_VIEWS)[number];
 
 function taskExists(program: Program | null, taskId: string | null): boolean {
   if (!program || !taskId) return false;
@@ -40,25 +46,30 @@ function PageNotices({ error, notFound }: { error: unknown; notFound: boolean })
   );
 }
 
-/** View-switcher row; board mode adds the compact program line beside it,
+/** View-switcher row; non-list views add the compact program line beside it,
     prefixed with a "ParentName ›" crumb when the program has a parent. */
 function ProgramTopline({
   program,
   parent,
-  boardMode,
   view,
   onViewChange,
 }: {
   program: Program;
   parent: { id: string; name: string } | null;
-  boardMode: boolean;
-  view: "list" | "board";
-  onViewChange: (view: "list" | "board") => void;
+  view: ViewId;
+  onViewChange: (view: ViewId) => void;
 }) {
   const { t } = useUi();
+  const labels: Record<ViewId, string> = {
+    list: t.viewList,
+    board: t.viewBoard,
+    timeline: t.viewTimeline,
+    insights: t.viewInsights,
+  };
+  const compact = view !== "list";
   return (
-    <div className={boardMode ? "board-topline" : undefined}>
-      {boardMode ? (
+    <div className={view === "board" ? "board-topline" : compact ? "view-topline" : undefined}>
+      {compact ? (
         <div className="board-program-line" dir={program.language === "ar" ? "rtl" : "ltr"}>
           {parent ? (
             <p className="program-parent-crumb">
@@ -75,12 +86,11 @@ function ProgramTopline({
         </div>
       ) : null}
       <div className="view-switcher" role="group" aria-label={t.viewSwitcherLabel}>
-        <button type="button" aria-pressed={view === "list"} onClick={() => onViewChange("list")}>
-          {t.viewList}
-        </button>
-        <button type="button" aria-pressed={view === "board"} onClick={() => onViewChange("board")}>
-          {t.viewBoard}
-        </button>
+        {(["list", ...URL_VIEWS] as const).map((id) => (
+          <button key={id} type="button" aria-pressed={view === id} onClick={() => onViewChange(id)}>
+            {labels[id]}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -90,20 +100,20 @@ export default function ProgramDetailPage() {
   const { t, language, dir } = useUi();
   const { id } = useParams<{ id: string }>();
   const { data, error, loaded } = useWorkspaceData(listPrograms);
-  const [view, setViewState] = useState<"list" | "board">("list");
-  // View choice lives in ?view= so a reload or shared link keeps the board.
+  const [view, setViewState] = useState<ViewId>("list");
+  // View choice lives in ?view= so a reload or shared link keeps the view.
   // Read post-mount (like the board's collapse state) to avoid a hydration
   // mismatch; useSearchParams here would force Suspense around the whole page.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("view") === "board") {
-      setViewState("board");
-    }
+    const raw = new URLSearchParams(window.location.search).get("view");
+    const match = URL_VIEWS.find((v) => v === raw);
+    if (match) setViewState(match);
   }, []);
-  const setView = (next: "list" | "board") => {
+  const setView = (next: ViewId) => {
     setViewState(next);
     const url = new URL(window.location.href);
-    if (next === "board") url.searchParams.set("view", "board");
-    else url.searchParams.delete("view");
+    if (next === "list") url.searchParams.delete("view");
+    else url.searchParams.set("view", next);
     window.history.replaceState(null, "", url);
   };
   // Freshest server state after a task mutation; wins over the initial fetch.
@@ -130,13 +140,7 @@ export default function ProgramDetailPage() {
 
         {program ? (
           <>
-            <ProgramTopline
-              program={program}
-              parent={parent}
-              boardMode={boardMode}
-              view={view}
-              onViewChange={setView}
-            />
+            <ProgramTopline program={program} parent={parent} view={view} onViewChange={setView} />
             {view === "list" ? (
               <ProgramView
                 program={program}
@@ -146,7 +150,7 @@ export default function ProgramDetailPage() {
                 onTaskSelect={setSelectedTaskId}
                 onProgramUpdate={setPatched}
               />
-            ) : (
+            ) : view === "board" ? (
               /* Board reads filter/sort from useSearchParams — Suspense keeps
                  the prerender contract (see next/docs use-search-params). */
               <Suspense fallback={null}>
@@ -157,6 +161,10 @@ export default function ProgramDetailPage() {
                   onTaskSelect={setSelectedTaskId}
                 />
               </Suspense>
+            ) : view === "timeline" ? (
+              <TimelineView program={program} uiLanguage={language} onTaskSelect={setSelectedTaskId} />
+            ) : (
+              <InsightsView program={program} uiLanguage={language} onTaskSelect={setSelectedTaskId} />
             )}
           </>
         ) : null}
