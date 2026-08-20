@@ -19,7 +19,7 @@ export interface NavItem {
 /** Single source of truth for primary routes — sidebar items and breadcrumbs. */
 export const NAV_ITEMS: readonly NavItem[] = [
   { icon: Home, labelKey: "navOverview", href: "/" },
-  { icon: FolderKanban, labelKey: "navPrograms", href: "/programs" },
+  { icon: FolderKanban, labelKey: "navPrograms", href: "/projects" },
   { icon: ScrollText, labelKey: "navLedger", href: "/ledger" },
   { icon: Users, labelKey: "navTeams", href: "/teams" },
 ];

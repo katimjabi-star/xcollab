@@ -218,7 +218,7 @@ export default function Home() {
                 const status = programStatus(program);
                 return (
                   <li key={program.id}>
-                    <Link className="program-row" href={`/programs/${program.id}`}>
+                    <Link className="program-row" href={`/projects/${program.id}`}>
                       <span className="program-row-name" dir="auto">
                         {program.name}
                       </span>

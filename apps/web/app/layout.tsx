@@ -10,7 +10,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "XCollab",
-  description: "AI-native program orchestration — describe the mission, the program builds itself.",
+  description: "AI-native project orchestration — describe the mission, the project builds itself.",
 };
 
 /* Runs before first paint so a pinned theme never flashes the wrong mode.

@@ -52,7 +52,7 @@ export function TeamPrograms({ teamId }: { teamId: string }) {
             const taskCount = program.packages.reduce((sum, pkg) => sum + pkg.tasks.length, 0);
             return (
               <li key={program.id}>
-                <Link className="team-program-row" href={`/programs/${program.id}`}>
+                <Link className="team-program-row" href={`/projects/${program.id}`}>
                   <Icon icon={FolderKanban} size={14} />
                   <span className="team-program-name" dir="auto">
                     {program.name}

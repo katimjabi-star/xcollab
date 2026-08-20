@@ -105,7 +105,7 @@ export function ProgramCardHeader({
     <header className="program-head">
       {parent ? (
         <p className="program-parent-crumb">
-          <Link href={`/programs/${parent.id}`} dir="auto">
+          <Link href={`/projects/${parent.id}`} dir="auto">
             {parent.name}
           </Link>
           <Icon icon={ChevronRight} size={12} directional />
