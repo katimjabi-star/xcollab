@@ -8,6 +8,7 @@ import type { Task } from "@xcollab/core";
 import type { BoardCard } from "../lib/board-filter.ts";
 import { isOverdue } from "../lib/board-filter.ts";
 import type { STRINGS } from "../lib/i18n.ts";
+import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { Popover } from "./ui/popover.tsx";
@@ -22,21 +23,13 @@ export const STATUS_ICONS: Record<Task["status"], LucideIcon> = {
   done: CheckCircle2,
 };
 
-/** Initials for the 20px assignee-role avatar: first letter of the first two words. */
-function roleInitials(role: string): string {
-  return role
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 interface BoardCardItemProps {
   card: BoardCard;
   t: Strings;
   /** ISO date injected by the board so overdue rendering matches filtering. */
   today: string;
+  /** Resolved full name for task.assignee (board-level users map); username fallback. */
+  assigneeName?: string;
   dragging: boolean;
   revertError: boolean;
   /** The other three columns, in board order. */
@@ -53,6 +46,7 @@ export function BoardCardItem({
   card,
   t,
   today,
+  assigneeName,
   dragging,
   revertError,
   moveTargets,
@@ -149,10 +143,10 @@ export function BoardCardItem({
 
       <div className="board-card-foot">
         <span className="board-card-id">{task.id}</span>
-        {task.assigneeRole ? (
-          <span className="board-card-avatar" title={task.assigneeRole} aria-label={task.assigneeRole}>
-            {roleInitials(task.assigneeRole)}
-          </span>
+        {task.assignee ? (
+          <Avatar name={assigneeName ?? task.assignee} />
+        ) : task.assigneeRole ? (
+          <Avatar name={task.assigneeRole} />
         ) : null}
       </div>
     </article>

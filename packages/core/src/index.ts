@@ -5,13 +5,17 @@ export {
   RiskSchema,
   TaskSchema,
   TaskStatusSchema,
+  TeamMemberSchema,
   TeamSchema,
   TimelineSchema,
   WorkPackageSchema,
+  WorkspaceTeamSchema,
   type Language,
   type Program,
   type Task,
+  type TeamMember,
   type WorkPackage,
+  type WorkspaceTeam,
 } from "./schemas.ts";
 export { findDependencyCycle } from "./dag.ts";
 export {

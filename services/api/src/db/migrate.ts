@@ -50,6 +50,16 @@ async function runMigration(admin: PoolClient): Promise<void> {
       hash CHAR(64) NOT NULL,
       PRIMARY KEY (workspace_id, seq)
     );
+
+    -- Teams are mutable workspace state; their immutable audit lives in the ledger.
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      doc JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS teams_workspace_id_idx ON teams (workspace_id);
   `);
 
   const quotedPassword = `'${APP_ROLE_PASSWORD.replaceAll("'", "''")}'`;
@@ -64,6 +74,7 @@ async function runMigration(admin: PoolClient): Promise<void> {
 
   await admin.query(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON programs TO xcollab_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON teams TO xcollab_app;
     GRANT SELECT, INSERT ON ledger_entries TO xcollab_app;
     REVOKE UPDATE, DELETE ON ledger_entries FROM xcollab_app;
   `);

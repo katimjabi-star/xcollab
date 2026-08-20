@@ -5,6 +5,7 @@ import { Check, ChevronDown } from "lucide-react";
 import type { Task } from "@xcollab/core";
 import type { TaskPatch } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+import { AssigneePicker } from "./assignee-picker.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { Popover } from "./ui/popover.tsx";
@@ -112,6 +113,7 @@ export function TaskPanelFields({
   const [dueDate, setDueDate] = useState(task.dueDate ?? "");
   const [estimate, setEstimate] = useState(String(task.estimateDays));
   const [assignee, setAssignee] = useState(task.assigneeRole ?? "");
+  const [assigneeUser, setAssigneeUser] = useState<string | null>(task.assignee ?? null);
   const [description, setDescription] = useState(task.description ?? "");
   const overdue = dueDate !== "" && status !== "done" && dueDate < todayIso();
 
@@ -136,6 +138,15 @@ export function TaskPanelFields({
     if (parsed === task.estimateDays) return;
     void commit({ estimateDays: parsed }).then((ok) => {
       if (!ok) setEstimate(String(task.estimateDays));
+    });
+  };
+
+  // Optimistic: swap the avatar immediately, revert on a failed PATCH.
+  const commitAssigneeUser = (username: string | null) => {
+    const previous = task.assignee ?? null;
+    setAssigneeUser(username);
+    void commit({ assignee: username }).then((ok) => {
+      if (!ok) setAssigneeUser(previous);
     });
   };
 
@@ -181,6 +192,12 @@ export function TaskPanelFields({
               onChange={(event) => setEstimate(event.target.value)}
               onBlur={commitEstimate}
             />
+          </div>
+        </div>
+        <div className="prop-row">
+          <span className="prop-label">{t.taskAssignee}</span>
+          <div className="prop-value">
+            <AssigneePicker assignee={assigneeUser} onSelect={commitAssigneeUser} t={t} />
           </div>
         </div>
         <div className="prop-row">

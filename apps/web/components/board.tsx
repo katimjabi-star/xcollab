@@ -8,6 +8,7 @@ import type { BoardCard } from "../lib/board-filter.ts";
 import { anyFilterActive, filterTasks, sortTasks } from "../lib/board-filter.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
+import { fullName, useWorkspaceUsers } from "./assignee-picker.tsx";
 import { BoardCardItem } from "./board-card.tsx";
 import { BoardColumn } from "./board-column.tsx";
 import { BoardFilterBar, useBoardQuery } from "./board-filters.tsx";
@@ -135,6 +136,8 @@ export function Board({
   const visible = sortTasks(filterTasks(cards, filter, today), sort);
   const roles = [...new Set(cards.map((c) => c.task.assigneeRole).filter((r): r is string => !!r))].sort();
   const packages = program.packages.map((pkg) => ({ id: pkg.id, name: pkg.name }));
+  const users = useWorkspaceUsers();
+  const namesByUsername = new Map(users.map((user) => [user.username, fullName(user)]));
 
   const clearOverride = (taskId: string) => {
     setOverrides((prev) =>
@@ -198,6 +201,7 @@ export function Board({
         sort={sort}
         packages={packages}
         roles={roles}
+        users={users}
         onFilterChange={setFilter}
         onSortChange={setSort}
         onClearFilters={clearFilters}
@@ -247,6 +251,9 @@ export function Board({
                     card={card}
                     t={t}
                     today={today}
+                    assigneeName={
+                      card.task.assignee ? namesByUsername.get(card.task.assignee) : undefined
+                    }
                     dragging={draggingId === card.task.id}
                     revertError={revertErrorId === card.task.id}
                     moveTargets={moveTargets}

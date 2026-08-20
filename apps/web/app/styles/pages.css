@@ -52,6 +52,24 @@
   text-decoration: underline;
 }
 
+/* 20px initials avatar primitive (components/ui/avatar.tsx) — board cards,
+   task panel, program rows. Non-default sizes come inline from the component. */
+.ui-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: var(--radius-full);
+  background: var(--avatar-bg);
+  color: var(--avatar-fg);
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
 /* Small neutral chip (language tag on program cards) */
 .mini-chip {
   display: inline-flex;
@@ -192,6 +210,41 @@
 
 .form-row input[type="date"]:hover {
   border-color: var(--border);
+}
+
+/* Optional parent-program row: 12px label + compact select, under the dates */
+.composer-parent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.composer-parent-row label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+.composer-parent-row select {
+  height: 32px;
+  max-inline-size: 320px;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: var(--text-md);
+  padding-inline: var(--space-2);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.composer-parent-row select:hover {
+  border-color: var(--border);
+}
+
+.composer-parent-row select:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 /* Primary control: 32px tall, 13px label, 8x16 pad, 6px radius */
@@ -375,6 +428,73 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Program hierarchy: root card + compact indented sub-program rows.
+   Depth indentation comes inline via padding-inline-start (logical → RTL
+   mirrors); directional corner icons flip via .icon-directional. */
+.program-tree-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.subprogram-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  margin-inline-start: var(--space-2);
+  display: flex;
+  flex-direction: column;
+}
+
+.subprogram-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding-inline-end: var(--space-2);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  font-size: var(--text-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.subprogram-row:hover {
+  background: var(--surface-thin);
+}
+
+.subprogram-row:active {
+  background: var(--state-pressed);
+}
+
+.subprogram-row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.subprogram-row .icon {
+  flex: none;
+  color: var(--text-low);
+}
+
+.subprogram-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-medium);
+  color: var(--text-high);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subprogram-count {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
 /* =========================================================
    PROGRAM DETAIL — header + true 36px task rows
    ========================================================= */
@@ -388,6 +508,40 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+/* Parent breadcrumb "ParentName ›" — program detail header + board topline */
+.program-parent-crumb {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+
+.program-parent-crumb a {
+  color: var(--text-medium);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-parent-crumb a:hover {
+  color: var(--text-brand);
+  text-decoration: underline;
+}
+
+.program-parent-crumb a:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.program-parent-crumb .icon {
+  flex: none;
+  color: var(--text-low);
 }
 
 .program-title {

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { PanelLeft, Users } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
-import { NAV_ITEMS } from "../lib/nav.ts";
+import { NAV_ITEMS, SETTINGS_NAV_ITEM } from "../lib/nav.ts";
 import { BrandLogo } from "./brand-logo.tsx";
 import { Icon } from "./ui/icon.tsx";
 
@@ -56,14 +56,22 @@ export function Sidebar({ uiLanguage, pathname, collapsed, onToggleCollapsed }: 
             </Link>
           );
         })}
-        <span className="nav-item" aria-disabled title={collapsed ? t.navTeams : undefined}>
-          <span className="nav-icon" aria-hidden>
-            <Icon icon={Users} />
-          </span>
-          <span className="nav-label">{t.navTeams}</span>
-          <span className="nav-soon">{t.navSoon}</span>
-        </span>
       </nav>
+      <Link
+        href={SETTINGS_NAV_ITEM.href}
+        className={
+          isActive(SETTINGS_NAV_ITEM.href)
+            ? "nav-item sidebar-settings active"
+            : "nav-item sidebar-settings"
+        }
+        aria-current={isActive(SETTINGS_NAV_ITEM.href) ? "page" : undefined}
+        title={collapsed ? t.navSettings : undefined}
+      >
+        <span className="nav-icon" aria-hidden>
+          <Icon icon={SETTINGS_NAV_ITEM.icon} />
+        </span>
+        <span className="nav-label">{t.navSettings}</span>
+      </Link>
       <div className="sidebar-foot">
         <span className="workspace-dot" aria-hidden />
         <span className="sidebar-foot-label">{t.workspace}</span>

@@ -14,12 +14,20 @@ export interface BoardFilter {
   query: string;
   packageId: string | null;
   role: string | null;
+  /** Exact username match against task.assignee (case-sensitive). */
+  assignee: string | null;
   due: DueFilter | null;
 }
 
 export type BoardSort = "default" | "dueDate" | "name" | "estimate";
 
-export const EMPTY_FILTER: BoardFilter = { query: "", packageId: null, role: null, due: null };
+export const EMPTY_FILTER: BoardFilter = {
+  query: "",
+  packageId: null,
+  role: null,
+  assignee: null,
+  due: null,
+};
 
 const DUE_VALUES: readonly DueFilter[] = ["overdue", "thisWeek", "noDate"];
 const SORT_VALUES: readonly BoardSort[] = ["default", "dueDate", "name", "estimate"];
@@ -55,6 +63,7 @@ export function anyFilterActive(filter: BoardFilter): boolean {
     filter.query.trim() !== "" ||
     filter.packageId !== null ||
     filter.role !== null ||
+    filter.assignee !== null ||
     filter.due !== null
   );
 }
@@ -67,6 +76,7 @@ export function filterTasks(cards: BoardCard[], filter: BoardFilter, today: stri
     if (query && !task.name.toLowerCase().includes(query)) return false;
     if (filter.packageId !== null && packageId !== filter.packageId) return false;
     if (filter.role !== null && task.assigneeRole !== filter.role) return false;
+    if (filter.assignee !== null && task.assignee !== filter.assignee) return false;
     if (filter.due !== null && !matchesDue(task, filter.due, today)) return false;
     return true;
   });
@@ -107,6 +117,7 @@ export function parseBoardQuery(params: Pick<URLSearchParams, "get">): {
       query: params.get("q") ?? "",
       packageId: params.get("pkg"),
       role: params.get("role"),
+      assignee: params.get("assignee"),
       due: DUE_VALUES.find((v) => v === due) ?? null,
     },
     sort: SORT_VALUES.find((v) => v === sort) ?? "default",
@@ -120,6 +131,7 @@ export function serializeBoardQuery(filter: BoardFilter, sort: BoardSort): URLSe
   if (filter.query.trim()) params.set("q", filter.query.trim());
   if (filter.packageId !== null) params.set("pkg", filter.packageId);
   if (filter.role !== null) params.set("role", filter.role);
+  if (filter.assignee !== null) params.set("assignee", filter.assignee);
   if (filter.due !== null) params.set("due", filter.due);
   if (sort !== "default") params.set("sort", sort);
   return params;

@@ -63,6 +63,7 @@ export default function Home() {
   const [mission, setMission] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [parentId, setParentId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -108,8 +109,10 @@ export default function Home() {
         mission: mission.trim(),
         language,
         ...(start && end ? { timeline: { start, end } } : {}),
+        ...(parentId ? { parentId } : {}),
       });
       setMission("");
+      setParentId("");
       await refresh();
     } catch {
       setError(true);
@@ -157,6 +160,24 @@ export default function Home() {
             {busy ? t.generating : t.generate}
           </button>
         </div>
+        {/* Optional hierarchy: 12px label row under the dates, default none. */}
+        {programs.length > 0 ? (
+          <div className="composer-parent-row">
+            <label htmlFor="parent-program">{t.parentProgramLabel}</label>
+            <select
+              id="parent-program"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+            >
+              <option value="">{t.parentNone}</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         {error ? (
           <p className="error-note" role="alert">
             {t.errorGeneric}

@@ -1,0 +1,202 @@
+/* Sprint sheet: /settings + /teams. 13px base, 4px scale, hairlines,
+   logical properties (RTL mirrors for free). Reuses primitives from
+   base/shell/primitives/pages (.section-head, .error-note, .empty,
+   .ui-chip, .avatar). Compact formatting to honor the 300-line budget. */
+
+/* ---- Sidebar: settings entry pinned above the workspace footer ---- */
+.sidebar-settings { margin-block-start: auto; flex-shrink: 0; }
+.sidebar-settings + .sidebar-foot { margin-block-start: 0; }
+
+/* ---- Shared 32px buttons ---- */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 32px; font: inherit; font-size: var(--text-md);
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out), transform 0.1s var(--ease-out);
+}
+.btn-secondary {
+  padding-inline: var(--space-3); font-weight: var(--weight-medium);
+  color: var(--text-high); background: var(--surface); border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--surface-thin); }
+.btn-secondary:active { background: var(--state-pressed); }
+.btn-primary {
+  padding-inline: var(--space-4); font-weight: var(--weight-semibold);
+  color: var(--on-primary); background: var(--button-primary); border: none;
+}
+.btn-primary:hover { background: var(--button-primary-hover); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.55; cursor: default; }
+
+/* ---- Shared text inputs (create form 32px, picker/rename 28px) ---- */
+.team-create-form input,
+.people-picker-search,
+.team-rename-input {
+  font: inherit; font-size: var(--text-md); color: var(--text-high);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding-inline: var(--space-2); min-width: 0;
+}
+.team-create-form input:hover,
+.people-picker-search:hover { border-color: var(--input-line); }
+
+/* =========================================================
+   SETTINGS — 36px rows, 12px muted labels, 3 sections
+   ========================================================= */
+.settings-content { max-width: 640px; }
+.settings-section { margin-block-start: var(--space-6); }
+.settings-section-title {
+  font-size: var(--text-md); font-weight: var(--weight-semibold);
+  color: var(--text-highest); padding-block-end: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+}
+.settings-row { display: flex; align-items: center; gap: var(--space-4); min-height: 36px; }
+.settings-row:not(:last-child) { border-bottom: 1px solid var(--divider-low); }
+.settings-label {
+  flex-shrink: 0; width: 160px; font-size: var(--text-sm);
+  font-weight: var(--weight-medium); color: var(--text-medium);
+}
+.settings-value {
+  display: flex; align-items: center; gap: var(--space-2); min-width: 0;
+  color: var(--text-high); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.settings-avatar {
+  width: 32px; height: 32px; border-radius: var(--radius-full);
+  background: var(--avatar-bg); color: var(--avatar-fg);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--text-sm); font-weight: var(--weight-semibold);
+  text-transform: uppercase; user-select: none; flex-shrink: 0;
+}
+.settings-note { font-size: var(--text-sm); color: var(--text-low); padding-block: var(--space-2); }
+
+/* Radio pills (theme / language) — native inputs, visually hidden */
+.settings-pills { display: inline-flex; gap: var(--space-1); }
+.settings-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.settings-pill span {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 28px; padding-inline: var(--space-3);
+  font-size: var(--text-md); font-weight: var(--weight-medium); color: var(--text-medium);
+  border: 1px solid var(--border-low); border-radius: var(--radius-md); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.settings-pill span:hover { background: var(--surface-thin); color: var(--text-high); }
+.settings-pill input:checked + span {
+  background: var(--chip-selected); border-color: var(--chip-selected-border);
+  color: var(--text-brand); font-weight: var(--weight-semibold);
+}
+.settings-pill input:focus-visible + span {
+  outline: var(--focus-ring-width) solid var(--focus-ring); outline-offset: 1px;
+}
+
+/* Whole-row link (Manage teams) */
+.settings-link-row {
+  text-decoration: none; color: inherit; border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.settings-link-row:hover { background: var(--surface-thin); }
+.settings-link-row .settings-chevron { margin-inline-start: auto; color: var(--text-low); }
+
+/* =========================================================
+   TEAMS — dense card stack, expandable member sections
+   ========================================================= */
+.teams-list {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+.team-card {
+  background: var(--card); border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-raised);
+}
+.team-card-head {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3); min-height: 44px;
+  cursor: pointer; border-radius: var(--radius-lg);
+}
+.team-card-head:hover { background: var(--surface-thin); }
+.team-card-titles {
+  min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: stretch;
+  border: none; background: none; padding: 0; font: inherit;
+  text-align: start; cursor: pointer;
+}
+.team-card-chevron { color: var(--text-low); display: inline-flex; flex-shrink: 0; }
+.team-member-list { list-style: none; padding: 0; }
+.team-card-name { font-size: var(--text-md); font-weight: var(--weight-medium); color: var(--text-highest); }
+.team-card-desc { font-size: var(--text-sm); color: var(--text-medium); }
+.team-card-name,
+.team-card-desc,
+.team-member-fullname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hover-revealed actions (card header + member rows) */
+.team-card-actions { display: flex; align-items: center; gap: var(--space-1); }
+.team-card-actions,
+.team-member-remove { opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.team-card-head:hover .team-card-actions,
+.team-card-actions:focus-within,
+.team-member-row:hover .team-member-remove,
+.team-member-remove:focus-visible { opacity: 1; }
+
+.team-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border: none; background: none;
+  color: var(--text-medium); border-radius: var(--radius-sm); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.team-icon-btn:hover { background: var(--surface-thin); color: var(--text-high); }
+.team-icon-btn.armed { color: var(--error); background: var(--error-tint); opacity: 1; }
+
+/* Overlapping 20px avatar stack, capped at 3 + "+N" */
+.team-avatar-stack { display: inline-flex; flex-shrink: 0; }
+.team-avatar-stack .avatar { border: 2px solid var(--card); box-sizing: content-box; }
+.team-avatar-stack > :not(:first-child) { margin-inline-start: -7px; }
+.avatar-overflow { background: var(--surface-thin); color: var(--text-medium); }
+
+.team-card-body {
+  border-top: 1px solid var(--hairline);
+  padding: var(--space-1) var(--space-3) var(--space-2);
+}
+.team-member-row { display: flex; align-items: center; gap: var(--space-2); min-height: 32px; }
+.team-member-row:not(:last-child) { border-bottom: 1px solid var(--divider-low); }
+.team-member-username { font-size: var(--text-md); color: var(--text-high); }
+.team-member-fullname { font-size: var(--text-sm); color: var(--text-medium); min-width: 0; flex: 1; }
+.role-chip-lead { background: var(--chip-selected); color: var(--text-brand); }
+
+/* Rename inline editor — metric-identical to the card name */
+.team-rename-input {
+  font-weight: var(--weight-medium); color: var(--text-highest);
+  border-color: var(--input-line); border-radius: var(--radius-sm);
+  padding: 2px var(--space-1); width: 100%; max-width: 20rem;
+}
+
+/* Inline create form — 32px controls */
+.team-create-form {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);
+  padding: var(--space-3); margin-block-start: var(--space-4);
+  background: var(--card); border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg);
+}
+.team-create-form input { height: 32px; flex: 1 1 12rem; }
+
+/* People picker (popover body) + ghost "Add member" trigger */
+.people-picker { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1); width: 240px; }
+.people-picker-search { height: 28px; }
+.people-picker-list { list-style: none; padding: 0; max-height: 208px; overflow-y: auto; }
+.people-picker-item {
+  display: flex; align-items: center; gap: var(--space-2);
+  width: 100%; min-height: 32px; border: none; background: none;
+  font: inherit; font-size: var(--text-md); color: var(--text-high);
+  border-radius: var(--radius-md); padding-inline: var(--space-1);
+  cursor: pointer; text-align: start;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.people-picker-item:hover { background: var(--surface-thin); }
+.people-picker-empty { font-size: var(--text-sm); color: var(--text-medium); padding: var(--space-1); }
+.team-add-member {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 28px; margin-block-start: var(--space-1); border: none; background: none;
+  font: inherit; font-size: var(--text-md); font-weight: var(--weight-medium);
+  color: var(--text-medium); border-radius: var(--radius-md);
+  padding-inline: var(--space-1); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.team-add-member:hover { background: var(--surface-thin); color: var(--text-high); }

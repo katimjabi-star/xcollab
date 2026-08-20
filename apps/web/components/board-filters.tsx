@@ -10,7 +10,9 @@ import {
   parseBoardQuery,
   serializeBoardQuery,
 } from "../lib/board-filter.ts";
+import type { WorkspaceUser } from "../lib/api-client.ts";
 import type { STRINGS } from "../lib/i18n.ts";
+import { fullName } from "./assignee-picker.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { Popover } from "./ui/popover.tsx";
 
@@ -30,9 +32,14 @@ export function useBoardQuery(): {
 } {
   const router = useRouter();
   const pathname = usePathname();
-  const { filter, sort } = parseBoardQuery(useSearchParams());
+  const search = useSearchParams();
+  const { filter, sort } = parseBoardQuery(search);
   const apply = (nextFilter: BoardFilter, nextSort: BoardSort) => {
-    const qs = serializeBoardQuery(nextFilter, nextSort).toString();
+    const params = serializeBoardQuery(nextFilter, nextSort);
+    // Params outside filter/sort (the page's ?view=board) must survive a rewrite.
+    const view = search.get("view");
+    if (view) params.set("view", view);
+    const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
   return {
@@ -50,6 +57,7 @@ interface BoardFilterBarProps {
   sort: BoardSort;
   packages: { id: string; name: string }[];
   roles: string[];
+  users: WorkspaceUser[];
   onFilterChange: (filter: BoardFilter) => void;
   onSortChange: (sort: BoardSort) => void;
   onClearFilters: () => void;
@@ -63,6 +71,7 @@ export function BoardFilterBar({
   sort,
   packages,
   roles,
+  users,
   onFilterChange,
   onSortChange,
   onClearFilters,
@@ -99,6 +108,14 @@ export function BoardFilterBar({
   }
   if (filter.role !== null) {
     chips.push({ key: "role", label: filter.role, onRemove: () => onFilterChange({ ...filter, role: null }) });
+  }
+  if (filter.assignee !== null) {
+    const user = users.find((u) => u.username === filter.assignee);
+    chips.push({
+      key: "assignee",
+      label: user ? fullName(user) : filter.assignee,
+      onRemove: () => onFilterChange({ ...filter, assignee: null }),
+    });
   }
   if (filter.due !== null) {
     chips.push({
@@ -164,6 +181,22 @@ export function BoardFilterBar({
                 {roles.map((role) => (
                   <option key={role} value={role}>
                     {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="board-filter-field">
+              <span>{t.filterAssignee}</span>
+              <select
+                value={filter.assignee ?? ""}
+                onChange={(event) =>
+                  onFilterChange({ ...filter, assignee: event.target.value || null })
+                }
+              >
+                <option value="">{t.filterAll}</option>
+                {users.map((user) => (
+                  <option key={user.username} value={user.username}>
+                    {fullName(user)}
                   </option>
                 ))}
               </select>

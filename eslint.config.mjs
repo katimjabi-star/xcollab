@@ -13,4 +13,13 @@ export default tseslint.config(
       "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }],
     },
   },
+  {
+    // The i18n dictionary is data, not logic: it grows one line per string
+    // per language and splitting it would break the EN/AR parity test's
+    // single-source shape. Cap it generously instead of exempting entirely.
+    files: ["apps/web/lib/i18n.ts"],
+    rules: {
+      "max-lines": ["error", { max: 900, skipBlankLines: true, skipComments: true }],
+    },
+  },
 );

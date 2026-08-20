@@ -8,6 +8,8 @@ export interface CreateProgramInput {
   mission: string;
   language: "en" | "ar";
   timeline?: { start: string; end: string };
+  /** Optional parent program id — the API answers 422 "unknown_parent" if bad. */
+  parentId?: string;
 }
 
 export interface CreateProgramResult {
@@ -72,6 +74,24 @@ export function getLedger(base: string, workspaceId: string): Promise<LedgerResu
   return request<LedgerResult>(`${base}/api/ledger?workspaceId=${encodeURIComponent(workspaceId)}`);
 }
 
+/** A workspace member, addressable by username (the Task.assignee value). */
+export interface WorkspaceUser {
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export async function listUsers(
+  base: string,
+  { workspaceId }: { workspaceId: string },
+): Promise<WorkspaceUser[]> {
+  const data = await request<{ users: WorkspaceUser[] }>(
+    `${base}/api/users?workspaceId=${encodeURIComponent(workspaceId)}`,
+  );
+  return data.users;
+}
+
 export interface UpdateTaskStatusInput {
   workspaceId: string;
   programId: string;
@@ -107,6 +127,8 @@ export interface TaskPatch {
   status?: Task["status"];
   estimateDays?: number;
   assigneeRole?: string | null;
+  /** Username of the assigned workspace member; null unassigns. */
+  assignee?: string | null;
   startDate?: string | null;
   dueDate?: string | null;
   description?: string | null;
