@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Link2, Trash2, X } from "lucide-react";
 import type { LedgerEntry, Program, Task } from "@xcollab/core";
 import {
   API_BASE,
@@ -13,21 +14,31 @@ import {
 } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { useToasts } from "../lib/toast-context.tsx";
+import { Chip } from "./ui/chip.tsx";
+import { Icon } from "./ui/icon.tsx";
 import { TaskActivity } from "./task-activity.tsx";
-import { TaskPanelFields } from "./task-panel-fields.tsx";
+import { STATUS_LABEL_KEYS, TaskPanelFields } from "./task-panel-fields.tsx";
 
 const DISARM_MS = 3000;
 
 export interface LocatedTask {
   task: Task;
   packageId: string;
+  packageName: string;
   lastInPackage: boolean;
 }
 
 export function locateTask(program: Program, taskId: string): LocatedTask | null {
   for (const pkg of program.packages) {
     const task = pkg.tasks.find((candidate) => candidate.id === taskId);
-    if (task) return { task, packageId: pkg.id, lastInPackage: pkg.tasks.length === 1 };
+    if (task) {
+      return {
+        task,
+        packageId: pkg.id,
+        packageName: pkg.name,
+        lastInPackage: pkg.tasks.length === 1,
+      };
+    }
   }
   return null;
 }
@@ -54,7 +65,7 @@ export function TaskPanelContent({
 }: TaskPanelContentProps) {
   const t = STRINGS[uiLanguage];
   const { push } = useToasts();
-  const { task, packageId, lastInPackage } = located;
+  const { task, packageId, packageName, lastInPackage } = located;
   const [name, setName] = useState(task.name);
   const [status, setStatus] = useState<Task["status"]>(task.status);
   const [failed, setFailed] = useState(false);
@@ -111,6 +122,15 @@ export function TaskPanelContent({
       .finally(() => {
         statusPending.current = false;
       });
+  };
+
+  const copyLink = () => {
+    const url = `${window.location.origin}${window.location.pathname}?task=${encodeURIComponent(task.id)}`;
+    // navigator.clipboard is undefined on insecure origins — fail via the toast.
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(url))
+      .then(() => push({ message: t.linkCopied }))
+      .catch(() => push({ message: t.errorGeneric }));
   };
 
   const restoreTask = async (programId: string, pkgId: string, snapshot: Task) => {
@@ -176,6 +196,41 @@ export function TaskPanelContent({
 
   return (
     <>
+      <div className="task-panel-strip">
+        <Chip variant="status" status={status}>
+          {t[STATUS_LABEL_KEYS[status]]}
+        </Chip>
+        <div className="task-panel-strip-actions">
+          <button
+            type="button"
+            className="panel-icon-btn"
+            aria-label={t.panelCopyLink}
+            title={t.panelCopyLink}
+            onClick={copyLink}
+          >
+            <Icon icon={Link2} />
+          </button>
+          <button
+            type="button"
+            className={`panel-icon-btn panel-delete-btn${armed ? " armed" : ""}`}
+            aria-label={armed ? t.confirmDelete : t.deleteTask}
+            title={lastInPackage ? t.lastTaskInPackage : armed ? t.confirmDelete : t.deleteTask}
+            disabled={lastInPackage}
+            onClick={handleDelete}
+          >
+            <Icon icon={Trash2} />
+          </button>
+          <button
+            type="button"
+            className="panel-icon-btn"
+            aria-label={t.close}
+            title={t.close}
+            onClick={onClose}
+          >
+            <Icon icon={X} />
+          </button>
+        </div>
+      </div>
       <div className="task-panel-head">
         <input
           className="task-panel-name"
@@ -187,9 +242,6 @@ export function TaskPanelContent({
           }}
           onBlur={commitName}
         />
-        <button type="button" className="task-panel-close" aria-label={t.close} onClick={onClose}>
-          ✕
-        </button>
       </div>
       <div className="task-panel-body">
         {failed ? (
@@ -197,36 +249,18 @@ export function TaskPanelContent({
             {t.errorGeneric}
           </p>
         ) : null}
-        <span className="status-select-wrap">
-          <select
-            className={`status-pill status-select ${status}`}
-            value={status}
-            aria-label={t.taskStatus}
-            onChange={(event) => handleStatusChange(event.target.value as Task["status"])}
-          >
-            <option value="todo">{t.statusTodo}</option>
-            <option value="in_progress">{t.statusInProgress}</option>
-            <option value="blocked">{t.statusBlocked}</option>
-            <option value="done">{t.statusDone}</option>
-          </select>
-        </span>
-        <TaskPanelFields task={task} uiLanguage={uiLanguage} commit={commitPatch} />
-        <div>
-          <label className="field-label">{t.taskActivity}</label>
+        <TaskPanelFields
+          task={task}
+          uiLanguage={uiLanguage}
+          status={status}
+          onStatusChange={handleStatusChange}
+          packageName={packageName}
+          commit={commitPatch}
+        />
+        <section className="panel-section">
+          <h3 className="panel-section-label">{t.activityHeading}</h3>
           <TaskActivity entries={entries} uiLanguage={uiLanguage} emptyLabel={t.ledgerEmpty} />
-        </div>
-      </div>
-      <div className="task-panel-foot">
-        {lastInPackage ? <span className="task-meta">{t.lastTaskInPackage}</span> : null}
-        <button
-          type="button"
-          className={`delete-btn${armed ? " confirm" : ""}`}
-          disabled={lastInPackage}
-          title={lastInPackage ? t.lastTaskInPackage : undefined}
-          onClick={handleDelete}
-        >
-          {armed ? t.confirmDelete : t.deleteTask}
-        </button>
+        </section>
       </div>
     </>
   );

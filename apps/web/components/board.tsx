@@ -4,21 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import type { Program, Task } from "@xcollab/core";
 import { API_BASE, WORKSPACE, updateTaskStatus } from "../lib/api-client.ts";
+import type { BoardCard } from "../lib/board-filter.ts";
+import { anyFilterActive, filterTasks, sortTasks } from "../lib/board-filter.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
-import { ProgramCardHeader } from "./program-view.tsx";
-import { TaskQuickAdd } from "./quick-add.tsx";
+import { BoardCardItem } from "./board-card.tsx";
+import { BoardColumn } from "./board-column.tsx";
+import { BoardFilterBar, useBoardQuery } from "./board-filters.tsx";
 
 /** Fixed column order — never derived from object-key order. */
 const ORDER: Task["status"][] = ["todo", "in_progress", "blocked", "done"];
 
 const REVERT_FLASH_MS = 1500;
-
-interface BoardCard {
-  task: Task;
-  packageId: string;
-  packageName: string;
-}
+const COLLAPSE_KEY = "xcollab.board.collapsed";
 
 interface DragPayload {
   taskId: string;
@@ -36,6 +34,39 @@ function parseDragPayload(raw: string): DragPayload | null {
   }
 }
 
+/** Local calendar date as ISO — computed in the UI layer so lib/board-filter
+    stays clock-free. */
+function localTodayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function readCollapsed(programId: string): Task["status"][] {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    const map = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    const entry = map[programId];
+    return Array.isArray(entry)
+      ? ORDER.filter((status) => (entry as unknown[]).includes(status))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCollapsed(programId: string, statuses: Task["status"][]) {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    const map = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    map[programId] = statuses;
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(map));
+  } catch {
+    /* storage unavailable — collapse state stays session-local */
+  }
+}
+
 export function Board({
   program,
   uiLanguage,
@@ -45,7 +76,7 @@ export function Board({
   program: Program;
   uiLanguage: UiLanguage;
   onProgramUpdate: (program: Program) => void;
-  /** When provided, clicking a card (not dragging it) opens the task panel. */
+  /** When provided, activating a card (not dragging it) opens the task panel. */
   onTaskSelect?: (taskId: string) => void;
 }) {
   const t = STRINGS[uiLanguage];
@@ -62,11 +93,14 @@ export function Board({
   const [dragoverCol, setDragoverCol] = useState<Task["status"] | null>(null);
   const [revertErrorId, setRevertErrorId] = useState<string | null>(null);
   const [moveFailed, setMoveFailed] = useState(false);
+  const [collapsed, setCollapsed] = useState<Task["status"][]>([]);
   // In-flight guard: drops for a task with a pending PATCH are ignored (avoids revert races).
   const pendingTasks = useRef(new Set<string>());
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Suppress the click event some browsers fire right after a drag ends.
   const justDragged = useRef(false);
+
+  const { filter, sort, setFilter, setSort, clearFilters } = useBoardQuery();
 
   useEffect(
     () => () => {
@@ -75,6 +109,19 @@ export function Board({
     [],
   );
 
+  // Collapse state loads after mount (localStorage is client-only).
+  useEffect(() => {
+    setCollapsed(readCollapsed(program.id));
+  }, [program.id]);
+
+  const toggleCollapse = (status: Task["status"]) => {
+    setCollapsed((prev) => {
+      const next = prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status];
+      writeCollapsed(program.id, next);
+      return next;
+    });
+  };
+
   const cards: BoardCard[] = program.packages.flatMap((pkg) =>
     pkg.tasks.map((task) => ({ task, packageId: pkg.id, packageName: pkg.name })),
   );
@@ -82,6 +129,12 @@ export function Board({
   // (its eyebrow on the new card makes the placement visible immediately).
   const firstPackageId = program.packages[0]?.id;
   const effectiveStatus = (task: Task): Task["status"] => overrides[task.id] ?? task.status;
+
+  const today = localTodayIso();
+  const filtered = anyFilterActive(filter);
+  const visible = sortTasks(filterTasks(cards, filter, today), sort);
+  const roles = [...new Set(cards.map((c) => c.task.assigneeRole).filter((r): r is string => !!r))].sort();
+  const packages = program.packages.map((pkg) => ({ id: pkg.id, name: pkg.name }));
 
   const clearOverride = (taskId: string) => {
     setOverrides((prev) =>
@@ -129,96 +182,99 @@ export function Board({
     moveTask(payload.taskId, target);
   };
 
+  const handleCardSelect = (taskId: string) => {
+    if (justDragged.current) {
+      justDragged.current = false;
+      return;
+    }
+    onTaskSelect?.(taskId);
+  };
+
   return (
-    <article className="program-card" dir={program.language === "ar" ? "rtl" : "ltr"}>
-      <ProgramCardHeader program={program} headingLevel="h2" />
+    <div className="board-region" dir={program.language === "ar" ? "rtl" : "ltr"}>
+      <BoardFilterBar
+        t={t}
+        filter={filter}
+        sort={sort}
+        packages={packages}
+        roles={roles}
+        onFilterChange={setFilter}
+        onSortChange={setSort}
+        onClearFilters={clearFilters}
+      />
 
       {moveFailed ? (
-        <p className="error-note" role="alert">
+        <p className="error-note board-error" role="alert">
           {t.taskMoveFailed}
         </p>
       ) : null}
 
-      <div>
-        <p className="subhead">{t.packagesHeading}</p>
+      <div className="board-scroller">
         <div className="board">
           {ORDER.map((status) => {
-            const colCards = cards.filter((card) => effectiveStatus(card.task) === status);
+            const colCards = visible.filter((card) => effectiveStatus(card.task) === status);
+            const moveTargets = ORDER.filter((s) => s !== status).map((s) => ({
+              status: s,
+              label: statusLabels[s],
+            }));
             return (
-              <section
+              <BoardColumn
                 key={status}
-                className={`board-col ${status}${dragoverCol === status ? " dragover" : ""}`}
+                status={status}
+                label={statusLabels[status]}
+                count={colCards.length}
+                isEmpty={colCards.length === 0}
+                filtered={filtered}
+                onClearFilters={clearFilters}
+                collapsed={collapsed.includes(status)}
+                onToggleCollapse={() => toggleCollapse(status)}
+                dragover={dragoverCol === status}
                 onDragOver={(event) => {
                   event.preventDefault();
                   setDragoverCol(status);
                 }}
                 onDragLeave={() => setDragoverCol((prev) => (prev === status ? null : prev))}
                 onDrop={(event) => handleDrop(event, status)}
+                programId={program.id}
+                packageId={firstPackageId}
+                uiLanguage={uiLanguage}
+                onProgramUpdate={onProgramUpdate}
+                t={t}
               >
-                <div className="board-col-head">
-                  <span className="board-col-title">{statusLabels[status]}</span>
-                  <span className="board-col-count">{colCards.length}</span>
-                </div>
-                <div className="board-col-body">
-                  {colCards.length === 0 ? (
-                    <p className="board-col-empty">{t.boardColumnEmpty}</p>
-                  ) : (
-                    colCards.map(({ task, packageId, packageName }) => (
-                      <div
-                        key={task.id}
-                        className={`board-card${draggingId === task.id ? " dragging" : ""}${
-                          revertErrorId === task.id ? " revert-error" : ""
-                        }`}
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData(
-                            "text/plain",
-                            JSON.stringify({ taskId: task.id, packageId }),
-                          );
-                          event.dataTransfer.effectAllowed = "move";
-                          setDraggingId(task.id);
-                        }}
-                        onDragEnd={() => {
-                          setDraggingId(null);
-                          justDragged.current = true;
-                          // A post-drag click (if any) fires before this macrotask.
-                          window.setTimeout(() => {
-                            justDragged.current = false;
-                          }, 0);
-                        }}
-                        onClick={() => {
-                          if (justDragged.current) {
-                            justDragged.current = false;
-                            return;
-                          }
-                          onTaskSelect?.(task.id);
-                        }}
-                      >
-                        <span className="board-card-eyebrow">{packageName}</span>
-                        <span className="board-card-name">{task.name}</span>
-                        <span className="board-card-meta">
-                          {task.estimateDays} {t.estimateDaysSuffix}
-                          {task.assigneeRole ? ` · ${task.assigneeRole}` : ""}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {firstPackageId ? (
-                  <TaskQuickAdd
-                    variant="board"
-                    programId={program.id}
-                    packageId={firstPackageId}
-                    status={status}
-                    uiLanguage={uiLanguage}
-                    onProgramUpdate={onProgramUpdate}
+                {colCards.map((card) => (
+                  <BoardCardItem
+                    key={card.task.id}
+                    card={card}
+                    t={t}
+                    today={today}
+                    dragging={draggingId === card.task.id}
+                    revertError={revertErrorId === card.task.id}
+                    moveTargets={moveTargets}
+                    onSelect={() => handleCardSelect(card.task.id)}
+                    onMove={(to) => moveTask(card.task.id, to)}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData(
+                        "text/plain",
+                        JSON.stringify({ taskId: card.task.id, packageId: card.packageId }),
+                      );
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggingId(card.task.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      justDragged.current = true;
+                      // A post-drag click (if any) fires before this macrotask.
+                      window.setTimeout(() => {
+                        justDragged.current = false;
+                      }, 0);
+                    }}
                   />
-                ) : null}
-              </section>
+                ))}
+              </BoardColumn>
             );
           })}
         </div>
       </div>
-    </article>
+    </div>
   );
 }

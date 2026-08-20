@@ -1,0 +1,754 @@
+/* Pages sheet — overview / programs / ledger / program-view / stats-row.
+   Owned by the pages agent. 13px base, strict 4px scale, hairlines,
+   full hover/active/focus states, edge-to-edge surfaces, logical
+   properties throughout (RTL mirrors for free).
+
+   Kept for cross-sheet consumers (do not remove):
+   .status-pill.*  — panel.css composes .status-select onto it
+   .error-note / .empty / .back-link — quick-add, board, program [id] page */
+
+/* =========================================================
+   SHARED
+   ========================================================= */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 28px;
+  border-bottom: 1px solid var(--hairline);
+  padding-block-end: var(--space-2);
+}
+
+.section-head h2 {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+}
+
+.empty {
+  color: var(--text-medium);
+  font-size: var(--text-md);
+}
+
+.error-note {
+  color: var(--error);
+  font-size: var(--text-md);
+}
+
+.back-link {
+  color: var(--text-brand);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Small neutral chip (language tag on program cards) */
+.mini-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 20px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  background: var(--surface-thin);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+/* =========================================================
+   OVERVIEW — compact metric tiles
+   ========================================================= */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-tile {
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 60px;
+  justify-content: center;
+}
+
+.stat-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+.stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-2xl); /* 20px */
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  color: var(--text-highest);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.stat-good {
+  color: var(--status-done-fg);
+}
+
+.stat-value.stat-bad {
+  color: var(--status-overdue-fg);
+}
+
+/* =========================================================
+   OVERVIEW — mission composer (the one visually weighted card)
+   ========================================================= */
+.mission-form {
+  background: var(--surface);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mission-tagline {
+  font-size: var(--text-lg); /* 15px — heading via weight, not size jumps */
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+  letter-spacing: -0.01em;
+}
+
+.mission-form label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+.mission-form textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: var(--text-md);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.mission-form textarea:hover {
+  border-color: var(--border);
+}
+
+.mission-form textarea::placeholder {
+  color: var(--text-low);
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.form-row .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-row input[type="date"] {
+  height: 32px;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: var(--text-md);
+  padding-inline: var(--space-2);
+  color-scheme: light dark;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.form-row input[type="date"]:hover {
+  border-color: var(--border);
+}
+
+/* Primary control: 32px tall, 13px label, 8x16 pad, 6px radius */
+.generate-btn {
+  margin-inline-start: auto;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--button-primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding-inline: var(--space-4);
+  cursor: pointer;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform 100ms var(--ease-out);
+}
+
+.generate-btn:hover {
+  opacity: 0.92;
+}
+
+.generate-btn:active {
+  transform: scale(0.97);
+}
+
+.generate-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
+}
+
+/* =========================================================
+   OVERVIEW — recent programs as 36px rows
+   ========================================================= */
+.row-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row-list > li:not(:last-child) {
+  border-block-end: 1px solid var(--hairline);
+}
+
+.program-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding-inline: var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.program-row:hover {
+  background: var(--surface-thin);
+}
+
+.program-row:active {
+  background: var(--state-pressed);
+}
+
+.program-row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.program-row-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-high);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-row-meta {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+/* Skeleton twin of a 36px row (overview + ledger) */
+.row-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding-inline: var(--space-2);
+}
+
+/* =========================================================
+   PROGRAMS — dense card grid (fills width)
+   ========================================================= */
+.programs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-radius: var(--radius-lg);
+}
+
+.program-tile {
+  height: 100%;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3); /* 12px */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* Hover elevation: border strengthens + soft shadow (light only — dark keeps
+   shadows for overlays and answers with a background shift instead). */
+.card-link:hover .program-tile {
+  border-color: var(--elev-border);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.card-link:active .program-tile {
+  background: var(--state-pressed);
+}
+
+.program-tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.program-tile-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-highest);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.program-tile-mission {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.program-tile-counts {
+  margin-block-start: auto;
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+}
+
+.program-tile-dates {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-low);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   PROGRAM DETAIL — header + true 36px task rows
+   ========================================================= */
+.program-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.program-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.program-title {
+  font-size: var(--text-lg); /* 15px/600 — the page heading, nothing bigger */
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+  letter-spacing: -0.01em;
+}
+
+.program-meta {
+  color: var(--text-medium);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.task-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Sticky 36px package group header with count — sits under the 48px topbar */
+.task-group-head {
+  position: sticky;
+  top: 48px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  background: var(--background);
+  border-block-end: 1px solid var(--hairline);
+  padding-inline: var(--space-2);
+}
+
+.task-group-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-high);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-group-count {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  background: var(--surface-thin);
+  border-radius: var(--radius-full);
+  padding: 1px var(--space-2);
+  line-height: 1.4;
+}
+
+.task-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-rows > li:not(:last-child) {
+  border-block-end: 1px solid var(--hairline);
+}
+
+/* Whole row clickable — 36px, hairline-separated, max 3 metadata signals */
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 36px;
+  padding-inline: var(--space-2);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+button.task-row {
+  cursor: pointer;
+}
+
+.task-row:hover {
+  background: var(--surface-thin);
+}
+
+button.task-row:active {
+  background: var(--state-pressed);
+}
+
+.task-row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.task-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-high);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-row-meta {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 12rem;
+}
+
+.task-row-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ---- Milestones / risks / teams ---- */
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+.subhead {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+  margin-block-end: var(--space-2);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.stack li {
+  font-size: var(--text-md);
+  color: var(--text-high);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-height: 24px;
+}
+
+.stack .date {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+/* =========================================================
+   LEDGER — 32px verification strip + 36px table rows
+   ========================================================= */
+.ledger-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+.ledger-banner.good {
+  background: var(--status-done-bg);
+  color: var(--status-done-fg);
+}
+
+.ledger-banner.bad {
+  background: var(--status-overdue-bg);
+  color: var(--status-overdue-fg);
+}
+
+.ledger-banner-title {
+  white-space: nowrap;
+}
+
+.ledger-banner-detail {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--card);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-lg);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-md);
+}
+
+.data-table th {
+  text-align: start;
+  height: 36px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+  padding: 0 var(--space-3);
+  border-block-end: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.data-table td {
+  height: 36px;
+  padding: var(--space-1) var(--space-3);
+  border-block-end: 1px solid var(--hairline);
+  color: var(--text-high);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table tr:last-child td {
+  border-block-end: none;
+}
+
+.data-table tbody tr {
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-thin);
+}
+
+.hash {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+.time-rel {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+/* Actor chip: initials avatar for humans, glyph for ai/service */
+.actor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding-inline: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--surface-thin);
+  color: var(--text-medium);
+  font-size: var(--text-sm);
+  max-width: 100%;
+}
+
+.actor-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--avatar-bg);
+  color: var(--avatar-fg);
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+}
+
+.actor-id {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 11rem;
+}
+
+/* Skeleton twin of the ledger table body */
+.table-skeleton {
+  display: flex;
+  flex-direction: column;
+  padding-inline: var(--space-1);
+}
+
+.table-skeleton .row-skeleton:not(:last-child) {
+  border-block-end: 1px solid var(--hairline);
+}
+
+/* =========================================================
+   STATUS PILLS — kept for panel.css (.status-select composes
+   onto .status-pill.{status}) and board hue references.
+   Tinted pairs from the semantic tokens, never saturated fills.
+   ========================================================= */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  height: 20px;
+  padding-inline: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.status-pill.todo {
+  background: var(--status-todo-bg);
+  color: var(--status-todo-fg);
+}
+
+.status-pill.in_progress {
+  background: var(--status-in-progress-bg);
+  color: var(--status-in-progress-fg);
+}
+
+.status-pill.blocked {
+  background: var(--status-blocked-bg);
+  color: var(--status-blocked-fg);
+}
+
+.status-pill.done {
+  background: var(--status-done-bg);
+  color: var(--status-done-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generate-btn,
+  .program-row,
+  .program-tile,
+  .task-row,
+  .data-table tbody tr {
+    transition: none;
+  }
+
+  .generate-btn:active {
+    transform: none;
+  }
+}
