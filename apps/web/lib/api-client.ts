@@ -10,6 +10,18 @@ export interface CreateProgramInput {
   timeline?: { start: string; end: string };
   /** Optional parent program id — the API answers 422 "unknown_parent" if bad. */
   parentId?: string;
+  /** Optional connected team id — the API answers 422 "unknown_team" if bad. */
+  teamId?: string;
+}
+
+/* Program.teamId ships in @xcollab/core together with the backend drop; until
+   that lands the field is read through this widening so typecheck stays green
+   (packages/core is not ours to edit). */
+type ProgramTeamFields = { teamId?: string | null };
+
+/** The program's connected team id, or null when unset. */
+export function programTeamId(program: Program): string | null {
+  return (program as Program & ProgramTeamFields).teamId ?? null;
 }
 
 export interface CreateProgramResult {
@@ -68,6 +80,29 @@ export async function listPrograms(base: string, workspaceId: string): Promise<P
     `${base}/api/programs?workspaceId=${encodeURIComponent(workspaceId)}`,
   );
   return data.programs;
+}
+
+export interface UpdateProgramTeamInput {
+  workspaceId: string;
+  programId: string;
+  /** Team to connect, or null to disconnect. */
+  teamId: string | null;
+}
+
+/** PATCH /api/programs/:id — connect/disconnect a team (422 unknown_team). */
+export async function updateProgramTeam(
+  base: string,
+  { workspaceId, programId, teamId }: UpdateProgramTeamInput,
+): Promise<Program> {
+  const data = await request<{ program: Program }>(
+    `${base}/api/programs/${encodeURIComponent(programId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workspaceId, teamId }),
+    },
+  );
+  return data.program;
 }
 
 export function getLedger(base: string, workspaceId: string): Promise<LedgerResult> {

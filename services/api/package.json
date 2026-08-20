@@ -20,6 +20,7 @@
     "@xcollab/synthesizer": "workspace:*",
     "hono": "^4.6.0",
     "jose": "^6.2.9",
+    "minio": "^8.0.7",
     "pg": "^8.13.0",
     "zod": "^4.4.3"
   },

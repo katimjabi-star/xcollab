@@ -9,6 +9,7 @@ import {
   WORKSPACE,
   createTask,
   deleteTask,
+  programTeamId,
   updateTask,
   type TaskPatch,
 } from "../lib/api-client.ts";
@@ -17,6 +18,7 @@ import { useToasts } from "../lib/toast-context.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { TaskActivity } from "./task-activity.tsx";
+import { AttachmentsSection } from "./attachments-section.tsx";
 import { STATUS_LABEL_KEYS, TaskPanelFields } from "./task-panel-fields.tsx";
 
 const DISARM_MS = 3000;
@@ -255,11 +257,20 @@ export function TaskPanelContent({
           status={status}
           onStatusChange={handleStatusChange}
           packageName={packageName}
+          programTeamId={programTeamId(program)}
           commit={commitPatch}
+        />
+        {/* Attachments — under Description (TaskPanelFields ends with it). */}
+        <AttachmentsSection
+          programId={program.id}
+          taskId={task.id}
+          uiLanguage={uiLanguage}
+          heading={t.attachmentsHeading}
+          onChanged={onMutated}
         />
         <section className="panel-section">
           <h3 className="panel-section-label">{t.activityHeading}</h3>
-          <TaskActivity entries={entries} uiLanguage={uiLanguage} emptyLabel={t.ledgerEmpty} />
+          <TaskActivity entries={entries} uiLanguage={uiLanguage} emptyLabel={t.taskActivityEmpty} />
         </section>
       </div>
     </>

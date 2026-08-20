@@ -91,6 +91,8 @@ interface TaskPanelFieldsProps {
   status: Task["status"];
   onStatusChange: (to: Task["status"]) => void;
   packageName: string;
+  /** Connected team of the program — the assignee picker sorts its members first. */
+  programTeamId?: string | null;
   /** Resolves true on a successful PATCH; false means "revert your local value". */
   commit: (patch: TaskPatch) => Promise<boolean>;
 }
@@ -106,6 +108,7 @@ export function TaskPanelFields({
   status,
   onStatusChange,
   packageName,
+  programTeamId = null,
   commit,
 }: TaskPanelFieldsProps) {
   const t = STRINGS[uiLanguage];
@@ -197,7 +200,12 @@ export function TaskPanelFields({
         <div className="prop-row">
           <span className="prop-label">{t.taskAssignee}</span>
           <div className="prop-value">
-            <AssigneePicker assignee={assigneeUser} onSelect={commitAssigneeUser} t={t} />
+            <AssigneePicker
+              assignee={assigneeUser}
+              onSelect={commitAssigneeUser}
+              programTeamId={programTeamId}
+              t={t}
+            />
           </div>
         </div>
         <div className="prop-row">

@@ -323,10 +323,105 @@
 .panel-textarea::placeholder,
 .quick-add-input::placeholder { color: var(--text-low); }
 
+/* ---- Assignee popover group labels (team-first sorting): 11px muted ---- */
+.assignee-group-label {
+  margin: 0; padding: var(--space-2) var(--space-2) var(--space-1);
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-low);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- Program header team chip: neutral chip-shaped popover trigger ---- */
+.program-head-chips {
+  display: flex; align-items: center; gap: var(--space-2);
+  /* Tuck the chip row up under the header (program-detail gap is 20px). */
+  margin-block-start: calc(-1 * var(--space-3));
+}
+.program-team-trigger {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  block-size: 24px; padding-inline: var(--space-2); max-inline-size: 240px;
+  border: 1px solid var(--border-low); border-radius: var(--radius-full);
+  background: var(--surface-thin); color: var(--text-medium);
+  font-family: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.program-team-trigger:hover { background: var(--surface); color: var(--text-high); border-color: var(--border); }
+.program-team-trigger.empty { color: var(--text-low); }
+.program-team-trigger .icon { flex: none; }
+.program-team-name { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.program-team-none { color: var(--text-medium); }
+
+/* ---- Attachments (task panel section + program Documents; one component).
+   32px rows, hover-revealed actions, hairline separators. ---- */
+.attachments-head { display: flex; align-items: center; gap: var(--space-2); min-block-size: 28px; }
+.attachments-upload { margin-inline-start: auto; }
+.attachments-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-1); min-inline-size: 0;
+  border: none; background: none; padding: 0; cursor: pointer; font-family: inherit;
+  color: var(--text-medium); border-radius: var(--radius-sm);
+}
+.attachments-toggle:hover .panel-section-label { color: var(--text-high); }
+.attachments-toggle .icon { flex: none; color: var(--text-low); }
+.attachments-count {
+  font-size: var(--text-sm); color: var(--text-medium);
+  background: var(--surface-thin); border-radius: var(--radius-full);
+  padding: 1px var(--space-2); line-height: 1.4;
+}
+.attachments-empty { margin: 0; font-size: var(--text-sm); color: var(--text-low); }
+.attachment-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.attachment-rows > li:not(:last-child) { border-block-end: 1px solid var(--hairline); }
+.attachment-row { display: flex; align-items: center; gap: var(--space-1); min-block-size: 32px; }
+.attachment-main {
+  flex: 1; min-inline-size: 0; display: flex; align-items: center; gap: var(--space-2);
+  border: none; background: none; padding: var(--space-1) var(--space-2);
+  font: inherit; text-align: start; color: inherit; border-radius: var(--radius-md);
+}
+button.attachment-main { cursor: zoom-in; transition: background-color var(--dur-fast) var(--ease-out); }
+button.attachment-main:hover { background: var(--surface-thin); }
+.attachment-glyph { flex: none; color: var(--text-medium); }
+.attachment-name {
+  flex: 1; min-inline-size: 0; font-size: var(--text-md); color: var(--text-high);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attachment-size { flex: none; font-size: var(--text-sm); color: var(--text-medium); white-space: nowrap; }
+.attachment-actions {
+  display: flex; align-items: center; gap: var(--space-1);
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease-out);
+}
+.attachment-row:hover .attachment-actions,
+.attachment-actions:focus-within { opacity: 1; }
+.attachment-uploading { gap: var(--space-2); padding-inline: var(--space-2); }
+
+/* Image lightbox — above the panel (30) and its overlay, below toasts (40). */
+.attachment-lightbox {
+  position: fixed; inset: 0; z-index: 35;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-6); cursor: zoom-out;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.attachment-lightbox img {
+  max-inline-size: 100%; max-block-size: 100%;
+  border-radius: var(--radius-md); box-shadow: var(--shadow-overlay);
+}
+
+.attachments-toggle:focus-visible,
+.attachment-main:focus-visible,
+.program-team-trigger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .task-panel,
   .task-panel.open,
   .task-panel-overlay,
+  .program-team-trigger,
+  button.attachment-main,
+  .attachment-actions,
   .app.task-panel-docked .main { transition: none; }
   .panel-icon-btn:active { transform: none; }
 }

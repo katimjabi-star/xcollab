@@ -23,6 +23,9 @@ services:
       MINIO_ROOT_PASSWORD: xcollab_dev_only
     ports:
       - "9000:9000"
+      # Some corporate endpoint agents (Zscaler ztunnel) hijack loopback :9000;
+      # 19000 is an additive alternate for the same S3 API (use MINIO_PORT=19000).
+      - "19000:9000"
       - "9001:9001"
     volumes:
       - miniodata:/data

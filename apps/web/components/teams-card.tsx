@@ -9,6 +9,7 @@ import { useUi } from "../lib/ui-context.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { MemberAvatarStack } from "./teams-avatar.tsx";
 import { TeamMembers } from "./teams-members.tsx";
+import { TeamPrograms } from "./teams-programs.tsx";
 
 /** Same arm/disarm window as the task panel delete. */
 const DISARM_MS = 3000;
@@ -139,7 +140,10 @@ export function TeamCard({ team, users, usersError, onChange, onDeleted }: TeamC
         </span>
       </div>
       {expanded ? (
-        <TeamMembers team={team} users={users} usersError={usersError} onChange={onChange} />
+        <>
+          <TeamMembers team={team} users={users} usersError={usersError} onChange={onChange} />
+          <TeamPrograms teamId={team.id} />
+        </>
       ) : null}
     </article>
   );

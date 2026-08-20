@@ -6,6 +6,7 @@ import type { Program, Task } from "@xcollab/core";
 import { API_BASE, WORKSPACE, createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
 import { useUi } from "../lib/ui-context.tsx";
 import { StatsRow } from "../components/stats-row.tsx";
+import { useWorkspaceTeams } from "../components/teams-data.tsx";
 import { Chip } from "../components/ui/chip.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 
@@ -64,6 +65,8 @@ export default function Home() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [parentId, setParentId] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const teams = useWorkspaceTeams();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -110,9 +113,11 @@ export default function Home() {
         language,
         ...(start && end ? { timeline: { start, end } } : {}),
         ...(parentId ? { parentId } : {}),
+        ...(teamId ? { teamId } : {}),
       });
       setMission("");
       setParentId("");
+      setTeamId("");
       await refresh();
     } catch {
       setError(true);
@@ -173,6 +178,20 @@ export default function Home() {
               {programs.map((program) => (
                 <option key={program.id} value={program.id}>
                   {program.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        {/* Optional connected team: 12px label + compact select, None default. */}
+        {teams.length > 0 ? (
+          <div className="composer-parent-row">
+            <label htmlFor="program-team">{t.teamLabel}</label>
+            <select id="program-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">{t.teamNone}</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
                 </option>
               ))}
             </select>
