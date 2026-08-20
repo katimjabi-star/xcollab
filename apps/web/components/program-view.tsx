@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import type { Program, Task } from "@xcollab/core";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
+import { formatIsoDate, programDisplayName, programStatus } from "../lib/program-format.ts";
 import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
@@ -101,26 +102,35 @@ export function ProgramCardHeader({
   headingLevel?: "h2" | "h3";
   parent?: { id: string; name: string } | null;
 }) {
+  const name = programDisplayName(program);
+  const mission = program.mission.trim();
   return (
     <header className="program-head">
       {parent ? (
         <p className="program-parent-crumb">
           <Link href={`/projects/${parent.id}`} dir="auto">
-            {parent.name}
+            {programDisplayName(parent)}
           </Link>
           <Icon icon={ChevronRight} size={12} directional />
         </p>
       ) : null}
-      <Heading className="program-title">{program.name}</Heading>
-      <p className="program-meta">
-        {program.timeline.start} → {program.timeline.end}
+      <Heading className="program-title">{name}</Heading>
+      {/* Locale dates; the ISO pair stays in the tooltip (audit #4). */}
+      <p className="program-meta" title={`${program.timeline.start} → ${program.timeline.end}`}>
+        {formatIsoDate(program.timeline.start, program.language)} →{" "}
+        {formatIsoDate(program.timeline.end, program.language)}
       </p>
-      <p className="program-meta program-mission">{program.mission}</p>
+      {/* Mission only when it says more than the title (audit §global-3). */}
+      {mission && mission !== name && mission !== program.name ? (
+        <p className="program-meta program-mission">{mission}</p>
+      ) : null}
     </header>
   );
 }
 
-/** Dense grid card: 12px pad, 13px/500 name, 12px muted counts, language chip. */
+/** Dense grid card: 12px pad, 13px/500 name + roll-up status chip in the
+    head; counts/dates/team/language demoted to a margin-top:auto footer
+    (audit §projects — status promoted, language chip demoted). */
 export function ProgramCard({
   program,
   uiLanguage,
@@ -130,25 +140,41 @@ export function ProgramCard({
 }) {
   const t = STRINGS[uiLanguage];
   const taskCount = program.packages.reduce((sum, pkg) => sum + pkg.tasks.length, 0);
+  const status = programStatus(program);
+  const name = programDisplayName(program);
+  const mission = program.mission.trim();
   return (
     <article className="program-tile" dir={program.language === "ar" ? "rtl" : "ltr"}>
       <div className="program-tile-head">
-        <h3 className="program-tile-name">{program.name}</h3>
-        <TeamNameChip program={program} />
-        <span className="mini-chip" dir="auto">
-          {program.language === "ar" ? t.langChipAr : t.langChipEn}
-        </span>
+        <h3 className="program-tile-name">{name}</h3>
+        <Chip variant="status" status={status}>
+          {statusLabels(t)[status]}
+        </Chip>
       </div>
-      <p className="program-tile-mission">{program.mission}</p>
+      {mission && mission !== name && mission !== program.name ? (
+        <p className="program-tile-mission">{mission}</p>
+      ) : null}
       {/* Counts are labeled in the UI language, so they keep the UI direction
           even inside a card that renders the other way. */}
-      <p className="program-tile-counts" dir={uiLanguage === "ar" ? "rtl" : "ltr"}>
-        <span className="num">{program.packages.length}</span> {t.packagesHeading} ·{" "}
-        <span className="num">{taskCount}</span> {t.tasksLabel}
-        <span className="program-tile-dates">
-          {program.timeline.start} → {program.timeline.end}
+      <div className="program-tile-foot" dir={uiLanguage === "ar" ? "rtl" : "ltr"}>
+        <p className="program-tile-counts">
+          <span className="num">{program.packages.length}</span> {t.packagesHeading} ·{" "}
+          <span className="num">{taskCount}</span> {t.tasksLabel}
+          <span
+            className="program-tile-dates"
+            title={`${program.timeline.start} → ${program.timeline.end}`}
+          >
+            {formatIsoDate(program.timeline.start, program.language)} →{" "}
+            {formatIsoDate(program.timeline.end, program.language)}
+          </span>
+        </p>
+        <span className="program-tile-foot-chips">
+          <TeamNameChip program={program} />
+          <span className="mini-chip" dir="auto">
+            {program.language === "ar" ? t.langChipAr : t.langChipEn}
+          </span>
         </span>
-      </p>
+      </div>
     </article>
   );
 }
@@ -261,7 +287,9 @@ export function ProgramView({
           <ul className="stack">
             {program.milestones.map((ms) => (
               <li key={ms.id}>
-                <span className="date">{ms.dueDate}</span>
+                <span className="date" title={ms.dueDate}>
+                  {formatIsoDate(ms.dueDate, program.language)}
+                </span>
                 <span>{ms.name}</span>
               </li>
             ))}

@@ -28,11 +28,12 @@ function fileGlyph(contentType: string): LucideIcon {
   return FileText;
 }
 
-/** "812 B" / "34.2 KB" / "3.1 MB" — enough precision for a 25MB cap. */
+/** "812 B" / "34.2 KB" / "3.1 MB" — enough precision for a 25MB cap.
+    A no-break space (u00A0) keeps the value and unit on one line. */
 function humanSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024) return `${bytes}\u00A0B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}\u00A0KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}\u00A0MB`;
 }
 
 interface AttachmentsSectionProps {

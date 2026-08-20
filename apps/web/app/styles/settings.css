@@ -21,7 +21,7 @@
   color: var(--text-high); background: var(--surface); border: 1px solid var(--border);
 }
 .btn-secondary:hover { background: var(--surface-thin); }
-.btn-secondary:active { background: var(--state-pressed); }
+.btn-secondary:active { background: var(--state-pressed); transform: scale(0.97); }
 .btn-primary {
   padding-inline: var(--space-4); font-weight: var(--weight-semibold);
   color: var(--on-primary); background: var(--button-primary); border: none;
@@ -77,7 +77,9 @@
   display: inline-flex; align-items: center; gap: var(--space-1);
   height: 28px; padding-inline: var(--space-3);
   font-size: var(--text-md); font-weight: var(--weight-medium); color: var(--text-medium);
-  border: 1px solid var(--border-low); border-radius: var(--radius-md); cursor: pointer;
+  /* Ghost at rest (like .view-switcher) — transparent border keeps the metrics
+     so the checked state's chip border causes no shift */
+  border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .settings-pill span:hover { background: var(--surface-thin); color: var(--text-high); }
@@ -111,7 +113,8 @@
 .team-card-head {
   display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-2) var(--space-3); min-height: 44px;
-  cursor: pointer; border-radius: var(--radius-lg);
+  /* Concentric: child radius = parent 8px − 1px border */
+  cursor: pointer; border-radius: calc(var(--radius-lg) - 1px);
 }
 .team-card-head:hover { background: var(--surface-thin); }
 .team-card-titles {
@@ -143,6 +146,7 @@
   transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .team-icon-btn:hover { background: var(--surface-thin); color: var(--text-high); }
+.team-icon-btn:active { transform: scale(0.97); }
 .team-icon-btn.armed { color: var(--error); background: var(--error-tint); opacity: 1; }
 
 /* Overlapping 20px avatar stack, capped at 3 + "+N" */
@@ -180,7 +184,10 @@
 /* People picker (popover body) + ghost "Add member" trigger */
 .people-picker { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1); width: 240px; }
 .people-picker-search { height: 28px; }
-.people-picker-list { list-style: none; padding: 0; max-height: 208px; overflow-y: auto; }
+.people-picker-list {
+  list-style: none; padding: 0; max-height: 208px; overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .people-picker-item {
   display: flex; align-items: center; gap: var(--space-2);
   width: 100%; min-height: 32px; border: none; background: none;
@@ -211,6 +218,7 @@
 .team-programs-count {
   font-size: var(--text-sm); background: var(--surface-thin);
   border-radius: var(--radius-full); padding: 1px var(--space-2); line-height: 1.4;
+  font-variant-numeric: tabular-nums;
 }
 .team-programs-empty { font-size: var(--text-sm); color: var(--text-low); padding-block: var(--space-1); margin: 0; }
 .team-programs-list { list-style: none; padding: 0; margin: 0; }

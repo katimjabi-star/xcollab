@@ -58,6 +58,20 @@
   color: var(--status-overdue-fg);
 }
 
+/* Interactive chip — same 20px visual, hit area expanded to ≥28px via an
+   inset pseudo-element. Compose onto chip-shaped triggers (e.g. the panel
+   status trigger) so every chip-sized control inherits the hit target. */
+.ui-chip-interactive {
+  position: relative;
+  cursor: pointer;
+}
+
+.ui-chip-interactive::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
 /* ---- Skeleton (components/ui/skeleton.tsx): shimmer block ---- */
 .ui-skeleton {
   display: block;
@@ -92,30 +106,44 @@
   position: absolute;
   inset-block-start: calc(100% + var(--space-1));
   min-width: 14rem;
-  background: var(--card);
-  border: 1px solid var(--elev-border);
+  background: var(--popover);
+  border: 1px solid var(--popover-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
   padding: var(--space-1);
   z-index: 20;
+  transform-origin: top;
   animation: ui-popover-in var(--dur-fast) var(--ease-out);
 }
 
+/* Scale from the trigger corner, never center (physical corners per dir) */
 .ui-popover-end {
   inset-inline-end: 0;
+  transform-origin: top right;
 }
 
 .ui-popover-start {
   inset-inline-start: 0;
+  transform-origin: top left;
+}
+
+[dir="rtl"] .ui-popover-end {
+  transform-origin: top left;
+}
+
+[dir="rtl"] .ui-popover-start {
+  transform-origin: top right;
 }
 
 @keyframes ui-popover-in {
   from {
     opacity: 0;
-    translate: 0 -4px; /* vertical only — RTL-safe */
+    scale: 0.96;
+    translate: 0 -2px; /* vertical only — RTL-safe */
   }
   to {
     opacity: 1;
+    scale: 1;
     translate: 0 0;
   }
 }
@@ -181,11 +209,15 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--dur-fast) var(--ease-out);
+  transition: background-color var(--dur-fast) var(--ease-out), transform 160ms var(--ease-out);
 }
 
 .toast-undo:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.toast-undo:active {
+  transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,16 +6,21 @@
 
 :root {
   /* Scale token (theme-independent). Shared by the panel and the docked-mode
-     .main padding so they can never drift apart. */
-  --task-panel-width: min(clamp(560px, 36vw, 720px), 100vw);
+     .main padding so they can never drift apart. Wide-editor Peek width per
+     the polish brief §peek: fixed 640px, viewport-capped on narrow screens. */
+  --task-panel-width: min(640px, 100vw - 2rem);
+  /* Drawer motion (brief §peek): enter 400ms / exit 300ms, drawer curve. */
+  --panel-dur-in: 400ms;
+  --panel-dur-out: var(--dur-slow);
 }
 
-/* Closed state parks the panel past the inline-end edge (logical property),
-   so LTR/RTL flip is automatic — no translateX, no [dir] overrides. */
+/* Parked at the inline-end edge; the slide is a compositor-only transform
+   (audit #9 — never animate inset). translateX has no logical variant, so
+   the RTL flip is one [dir="rtl"] override below. */
 .task-panel {
   position: fixed;
   inset-block: 0;
-  inset-inline-end: calc(-1 * var(--task-panel-width));
+  inset-inline-end: 0;
   inline-size: var(--task-panel-width);
   background: var(--surface);
   border-inline-start: 1px solid var(--elev-border);
@@ -23,14 +28,19 @@
   flex-direction: column;
   z-index: 30;
   visibility: hidden;
+  transform: translateX(100%);
   transition:
-    inset-inline-end var(--dur-med) var(--ease-out),
-    visibility 0s linear var(--dur-med);
+    transform var(--panel-dur-out) var(--ease-drawer),
+    visibility 0s linear var(--panel-dur-out);
 }
-.task-panel.open {
-  inset-inline-end: 0;
+[dir="rtl"] .task-panel {
+  transform: translateX(-100%);
+}
+.task-panel.open,
+[dir="rtl"] .task-panel.open {
+  transform: translateX(0);
   visibility: visible;
-  transition: inset-inline-end var(--dur-med) var(--ease-out);
+  transition: transform var(--panel-dur-in) var(--ease-drawer);
 }
 
 /* Content region: carries the program-language dir (the aside itself keeps
@@ -52,16 +62,56 @@
 }
 .task-panel-overlay.open { opacity: 1; pointer-events: auto; }
 
-/* >=1101px: docked mode — no scrim; content yields via padding on .main. */
+/* >=1101px: docked mode — no scrim; content yields via padding on .main.
+   The padding snaps (no transition): animating layout paints every frame
+   (audit #7); the panel's transform carries the motion. */
 @media (min-width: 1101px) {
   .task-panel-overlay { display: none; }
   .app.task-panel-docked .main {
     padding-inline-end: var(--task-panel-width);
-    transition: padding var(--dur-med) var(--ease-out);
   }
 }
 
-/* ---- 48px action strip: status chip start, icon actions end ---- */
+/* ---- 48px action strip: identity anchor start (task-ID mono chip +
+   section crumb), icon actions end. Status lives ONLY in the property
+   grid (audit #6 — no duplicated chip). ---- */
+.panel-id-chip {
+  position: relative; /* anchors the ::after hit-area extender */
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  block-size: 20px;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-sm);
+  background: var(--surface-thin);
+  color: var(--text-medium);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: copy;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+/* 20px visual, ≥24px hit target (audit #5) */
+.panel-id-chip::after { content: ""; position: absolute; inset: -4px; }
+.panel-id-chip:hover { color: var(--text-high); border-color: var(--elev-border-strong); }
+.panel-strip-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+}
+.panel-strip-crumb .icon { flex: none; color: var(--text-low); }
+.panel-strip-crumb-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .task-panel-strip {
   display: flex;
   align-items: center;
@@ -118,10 +168,12 @@
 .task-panel-name:hover,
 .task-panel-name:focus-visible { background: var(--surface-thin); }
 
-/* ---- Body: scrollable sections ---- */
+/* ---- Body: scrollable sections. overscroll-behavior keeps a fast scroll
+   from chaining into the page behind the drawer (audit #6/#30). ---- */
 .task-panel-body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-3) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
@@ -169,13 +221,16 @@
 .prop-input:hover { background: var(--surface-thin); }
 .prop-input:focus-visible { border-color: var(--input-line); background: var(--surface); }
 
-/* Status chip trigger — composes .ui-chip .ui-chip-{status} onto a button. */
+/* Status chip trigger — composes .ui-chip .ui-chip-{status} onto a button.
+   20px visual chip, ≥24px hit target via the ::after extender (audit #5). */
 .panel-status-trigger {
+  position: relative;
   border: none;
   cursor: pointer;
   font-family: inherit;
   transition: filter var(--dur-fast) var(--ease-out);
 }
+.panel-status-trigger::after { content: ""; position: absolute; inset: -4px; }
 .panel-status-trigger:hover { filter: brightness(0.96); }
 .panel-status-trigger .icon { opacity: 0.7; }
 
@@ -220,7 +275,7 @@
   border: 1px solid var(--input-line); border-radius: var(--radius-md);
 }
 .assignee-search::placeholder { color: var(--text-low); }
-.assignee-list { display: flex; flex-direction: column; max-block-size: 240px; overflow-y: auto; }
+.assignee-list { display: flex; flex-direction: column; max-block-size: 240px; overflow-y: auto; overscroll-behavior: contain; }
 .assignee-row {
   display: flex; align-items: center; gap: var(--space-2); inline-size: 100%;
   min-block-size: 32px; padding: var(--space-1) var(--space-2);
@@ -304,7 +359,8 @@
   white-space: nowrap;
 }
 .activity-actor { color: var(--text-high); font-weight: var(--weight-medium); }
-.activity-time { flex-shrink: 0; color: var(--text-low); font-variant-numeric: tabular-nums; }
+/* Timestamps are meaningful metadata — medium emphasis, never 35% (audit #12) */
+.activity-time { flex-shrink: 0; color: var(--text-medium); font-variant-numeric: tabular-nums; }
 
 /* ---- Shared: focus rings (3px accent @30%) + muted placeholders.
    .quick-add-input kept for parity with the pre-sprint sheet (its base
@@ -315,6 +371,7 @@
 .panel-icon-btn:focus-visible,
 .panel-status-trigger:focus-visible,
 .panel-menu-item:focus-visible,
+.panel-id-chip:focus-visible,
 .quick-add-input:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: 1px;
@@ -358,10 +415,12 @@
 .attachments-head { display: flex; align-items: center; gap: var(--space-2); min-block-size: 28px; }
 .attachments-upload { margin-inline-start: auto; }
 .attachments-toggle {
+  position: relative; /* ::after extends the 19px visual to a ≥24px target */
   display: inline-flex; align-items: center; gap: var(--space-1); min-inline-size: 0;
   border: none; background: none; padding: 0; cursor: pointer; font-family: inherit;
   color: var(--text-medium); border-radius: var(--radius-sm);
 }
+.attachments-toggle::after { content: ""; position: absolute; inset: -4px; }
 .attachments-toggle:hover .panel-section-label { color: var(--text-high); }
 .attachments-toggle .icon { flex: none; color: var(--text-low); }
 .attachments-count {
@@ -418,10 +477,10 @@ button.attachment-main:hover { background: var(--surface-thin); }
 @media (prefers-reduced-motion: reduce) {
   .task-panel,
   .task-panel.open,
+  [dir="rtl"] .task-panel.open,
   .task-panel-overlay,
   .program-team-trigger,
   button.attachment-main,
-  .attachment-actions,
-  .app.task-panel-docked .main { transition: none; }
+  .attachment-actions { transition: none; }
   .panel-icon-btn:active { transform: none; }
 }

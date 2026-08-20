@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Task } from "@xcollab/core";
 import {
+  carryForeignParams,
   filterTasks,
   parseBoardQuery,
   serializeBoardQuery,
@@ -180,5 +181,31 @@ describe("URL query round-trip", () => {
     const back = parseBoardQuery(params);
     expect(back.filter).toEqual(filter);
     expect(back.sort).toBe("name");
+  });
+});
+
+describe("carryForeignParams", () => {
+  it("carries every param the board does not own (?view, ?task, unknown keys)", () => {
+    const next = serializeBoardQuery({ ...NO_FILTER, query: "hub" }, "default");
+    const current = new URLSearchParams("view=board&task=task-1-2&pkg=stale&utm=x");
+    carryForeignParams(next, current.entries());
+    expect(next.get("q")).toBe("hub");
+    expect(next.get("view")).toBe("board");
+    expect(next.get("task")).toBe("task-1-2");
+    expect(next.get("utm")).toBe("x");
+  });
+
+  it("never re-imports board-owned keys from the current URL", () => {
+    const next = serializeBoardQuery(NO_FILTER, "default"); // cleared filters
+    const current = new URLSearchParams("q=old&pkg=pkg-9&role=X&assignee=a&due=overdue&sort=name&task=t-1");
+    carryForeignParams(next, current.entries());
+    expect(next.toString()).toBe("task=t-1");
+  });
+
+  it("preserves repeated foreign values and returns the same instance", () => {
+    const next = new URLSearchParams();
+    const out = carryForeignParams(next, new URLSearchParams("tag=a&tag=b").entries());
+    expect(out).toBe(next);
+    expect(out.getAll("tag")).toEqual(["a", "b"]);
   });
 });

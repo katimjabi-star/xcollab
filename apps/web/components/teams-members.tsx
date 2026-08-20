@@ -51,9 +51,10 @@ export function TeamMembers({ team, users, usersError, onChange }: TeamMembersPr
               <MemberAvatar username={member.username} user={user} />
               <span className="team-member-username">{member.username}</span>
               <span className="team-member-fullname">{fullNameOf(user)}</span>
-              <span className={member.role === "lead" ? "ui-chip role-chip-lead" : "ui-chip"}>
-                {member.role === "lead" ? t.roleLead : t.roleMember}
-              </span>
+              {/* Chip the Lead only — a "Member" chip states the default (audit §teams-3) */}
+              {member.role === "lead" ? (
+                <span className="ui-chip role-chip-lead">{t.roleLead}</span>
+              ) : null}
               <button
                 type="button"
                 className="team-icon-btn team-member-remove"

@@ -56,14 +56,17 @@
 .board-tool-btn:hover { background: var(--surface-thin); color: var(--text-high); }
 .board-tool-btn.active { color: var(--text-brand); }
 
-/* Active-filter chips: 20px, full radius, tint bg + full-strength text */
+/* Active-filter chips: 20px, full radius, tint bg + full-strength text.
+   Truncation lives on the inner label (the chip keeps overflow visible so the
+   ::after hit-area extension isn't clipped). */
 .board-filter-chip {
   display: inline-flex; align-items: center; gap: var(--space-1); height: 20px; padding: 0 var(--space-2);
   border: 1px solid var(--chip-selected-border); border-radius: var(--radius-full);
   background: var(--chip-selected); color: var(--text-brand); cursor: pointer;
   font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
-  max-width: 220px; white-space: nowrap; overflow: hidden;
+  max-width: 220px; white-space: nowrap;
 }
+.board-filter-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .board-clear-link {
   border: none; background: none; color: var(--text-medium); cursor: pointer;
   font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
@@ -91,7 +94,7 @@
 }
 
 /* ---- Board: horizontal scroll, 340px fixed columns, 12px gutters ---- */
-.board-scroller { flex: 1; min-height: 0; overflow: auto; }
+.board-scroller { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .board {
   display: flex; align-items: stretch; gap: var(--space-3);
   padding: 0 var(--space-6) var(--space-6); min-width: 100%; width: max-content; min-height: 100%;
@@ -112,14 +115,21 @@
 .board-status-icon.blocked { color: var(--status-blocked-fg); }
 .board-status-icon.done { color: var(--status-done-fg); }
 
-/* Hover-revealed header actions (always visible to keyboard focus). */
-.board-col-actions { margin-inline-start: auto; display: flex; gap: var(--space-1); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
-.board-col:hover .board-col-actions, .board-col-actions:focus-within { opacity: 1; }
+/* Header actions: hover/focus-revealed, except .rest-visible ("+" add task)
+   which stays discoverable at rest in quiet --text-low. */
+.board-col-actions { margin-inline-start: auto; display: flex; gap: var(--space-1); }
 .board-col-action {
   display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
   border: none; border-radius: var(--radius-md); background: none; color: var(--text-medium); cursor: pointer;
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease-out);
 }
-.board-col-action:hover { background: var(--surface-thin); color: var(--text-high); }
+.board-col-action.rest-visible { opacity: 1; color: var(--text-low); }
+.board-col:hover .board-col-action, .board-col-actions:focus-within .board-col-action { opacity: 1; }
+.board-col:hover .board-col-action.rest-visible { color: var(--text-medium); }
+/* Direct hover beats the reveal-tier colors above (matches its specificity) */
+.board-col-action:hover, .board-col:hover .board-col-action.rest-visible:hover {
+  background: var(--surface-thin); color: var(--text-high);
+}
 
 /* Collapsed 40px vertical rail: rotated name + count. */
 .board-col-rail {
@@ -141,11 +151,19 @@
   display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3);
   border: 1px solid var(--elev-border); border-radius: var(--radius-lg);
   background: var(--surface); box-shadow: var(--shadow-raised); cursor: grab; user-select: none;
-  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
 }
-.board-card:hover { border-color: var(--input-line); }
+/* Hover elevation: border one ladder step up + 1px compositor lift; in dark
+   the bg raises one surface step (--card-hover) so hover isn't border-only. */
+.board-card:hover {
+  border-color: var(--elev-border-strong, var(--input-line));
+  background: var(--card-hover, var(--surface));
+  transform: translateY(-1px);
+}
 .board-card:active { cursor: grabbing; }
-.board-card.dragging { opacity: 0.6; transform: scale(1.02); box-shadow: var(--shadow-overlay); cursor: grabbing; }
+/* Drag lift: transform/opacity only (compositor-safe; no shadow/layout anim) */
+.board-card.dragging { opacity: 0.6; transform: scale(1.02); cursor: grabbing; }
 .board-card.revert-error { border-color: var(--error); background: var(--error-tint); }
 
 .board-card-top { display: flex; align-items: center; gap: var(--space-2); }
@@ -165,9 +183,16 @@
   border: none; border-radius: var(--radius-md); background: none; color: var(--text-high); cursor: pointer;
   font: inherit; font-size: var(--text-md); text-align: start;
 }
-.board-move-item:hover, .board-move-item:focus-visible { background: var(--surface-thin); outline: none; }
+.board-move-item:hover { background: var(--surface-thin); }
+/* Keyboard focus in the move menu needs the shared ring — a 12-16% tint alone
+   is invisible (never outline:none without a visible replacement). */
+.board-move-item:focus-visible {
+  background: var(--surface-thin); outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
 
-.board-card-eyebrow { font-size: var(--text-xs); color: var(--text-low); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* Meaningful metadata reads at --text-medium; --text-low is decoration-only */
+.board-card-eyebrow { font-size: var(--text-xs); color: var(--text-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .board-card-name {
   font-size: var(--text-md); font-weight: var(--weight-medium); color: var(--text-high);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -179,20 +204,32 @@
   font-size: var(--text-sm); font-variant-numeric: tabular-nums;
 }
 .board-card-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-block-start: var(--space-1); }
-.board-card-id { font-size: var(--text-sm); color: var(--text-low); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board-card-id { font-size: var(--text-sm); color: var(--text-medium); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Card avatar now comes from the shared .ui-avatar primitive (pages.css). */
 
-/* ---- Empty states: filtered-empty offers a clear-filters action ---- */
-.board-col-empty {
-  margin: 0; border: 1px dashed var(--border-low); border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-3); font-size: var(--text-sm); color: var(--text-low); text-align: center;
+/* ---- Hit targets (≥24px): visuals stay small; an inset pseudo-element
+   grows each sub-24px control's interactive box without visual change ---- */
+.board-card-move, .board-filter-chip, .board-clear-link, .board-due-option, .board-sort-option,
+.view-switcher button { position: relative; }
+.board-card-move::after, .board-filter-chip::after, .board-clear-link::after,
+.board-due-option::after, .board-sort-option::after, .view-switcher button::after {
+  content: ""; position: absolute; inset: -3px;
 }
-.board-col-empty.filtered { display: flex; flex-direction: column; gap: var(--space-2); align-items: center; }
+
+/* ---- Empty states: filtered-empty offers a clear-filters action.
+   36px min height matches the quick-add ghost row so columns don't jiggle ---- */
+.board-col-empty {
+  margin: 0; border: 1px dashed var(--border-low); border-radius: var(--radius-lg); box-sizing: border-box;
+  min-block-size: 36px; display: grid; place-items: center;
+  padding: var(--space-2) var(--space-3); font-size: var(--text-sm); color: var(--text-low); text-align: center;
+}
+.board-col-empty.filtered { display: flex; flex-direction: column; gap: var(--space-2); align-items: center; justify-content: center; }
 .board-col-empty.filtered p { margin: 0; }
 
 /* ---- Quick-add: ghost trigger + 13px/32px inline input ---- */
 .quick-add-row, .quick-add-btn {
   display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: var(--space-2);
+  min-block-size: 36px; box-sizing: border-box;
   border: none; background: none; color: var(--text-medium); cursor: pointer;
   font: inherit; font-size: var(--text-md); font-weight: var(--weight-medium);
   text-align: start; border-radius: var(--radius-md);
@@ -203,4 +240,9 @@
   width: 100%; min-width: 0; height: 32px; padding: 0 var(--space-2);
   border: 1px solid var(--input-line); border-radius: var(--radius-md);
   background: var(--surface); color: var(--text-high); font: inherit; font-size: var(--text-md);
+}
+
+/* Motion-sensitive users: keep state changes, drop the movement */
+@media (prefers-reduced-motion: reduce) {
+  .board-card, .board-card:hover { transition: none; transform: none; }
 }

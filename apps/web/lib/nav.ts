@@ -37,3 +37,28 @@ export function routeLabelKey(pathname: string): DictionaryKey {
   );
   return match ? match.labelKey : "navOverview";
 }
+
+/* The App Router re-applies the static metadata <title> asynchronously after
+   each navigation commit, overwriting effect-set titles. The observer wins
+   that race by re-asserting the desired title whenever <head> mutates; it
+   never fires on its own writes (enforce() is a no-op once titles match). */
+let desiredTitle: string | null = null;
+let titleObserver: MutationObserver | null = null;
+
+function enforceTitle(): void {
+  if (desiredTitle !== null && document.title !== desiredTitle) {
+    document.title = desiredTitle;
+  }
+}
+
+/** Per-context document title: "Part · Part · XCollab" — most specific first
+    (e.g. ["Task name", "Program name"]). Client-side only; call from an effect. */
+export function setDocumentTitle(parts: string[]): void {
+  const clean = parts.map((part) => part.trim()).filter(Boolean);
+  desiredTitle = [...clean, "XCollab"].join(" · ");
+  if (!titleObserver) {
+    titleObserver = new MutationObserver(enforceTitle);
+    titleObserver.observe(document.head, { subtree: true, childList: true, characterData: true });
+  }
+  enforceTitle();
+}

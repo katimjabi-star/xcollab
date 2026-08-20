@@ -12,7 +12,28 @@ body {
   font-size: var(--text-md); /* 13px UI base */
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
   transition: background-color var(--dur-med) ease, color var(--dur-med) ease;
+}
+
+/* No 300ms double-tap-zoom delay on any control */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* In-page anchor targets clear the 48px sticky topbar */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  scroll-margin-block-start: 56px;
 }
 
 [dir="rtl"],
@@ -34,6 +55,34 @@ body {
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: 1px;
+}
+
+/* Skip link — first tab stop, visible only while focused */
+.skip-link {
+  position: fixed;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: 50; /* above toasts (40) */
+  transform: translateY(calc(-100% - var(--space-4)));
+  background: var(--popover);
+  color: var(--text-highest);
+  border: 1px solid var(--popover-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* Press feedback — shared utility; sheets opt pressables in. Transform-only,
+   so keyboard activation stays visually instant everywhere else. */
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* kbd chip — shortcut hints (⌘K etc.) */

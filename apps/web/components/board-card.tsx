@@ -30,6 +30,8 @@ interface BoardCardItemProps {
   today: string;
   /** Resolved full name for task.assignee (board-level users map); username fallback. */
   assigneeName?: string;
+  /** Shared per-locale formatter ("Oct 3" style) — ISO stays in tooltips only. */
+  dateFormat: Intl.DateTimeFormat;
   dragging: boolean;
   revertError: boolean;
   /** The other three columns, in board order. */
@@ -47,6 +49,7 @@ export function BoardCardItem({
   t,
   today,
   assigneeName,
+  dateFormat,
   dragging,
   revertError,
   moveTargets,
@@ -131,13 +134,13 @@ export function BoardCardItem({
             variant="dueDate"
             overdue={overdue}
             icon={<Icon icon={CalendarDays} size={12} />}
-            title={overdue ? t.overdueLabel : t.dueLabel}
+            title={`${overdue ? t.overdueLabel : t.dueLabel} · ${task.dueDate}`}
           >
-            {task.dueDate}
+            {dateFormat.format(new Date(`${task.dueDate}T00:00:00`))}
           </Chip>
         ) : null}
         <span className="board-chip-estimate" title={t.taskEstimate}>
-          {task.estimateDays} {t.estimateDaysSuffix}
+          {`${task.estimateDays}\u00A0${t.estimateDaysSuffix}`}
         </span>
       </div>
 

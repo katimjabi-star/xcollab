@@ -44,16 +44,17 @@ export function TeamsCreateForm({ onCreated, onClose }: TeamsCreateFormProps) {
 
   return (
     <form className="team-create-form" onSubmit={submit}>
+      {/* Placeholders show an example pattern, not a bare label (audit #17) */}
       <input
         autoFocus
-        placeholder={t.teamNameLabel}
+        placeholder={t.teamNamePlaceholder}
         aria-label={t.teamNameLabel}
         value={name}
         onChange={(event) => setName(event.target.value)}
         onKeyDown={closeOnEscape}
       />
       <input
-        placeholder={t.teamDescriptionLabel}
+        placeholder={t.teamDescriptionPlaceholder}
         aria-label={t.teamDescriptionLabel}
         value={description}
         onChange={(event) => setDescription(event.target.value)}

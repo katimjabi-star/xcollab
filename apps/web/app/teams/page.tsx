@@ -66,7 +66,7 @@ export default function TeamsPage() {
   return (
     <div className="content">
       <div className="section-head">
-        <h2>
+        <h2 className="page-title">
           {t.teamsHeading}
           {teams ? (
             <>
