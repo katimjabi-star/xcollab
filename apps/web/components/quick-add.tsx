@@ -15,6 +15,9 @@ interface TaskQuickAddProps {
   status?: Task["status"];
   uiLanguage: UiLanguage;
   onProgramUpdate: (program: Program) => void;
+  /** Optional controlled open state (board column header "+" drives this). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -29,10 +32,17 @@ export function TaskQuickAdd({
   status,
   uiLanguage,
   onProgramUpdate,
+  open: controlledOpen,
+  onOpenChange,
 }: TaskQuickAddProps) {
   const t = STRINGS[uiLanguage];
   const { push } = useToasts();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const [value, setValue] = useState("");
   const [failed, setFailed] = useState(false);
   const pending = useRef(false);
@@ -107,7 +117,7 @@ export function TaskQuickAdd({
         aria-label={t.addTask}
         onClick={() => setOpen(true)}
       >
-        +
+        + {t.addTask}
       </button>
     );
   }

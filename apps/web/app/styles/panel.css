@@ -1,0 +1,295 @@
+/* Panel sheet — task detail side peek. Owned by the panel agent.
+   Geometry: 560px default, up to 720px on wide screens, slides from the
+   inline-end edge (right LTR / left RTL) purely via logical properties.
+   Compact one-line rules are deliberate: panel files are capped at 300 lines.
+   z-index map: .topbar 10 · overlay 29 · panel 30 · toasts 40 */
+
+:root {
+  /* Scale token (theme-independent). Shared by the panel and the docked-mode
+     .main padding so they can never drift apart. */
+  --task-panel-width: min(clamp(560px, 36vw, 720px), 100vw);
+}
+
+/* Closed state parks the panel past the inline-end edge (logical property),
+   so LTR/RTL flip is automatic — no translateX, no [dir] overrides. */
+.task-panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: calc(-1 * var(--task-panel-width));
+  inline-size: var(--task-panel-width);
+  background: var(--surface);
+  border-inline-start: 1px solid var(--elev-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  visibility: hidden;
+  transition:
+    inset-inline-end var(--dur-med) var(--ease-out),
+    visibility 0s linear var(--dur-med);
+}
+.task-panel.open {
+  inset-inline-end: 0;
+  visibility: visible;
+  transition: inset-inline-end var(--dur-med) var(--ease-out);
+}
+
+/* Content region: carries the program-language dir (the aside itself keeps
+   the app UI dir so docking matches the .main padding side). */
+.task-panel-inner { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* Scrim — mobile/narrow only. Token-only color; blur separates panel from
+   content in both themes without hardcoding a scrim color. */
+.task-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: var(--state-pressed);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+.task-panel-overlay.open { opacity: 1; pointer-events: auto; }
+
+/* >=1101px: docked mode — no scrim; content yields via padding on .main. */
+@media (min-width: 1101px) {
+  .task-panel-overlay { display: none; }
+  .app.task-panel-docked .main {
+    padding-inline-end: var(--task-panel-width);
+    transition: padding var(--dur-med) var(--ease-out);
+  }
+}
+
+/* ---- 48px action strip: status chip start, icon actions end ---- */
+.task-panel-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 48px;
+  flex-shrink: 0;
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid var(--divider-low);
+}
+.task-panel-strip-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+.panel-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.panel-icon-btn:hover { background: var(--surface-thin); color: var(--text-high); }
+.panel-icon-btn:active { transform: scale(0.97); }
+.panel-icon-btn:disabled { color: var(--text-low); background: none; cursor: not-allowed; }
+.panel-delete-btn:hover:not(:disabled),
+.panel-delete-btn.armed { background: var(--error-tint); color: var(--error); }
+
+/* ---- Title: editable 18px/600 — the only large type in the app. Always an
+   input, so static and editing states are metric-identical by construction. */
+.task-panel-head { flex-shrink: 0; padding: var(--space-2) var(--space-3) 0; }
+.task-panel-name {
+  inline-size: 100%;
+  min-inline-size: 0;
+  border: none;
+  background: none;
+  color: var(--text-highest);
+  font-family: inherit;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.task-panel-name:hover,
+.task-panel-name:focus-visible { background: var(--surface-thin); }
+
+/* ---- Body: scrollable sections ---- */
+.task-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ---- Property grid: 120px muted label column + interactive value ---- */
+.prop-grid { display: flex; flex-direction: column; }
+.prop-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-3);
+  min-block-size: 32px;
+}
+.prop-label { font-size: var(--text-sm); color: var(--text-medium); }
+.prop-value { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
+.prop-static {
+  font-size: var(--text-md);
+  color: var(--text-high);
+  padding-inline: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Value editors: borderless at rest, surface tint on hover, ring on focus.
+   The 1px transparent border keeps rest/focus metrics identical. */
+.prop-input {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-high);
+  font-family: inherit;
+  font-size: var(--text-md);
+  padding-inline: var(--space-2);
+  color-scheme: light dark;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.prop-input:hover { background: var(--surface-thin); }
+.prop-input:focus-visible { border-color: var(--input-line); background: var(--surface); }
+
+/* Status chip trigger — composes .ui-chip .ui-chip-{status} onto a button. */
+.panel-status-trigger {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+.panel-status-trigger:hover { filter: brightness(0.96); }
+.panel-status-trigger .icon { opacity: 0.7; }
+
+/* Popover status menu items */
+.panel-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: 32px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-md);
+  color: var(--text-high);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.panel-menu-item:hover { background: var(--surface-thin); }
+.panel-menu-item .icon { color: var(--text-medium); }
+
+/* ---- Section label (description, activity): 12px muted ---- */
+.panel-section { display: flex; flex-direction: column; gap: var(--space-2); }
+.panel-section-label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+/* ---- Description: tokened textarea, 13px ---- */
+.panel-textarea {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 96px;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-high);
+  font-family: inherit;
+  font-size: var(--text-md);
+  line-height: 1.5;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  color-scheme: light dark;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.panel-textarea:hover { border-color: var(--chip-selected-border); }
+
+/* ---- Activity feed: 12px rows, 20px initials avatars ---- */
+.activity-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 24px;
+  font-size: var(--text-sm);
+}
+.activity-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--avatar-bg);
+  color: var(--avatar-fg);
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+.activity-text {
+  flex: 1;
+  min-inline-size: 0;
+  color: var(--text-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-actor { color: var(--text-high); font-weight: var(--weight-medium); }
+.activity-time { flex-shrink: 0; color: var(--text-low); font-variant-numeric: tabular-nums; }
+
+/* ---- Shared: focus rings (3px accent @30%) + muted placeholders.
+   .quick-add-input kept for parity with the pre-sprint sheet (its base
+   style lives in board.css). ---- */
+.prop-input:focus-visible,
+.panel-textarea:focus-visible,
+.task-panel-name:focus-visible,
+.panel-icon-btn:focus-visible,
+.panel-status-trigger:focus-visible,
+.panel-menu-item:focus-visible,
+.quick-add-input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.prop-input::placeholder,
+.panel-textarea::placeholder,
+.quick-add-input::placeholder { color: var(--text-low); }
+
+@media (prefers-reduced-motion: reduce) {
+  .task-panel,
+  .task-panel.open,
+  .task-panel-overlay,
+  .app.task-panel-docked .main { transition: none; }
+  .panel-icon-btn:active { transform: none; }
+}

@@ -1,0 +1,207 @@
+/* UI primitives: icon, chip, skeleton, popover, toasts. */
+
+/* ---- Icon (components/ui/icon.tsx) ---- */
+.icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Directional glyphs (chevrons, panel arrows) mirror in RTL */
+[dir="rtl"] .icon-directional {
+  transform: scaleX(-1);
+}
+
+/* ---- Chip (components/ui/chip.tsx): 20px, tinted bg + full-strength text ---- */
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  background: var(--surface-thin);
+  color: var(--text-medium);
+}
+
+.ui-chip-todo {
+  background: var(--status-todo-bg);
+  color: var(--status-todo-fg);
+}
+
+.ui-chip-in_progress {
+  background: var(--status-in-progress-bg);
+  color: var(--status-in-progress-fg);
+}
+
+.ui-chip-done {
+  background: var(--status-done-bg);
+  color: var(--status-done-fg);
+}
+
+.ui-chip-blocked {
+  background: var(--status-blocked-bg);
+  color: var(--status-blocked-fg);
+}
+
+.ui-chip-due {
+  background: var(--surface-thin);
+  color: var(--text-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-chip-overdue {
+  background: var(--status-overdue-bg);
+  color: var(--status-overdue-fg);
+}
+
+/* ---- Skeleton (components/ui/skeleton.tsx): shimmer block ---- */
+.ui-skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--surface-thin);
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--state-pressed), transparent);
+  animation: ui-skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes ui-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Popover (components/ui/popover.tsx): anchored, solid surface ---- */
+.ui-popover-root {
+  position: relative;
+  display: inline-flex;
+}
+
+.ui-popover {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-1));
+  min-width: 14rem;
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--space-1);
+  z-index: 20;
+  animation: ui-popover-in var(--dur-fast) var(--ease-out);
+}
+
+.ui-popover-end {
+  inset-inline-end: 0;
+}
+
+.ui-popover-start {
+  inset-inline-start: 0;
+}
+
+@keyframes ui-popover-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px; /* vertical only — RTL-safe */
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* =========================================================
+   TOASTS — bottom corner, dark surface in BOTH themes,
+   13px, action slot. z-index 40 (above panel 30).
+   ========================================================= */
+.toast-stack {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline-end: var(--space-4);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: min(22rem, calc(100vw - 2rem));
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  border: 1px solid var(--toast-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  animation: toast-in var(--dur-med) var(--ease-out);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 8px; /* vertical only — RTL-safe */
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Applied ~200ms before removal from the DOM. */
+.toast.leaving {
+  opacity: 0;
+  translate: 0 6px;
+  transition: opacity var(--dur-med) var(--ease-out), translate var(--dur-med) var(--ease-out);
+}
+
+/* Action slot (Undo/View) */
+.toast-undo {
+  margin-inline-start: auto;
+  border: none;
+  background: none;
+  color: var(--toast-action);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.toast-undo:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton::after {
+    animation: none;
+  }
+
+  .ui-popover {
+    animation: none;
+  }
+
+  .toast {
+    animation: none;
+  }
+
+  .toast.leaving {
+    transition: none;
+  }
+}

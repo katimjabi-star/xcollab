@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
 import { BrandLogo } from "./brand-logo.tsx";
+
+/** Guards against a redirect loop: only the first unauthenticated visit
+    in a tab auto-forwards; after a sign-out or failed attempt the gate
+    waits for an explicit click. */
+const AUTO_FORWARD_KEY = "xcollab.auth.attempted";
 
 /** Full-viewport sign-in gate — rendered INSTEAD of the app shell. */
 export function LoginGate() {
@@ -15,6 +20,14 @@ export function LoginGate() {
     setRedirecting(true);
     void login();
   }
+
+  useEffect(() => {
+    if (expired || sessionStorage.getItem(AUTO_FORWARD_KEY)) return;
+    sessionStorage.setItem(AUTO_FORWARD_KEY, "1");
+    setRedirecting(true);
+    void login();
+    // Fresh-visit auto-forward must fire exactly once per tab.
+  }, []);
 
   return (
     <div className="login-gate" dir={dir} lang={language}>

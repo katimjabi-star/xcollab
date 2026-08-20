@@ -69,7 +69,11 @@ export function TaskPanel({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      // An open popover owns this Escape: its own document listener (added
+      // after ours, so it fires later) closes it; the panel stays open.
+      if (document.querySelector(".ui-popover")) return;
+      onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);

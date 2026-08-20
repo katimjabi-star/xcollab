@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../lib/auth-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
+import { Popover } from "./ui/popover.tsx";
 
 /** First grapheme of first + last name parts; fallback: first two of username. */
 function initialsOf(fullName: string, username: string): string {
@@ -19,29 +20,6 @@ export function UserMenu() {
   const { t } = useUi();
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   if (!user) return null;
 
@@ -51,32 +29,35 @@ export function UserMenu() {
   }
 
   return (
-    <div className="user-menu" ref={rootRef}>
-      <button
-        type="button"
-        className="user-menu-trigger"
-        ref={triggerRef}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="avatar" aria-hidden>
-          {initialsOf(user.fullName, user.username)}
-        </span>
-        <span className="user-menu-name">{user.username}</span>
+    <Popover
+      open={open}
+      onClose={() => setOpen(false)}
+      align="end"
+      role="menu"
+      className="user-menu"
+      anchor={
+        <button
+          type="button"
+          className="user-menu-trigger"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span className="avatar" aria-hidden>
+            {initialsOf(user.fullName, user.username)}
+          </span>
+          <span className="user-menu-name">{user.username}</span>
+        </button>
+      }
+    >
+      <div className="user-menu-identity">
+        <span className="user-menu-eyebrow">{t.loggedInAs}</span>
+        <span className="user-menu-fullname">{user.fullName}</span>
+        <span className="user-menu-email">{user.email}</span>
+      </div>
+      <button type="button" className="user-menu-item" role="menuitem" onClick={signOut}>
+        {t.signOut}
       </button>
-      {open && (
-        <div className="user-menu-popover" role="menu">
-          <div className="user-menu-identity">
-            <span className="user-menu-eyebrow">{t.loggedInAs}</span>
-            <span className="user-menu-fullname">{user.fullName}</span>
-            <span className="user-menu-email">{user.email}</span>
-          </div>
-          <button type="button" className="user-menu-item" role="menuitem" onClick={signOut}>
-            {t.signOut}
-          </button>
-        </div>
-      )}
-    </div>
+    </Popover>
   );
 }

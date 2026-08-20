@@ -1,0 +1,51 @@
+/* Base: reset, 13px body, hairline separators, focus ring, kbd chip. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-latin);
+  font-size: var(--text-md); /* 13px UI base */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color var(--dur-med) ease, color var(--dur-med) ease;
+}
+
+[dir="rtl"],
+[lang="ar"] {
+  font-family: var(--font-arabic);
+}
+
+/* Hairline separators — structure felt, not seen */
+.hairline-b {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.hairline-t {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Consistent accent focus ring (replaces per-control default outlines).
+   Component sheets may override for tight layouts; the ring stays accent-alpha. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* kbd chip — shortcut hints (⌘K etc.) */
+kbd,
+.kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+  color: var(--text-medium);
+  background: var(--surface-thin);
+  border: 1px solid var(--border-low);
+  border-radius: var(--radius-sm);
+  padding: 2px 5px;
+}
