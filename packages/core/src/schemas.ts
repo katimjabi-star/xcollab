@@ -11,6 +11,8 @@ export const TaskSchema = z.object({
   status: TaskStatusSchema,
   estimateDays: z.number().positive(),
   assigneeRole: z.string().min(1).optional(),
+  /** Keycloak username of the assigned person (assigneeRole stays the role hint). */
+  assignee: z.string().min(1).optional(),
   startDate: z.iso.date().optional(),
   dueDate: z.iso.date().optional(),
   description: z.string().max(4000).optional(),
@@ -32,6 +34,21 @@ export const TeamSchema = z.object({
   kind: z.enum(["internal", "vendor"]),
 });
 
+export const TeamMemberSchema = z.object({
+  username: z.string().min(1),
+  role: z.enum(["lead", "member"]),
+});
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+/** Standalone workspace team (distinct from the embedded per-program TeamSchema). */
+export const WorkspaceTeamSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().max(500).optional(),
+  members: z.array(TeamMemberSchema),
+});
+export type WorkspaceTeam = z.infer<typeof WorkspaceTeamSchema>;
+
 export const MilestoneSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -52,6 +69,8 @@ export const TimelineSchema = z
 export const ProgramSchema = z
   .object({
     id: z.string().min(1),
+    /** Optional parent program id (same workspace) for program hierarchies. */
+    parentId: z.string().min(1).optional(),
     name: z.string().min(1),
     mission: z.string().min(1),
     language: LanguageSchema,

@@ -69,6 +69,7 @@
   --muted: #a4a4a4; /* EDGE Charcoal Mid */
   --brand: #ff5622; /* EDGE Orange */
   --button-primary: #ff4713; /* button/highEmphasis/primary (brand500) */
+  --button-primary-hover: #e63d0c;
   --text-brand: #ff4713; /* text/primary */
   --on-primary: #ffffff;
   --chip-selected: #fdded7; /* surface/solid/primaryLowEmphasis */
@@ -135,6 +136,7 @@
     --muted: #666666;
     --brand: #ff5622;
     --button-primary: #f55c36;
+    --button-primary-hover: #ff6a45;
     --text-brand: #f55c36;
     --on-primary: #ffffff;
     --chip-selected: #341a14;
@@ -197,6 +199,7 @@
   --muted: #666666;
   --brand: #ff5622;
   --button-primary: #f55c36;
+  --button-primary-hover: #ff6a45;
   --text-brand: #f55c36;
   --on-primary: #ffffff;
   --chip-selected: #341a14;

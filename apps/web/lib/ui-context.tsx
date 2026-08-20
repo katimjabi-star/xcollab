@@ -2,12 +2,20 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { STRINGS, type UiLanguage } from "./i18n.ts";
-import { cycleThemeMode, THEME_STORAGE_KEY, type ThemeMode } from "./theme.ts";
+import {
+  cycleThemeMode,
+  setThemeMode as persistThemeMode,
+  THEME_STORAGE_KEY,
+  type ThemeMode,
+} from "./theme.ts";
 
 interface UiContextValue {
   language: UiLanguage;
   toggleLanguage: () => void;
   themeMode: ThemeMode;
+  /** Pin an explicit mode (settings radio row). */
+  setTheme: (mode: ThemeMode) => void;
+  /** Step light → dark → system (topbar toggle). */
   cycleTheme: () => void;
   t: (typeof STRINGS)["en"];
   dir: "ltr" | "rtl";
@@ -24,22 +32,17 @@ export function UiProvider({ children }: { children: ReactNode }) {
     if (stored === "light" || stored === "dark") setThemeMode(stored);
   }, []);
 
-  function cycleTheme() {
-    const next = cycleThemeMode(themeMode);
+  function setTheme(next: ThemeMode) {
     setThemeMode(next);
-    window.localStorage.setItem(THEME_STORAGE_KEY, next);
-    if (next === "system") {
-      delete document.documentElement.dataset.theme;
-    } else {
-      document.documentElement.dataset.theme = next;
-    }
+    persistThemeMode(next);
   }
 
   const value: UiContextValue = {
     language,
     toggleLanguage: () => setLanguage(language === "en" ? "ar" : "en"),
     themeMode,
-    cycleTheme,
+    setTheme,
+    cycleTheme: () => setTheme(cycleThemeMode(themeMode)),
     t: STRINGS[language],
     dir: language === "ar" ? "rtl" : "ltr",
   };

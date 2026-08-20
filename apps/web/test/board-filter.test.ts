@@ -9,7 +9,7 @@ import {
   type BoardFilter,
 } from "../lib/board-filter.ts";
 
-const NO_FILTER: BoardFilter = { query: "", packageId: null, role: null, due: null };
+const NO_FILTER: BoardFilter = { query: "", packageId: null, role: null, assignee: null, due: null };
 
 function card(overrides: Partial<Task> & { id: string }, pkg = "pkg-1", pkgName = "Alpha"): BoardCard {
   const task: Task = {
@@ -18,6 +18,7 @@ function card(overrides: Partial<Task> & { id: string }, pkg = "pkg-1", pkgName 
     status: overrides.status ?? "todo",
     estimateDays: overrides.estimateDays ?? 1,
     ...(overrides.assigneeRole ? { assigneeRole: overrides.assigneeRole } : {}),
+    ...(overrides.assignee ? { assignee: overrides.assignee } : {}),
     ...(overrides.dueDate ? { dueDate: overrides.dueDate } : {}),
   };
   return { task, packageId: pkg, packageName: pkgName };
@@ -78,15 +79,27 @@ describe("filterTasks", () => {
     expect(filterTasks(cards, { ...NO_FILTER, due: "noDate" }, TODAY).map((c) => c.task.id)).toEqual(["b"]);
   });
 
+  it("filters by assignee with an exact username match; unassigned cards never match", () => {
+    const cards = [
+      card({ id: "a", assignee: "jdoe" }),
+      card({ id: "b", assignee: "jdoe2" }),
+      card({ id: "c" }),
+    ];
+    expect(filterTasks(cards, { ...NO_FILTER, assignee: "jdoe" }, TODAY).map((c) => c.task.id)).toEqual(["a"]);
+    expect(filterTasks(cards, { ...NO_FILTER, assignee: "JDOE" }, TODAY)).toEqual([]);
+    expect(filterTasks(cards, { ...NO_FILTER, assignee: "nobody" }, TODAY)).toEqual([]);
+  });
+
   it("ANDs all active dimensions together", () => {
     const cards = [
-      card({ id: "hit", name: "Deploy hub", assigneeRole: "Engineer", dueDate: "2026-08-10" }, "pkg-2"),
-      card({ id: "wrong-pkg", name: "Deploy hub", assigneeRole: "Engineer", dueDate: "2026-08-10" }, "pkg-1"),
-      card({ id: "not-overdue", name: "Deploy hub", assigneeRole: "Engineer", dueDate: "2026-08-25" }, "pkg-2"),
+      card({ id: "hit", name: "Deploy hub", assigneeRole: "Engineer", assignee: "jdoe", dueDate: "2026-08-10" }, "pkg-2"),
+      card({ id: "wrong-pkg", name: "Deploy hub", assigneeRole: "Engineer", assignee: "jdoe", dueDate: "2026-08-10" }, "pkg-1"),
+      card({ id: "not-overdue", name: "Deploy hub", assigneeRole: "Engineer", assignee: "jdoe", dueDate: "2026-08-25" }, "pkg-2"),
+      card({ id: "wrong-user", name: "Deploy hub", assigneeRole: "Engineer", assignee: "asmith", dueDate: "2026-08-10" }, "pkg-2"),
     ];
     const ids = filterTasks(
       cards,
-      { query: "deploy", packageId: "pkg-2", role: "Engineer", due: "overdue" },
+      { query: "deploy", packageId: "pkg-2", role: "Engineer", assignee: "jdoe", due: "overdue" },
       TODAY,
     ).map((c) => c.task.id);
     expect(ids).toEqual(["hit"]);
@@ -141,19 +154,29 @@ describe("URL query round-trip", () => {
   });
 
   it("parses valid values and rejects unknown due/sort tokens", () => {
-    const ok = parseBoardQuery(new URLSearchParams("q=hub&pkg=pkg-1&role=Engineer&due=thisWeek&sort=estimate"));
-    expect(ok.filter).toEqual({ query: "hub", packageId: "pkg-1", role: "Engineer", due: "thisWeek" });
+    const ok = parseBoardQuery(
+      new URLSearchParams("q=hub&pkg=pkg-1&role=Engineer&assignee=jdoe&due=thisWeek&sort=estimate"),
+    );
+    expect(ok.filter).toEqual({
+      query: "hub",
+      packageId: "pkg-1",
+      role: "Engineer",
+      assignee: "jdoe",
+      due: "thisWeek",
+    });
     expect(ok.sort).toBe("estimate");
 
     const bad = parseBoardQuery(new URLSearchParams("due=someday&sort=chaos"));
     expect(bad.filter.due).toBeNull();
+    expect(bad.filter.assignee).toBeNull();
     expect(bad.sort).toBe("default");
   });
 
   it("serializes only non-default values and round-trips", () => {
     expect(serializeBoardQuery(NO_FILTER, "default").toString()).toBe("");
-    const filter: BoardFilter = { query: "hub", packageId: "pkg-1", role: null, due: "overdue" };
+    const filter: BoardFilter = { query: "hub", packageId: "pkg-1", role: null, assignee: "jdoe", due: "overdue" };
     const params = serializeBoardQuery(filter, "name");
+    expect(params.get("assignee")).toBe("jdoe");
     const back = parseBoardQuery(params);
     expect(back.filter).toEqual(filter);
     expect(back.sort).toBe("name");

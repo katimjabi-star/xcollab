@@ -9,6 +9,7 @@ export interface TaskFieldChanges {
   name?: string;
   estimateDays?: number;
   assigneeRole?: string | null;
+  assignee?: string | null;
   startDate?: string | null;
   dueDate?: string | null;
   description?: string | null;
@@ -39,6 +40,7 @@ const UPDATABLE_TASK_KEYS = [
   "name",
   "estimateDays",
   "assigneeRole",
+  "assignee",
   "startDate",
   "dueDate",
   "description",
@@ -106,7 +108,7 @@ function applyChanges(task: Task, changes: TaskFieldChanges): Task {
   if (changes.status !== undefined) next.status = changes.status;
   if (changes.name !== undefined) next.name = changes.name;
   if (changes.estimateDays !== undefined) next.estimateDays = changes.estimateDays;
-  for (const key of ["assigneeRole", "startDate", "dueDate", "description"] as const) {
+  for (const key of ["assigneeRole", "assignee", "startDate", "dueDate", "description"] as const) {
     const value = changes[key];
     if (value === undefined) continue;
     // null clears the field; undefined keys are dropped by JSON serialization.

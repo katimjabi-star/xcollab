@@ -9,6 +9,7 @@
 @import "./styles/pages.css";
 @import "./styles/board.css";
 @import "./styles/panel.css";
+@import "./styles/settings.css";
 
 /* Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
 @font-face {

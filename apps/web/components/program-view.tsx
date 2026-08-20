@@ -1,7 +1,11 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { Program, Task } from "@xcollab/core";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
+import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
+import { Icon } from "./ui/icon.tsx";
 import { TaskQuickAdd } from "./quick-add.tsx";
 
 type Severity = Program["risks"][number]["severity"];
@@ -56,7 +60,8 @@ function TaskRowChips({
   );
 }
 
-/** 36px task row body — max 3 metadata signals: role, due chip, status chip. */
+/** 36px task row body — max 3 metadata signals: assignee avatar (role text
+    when unassigned), due chip, status chip. */
 function TaskRowContent({
   task,
   uiLanguage,
@@ -71,22 +76,37 @@ function TaskRowContent({
   return (
     <>
       <span className="task-row-name">{task.name}</span>
-      {task.assigneeRole ? <span className="task-row-meta">{task.assigneeRole}</span> : null}
+      {task.assignee ? (
+        <Avatar name={task.assignee} />
+      ) : task.assigneeRole ? (
+        <span className="task-row-meta">{task.assigneeRole}</span>
+      ) : null}
       <TaskRowChips task={task} uiLanguage={uiLanguage} today={today} dateFormat={dateFormat} />
     </>
   );
 }
 
-/** Shared program header — the single copy of the name/timeline/mission block. */
+/** Shared program header — the single copy of the name/timeline/mission block.
+    With a resolved parent, a "ParentName ›" breadcrumb links up the hierarchy. */
 export function ProgramCardHeader({
   program,
   headingLevel: Heading = "h3",
+  parent,
 }: {
   program: Program;
   headingLevel?: "h2" | "h3";
+  parent?: { id: string; name: string } | null;
 }) {
   return (
     <header className="program-head">
+      {parent ? (
+        <p className="program-parent-crumb">
+          <Link href={`/programs/${parent.id}`} dir="auto">
+            {parent.name}
+          </Link>
+          <Icon icon={ChevronRight} size={12} directional />
+        </p>
+      ) : null}
       <Heading className="program-title">{program.name}</Heading>
       <p className="program-meta">
         {program.timeline.start} → {program.timeline.end}
@@ -132,12 +152,15 @@ export function ProgramView({
   program,
   uiLanguage,
   detail = false,
+  parent,
   onTaskSelect,
   onProgramUpdate,
 }: {
   program: Program;
   uiLanguage: UiLanguage;
   detail?: boolean;
+  /** Resolved parent program (detail mode) — renders the header breadcrumb. */
+  parent?: { id: string; name: string } | null;
   /** When provided, task rows become buttons that open the task panel. */
   onTaskSelect?: (taskId: string) => void;
   /** When provided, each package gains a quick-add row. */
@@ -163,7 +186,7 @@ export function ProgramView({
 
   return (
     <article className="program-detail" dir={program.language === "ar" ? "rtl" : "ltr"}>
-      <ProgramCardHeader program={program} headingLevel="h2" />
+      <ProgramCardHeader program={program} headingLevel="h2" parent={parent} />
 
       <div className="task-groups">
         {program.packages.map((pkg) => (

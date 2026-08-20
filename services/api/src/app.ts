@@ -5,6 +5,7 @@ import { LanguageSchema, TaskSchema, verifyChain } from "@xcollab/core";
 import type { AiGateway } from "@xcollab/ai-gateway";
 import { createAuthMiddleware, type AuthEnv } from "./auth.ts";
 import type { LedgerActor, TaskFieldChanges, WorkGraphRepository } from "./repository.ts";
+import { registerTeamRoutes } from "./routes-teams.ts";
 
 const CreateProgramRequestSchema = z.object({
   workspaceId: z.string().min(1),
@@ -12,6 +13,7 @@ const CreateProgramRequestSchema = z.object({
   language: LanguageSchema,
   timeline: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
   teamHints: z.array(z.string().min(1)).max(20).optional(),
+  parentId: z.string().min(1).optional(),
 });
 
 const UPDATABLE_TASK_KEYS = [
@@ -19,6 +21,7 @@ const UPDATABLE_TASK_KEYS = [
   "name",
   "estimateDays",
   "assigneeRole",
+  "assignee",
   "startDate",
   "dueDate",
   "description",
@@ -32,6 +35,7 @@ const UpdateTaskRequestSchema = z
     name: TaskSchema.shape.name.optional(),
     estimateDays: TaskSchema.shape.estimateDays.optional(),
     assigneeRole: TaskSchema.shape.assigneeRole.nullable(),
+    assignee: TaskSchema.shape.assignee.nullable(),
     startDate: TaskSchema.shape.startDate.nullable(),
     dueDate: TaskSchema.shape.dueDate.nullable(),
     description: TaskSchema.shape.description.nullable(),
@@ -70,8 +74,14 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<A
     if (!parsed.success) {
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
     }
-    const { workspaceId, ...brief } = parsed.data;
+    const { workspaceId, parentId, ...brief } = parsed.data;
+    if (parentId !== undefined && !(await repo.getProgram(workspaceId, parentId))) {
+      return c.json({ error: "unknown_parent" }, 422);
+    }
     const generation = await gateway.generateProgram(brief);
+    if (parentId !== undefined) {
+      generation.program = { ...generation.program, parentId };
+    }
     const { program, ledgerSeq } = await repo.createProgram(workspaceId, generation, {
       kind: "ai",
       id: generation.interaction.adapterId,
@@ -145,6 +155,8 @@ export function createApp(repo: WorkGraphRepository, gateway: AiGateway): Hono<A
     }
     return c.json({ error: "not found" }, 404);
   });
+
+  registerTeamRoutes(app, repo);
 
   app.get("/api/ledger", async (c) => {
     const workspaceId = c.req.query("workspaceId");

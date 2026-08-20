@@ -180,11 +180,7 @@
 }
 .board-card-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-block-start: var(--space-1); }
 .board-card-id { font-size: var(--text-sm); color: var(--text-low); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.board-card-avatar {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
-  border-radius: var(--radius-full); background: var(--avatar-bg); color: var(--avatar-fg);
-  font-size: 9px; font-weight: var(--weight-semibold); letter-spacing: 0.02em;
-}
+/* Card avatar now comes from the shared .ui-avatar primitive (pages.css). */
 
 /* ---- Empty states: filtered-empty offers a clear-filters action ---- */
 .board-col-empty {

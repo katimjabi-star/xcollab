@@ -20,7 +20,10 @@ import {
   type TaskFieldChanges,
 } from "./repository-tasks.ts";
 
+import { TeamsRepository } from "./repository-teams.ts";
+
 export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
+export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
 
 export interface LedgerActor {
   kind: "human" | "ai" | "service";
@@ -69,8 +72,14 @@ function rowToEntry(row: LedgerRow): LedgerEntry {
 export class WorkGraphRepository {
   private readonly pool: Pool;
 
+  /** Team CRUD shares the same chain-append logic and transaction invariants. */
+  readonly teams: TeamsRepository;
+
   constructor(pool: Pool) {
     this.pool = pool;
+    this.teams = new TeamsRepository(pool, (client, workspaceId, input) =>
+      this.appendWithClient(client, workspaceId, input),
+    );
   }
 
   /**

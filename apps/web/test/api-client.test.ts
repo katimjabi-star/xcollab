@@ -6,6 +6,7 @@ import {
   deleteTask,
   getLedger,
   listPrograms,
+  listUsers,
   setAuthTokenProvider,
   updateTask,
   updateTaskStatus,
@@ -43,6 +44,51 @@ describe("api client", () => {
     expect(url).toBe(`${BASE}/api/programs`);
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body as string).mission).toBe("Test mission");
+  });
+
+  it("POSTs the optional parentId when creating a sub-program", async () => {
+    const fn = mockFetch(201, { program: { id: "prog-2" }, ledgerSeq: 2, generatedBy: "m" });
+    await createProgram(BASE, {
+      workspaceId: "hq",
+      mission: "Child mission",
+      language: "en",
+      parentId: "prog-1",
+    });
+    const [, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).parentId).toBe("prog-1");
+  });
+
+  it("omits parentId from the POST body when not provided", async () => {
+    const fn = mockFetch(201, { program: { id: "prog-3" }, ledgerSeq: 3, generatedBy: "m" });
+    await createProgram(BASE, { workspaceId: "hq", mission: "Root mission", language: "en" });
+    const [, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).not.toHaveProperty("parentId");
+  });
+
+  it("throws ApiError 422 when parentId is unknown", async () => {
+    mockFetch(422, { error: "unknown_parent" });
+    await expect(
+      createProgram(BASE, { workspaceId: "hq", mission: "m", language: "en", parentId: "nope" }),
+    ).rejects.toMatchObject({ name: "ApiError", status: 422 });
+  });
+
+  it("lists workspace users from GET /api/users", async () => {
+    const fn = mockFetch(200, {
+      users: [{ username: "jdoe", firstName: "Jane", lastName: "Doe", email: "j@x.io" }],
+    });
+    const users = await listUsers(BASE, { workspaceId: "hq" });
+    expect(users).toEqual([
+      { username: "jdoe", firstName: "Jane", lastName: "Doe", email: "j@x.io" },
+    ]);
+    expect(fn.mock.calls[0]?.[0]).toBe(`${BASE}/api/users?workspaceId=hq`);
+  });
+
+  it("throws ApiError carrying the status when listUsers fails", async () => {
+    mockFetch(401, { error: "unauthorized" });
+    await expect(listUsers(BASE, { workspaceId: "hq" })).rejects.toMatchObject({
+      name: "ApiError",
+      status: 401,
+    });
   });
 
   it("throws ApiError with the status on a non-2xx response", async () => {
@@ -111,6 +157,34 @@ describe("api client", () => {
       name: "Renamed",
       estimateDays: 2.5,
       dueDate: null,
+    });
+  });
+
+  it("PATCHes assignee as a username via updateTask", async () => {
+    const fn = mockFetch(200, { program: { id: "prog-1" }, ledgerSeq: 11 });
+    await updateTask(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      taskId: "task-9",
+      patch: { assignee: "jdoe" },
+    });
+    expect(JSON.parse((fn.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({
+      workspaceId: "hq",
+      assignee: "jdoe",
+    });
+  });
+
+  it("PATCHes assignee: null to unassign, like other optional fields", async () => {
+    const fn = mockFetch(200, { program: { id: "prog-1" }, ledgerSeq: 12 });
+    await updateTask(BASE, {
+      workspaceId: "hq",
+      programId: "prog-1",
+      taskId: "task-9",
+      patch: { assignee: null },
+    });
+    expect(JSON.parse((fn.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({
+      workspaceId: "hq",
+      assignee: null,
     });
   });
 
