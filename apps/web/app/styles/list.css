@@ -47,7 +47,29 @@
 }
 .mt-create-submit:hover { background: var(--button-primary-hover); }
 .mt-create-submit:disabled { opacity: 0.5; cursor: default; }
+.mt-create-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .mt-menu-item { display: block; inline-size: 100%; text-align: start; }
+
+/* Inline composer — replaces the clicked ghost row (list) / add button (board)
+   so the form appears exactly where the add started. */
+.mt-create-inline {
+  inline-size: 100%;
+  max-inline-size: 480px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+}
+.mt-create-inline .mt-create-field { flex: 1 1 130px; min-inline-size: 0; }
+.mt-create-inline .mt-create-actions { flex: 0 0 auto; }
+.tt-compose-row { padding: var(--space-1) var(--space-3); }
+.mt-compose-card .mt-create-inline { flex-direction: column; align-items: stretch; max-inline-size: none; flex-wrap: nowrap; }
+/* In column direction the row-variant flex-basis would become height — pin it. */
+.mt-compose-card .mt-create-field { flex: 0 0 auto; }
+.mt-compose-card { flex: 0 0 auto; }
 
 /* ---- Spreadsheet list ---- */
 .task-table { display: flex; flex-direction: column; font-size: var(--text-md); }

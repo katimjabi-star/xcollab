@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent, ReactElement } from "react";
+import type { KeyboardEvent, ReactElement, ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import type { MyTask } from "../lib/api-my-tasks.ts";
@@ -24,6 +24,10 @@ interface MyTasksBoardProps {
   uiLanguage: UiLanguage;
   onOpenTask: (task: MyTask) => void;
   onAddTask: (bucketId: BucketId) => void;
+  /** Bucket currently composing — its "+ Add task" footer becomes the inline
+      composer card so the form opens in the clicked column. */
+  composingBucketId?: BucketId | null;
+  renderComposer?: (bucketId: BucketId) => ReactNode;
 }
 
 /** Board view of the derived buckets: one column per bucket with a count
@@ -34,6 +38,8 @@ export function MyTasksBoard({
   uiLanguage,
   onOpenTask,
   onAddTask,
+  composingBucketId = null,
+  renderComposer,
 }: MyTasksBoardProps): ReactElement {
   const t = STRINGS[uiLanguage];
   const today = localTodayIso();
@@ -91,13 +97,17 @@ export function MyTasksBoard({
                   </article>
                 );
               })}
-              <button
-                type="button"
-                className="quick-add-btn"
-                onClick={() => onAddTask(bucket.id)}
-              >
-                + {t.addTask}
-              </button>
+              {composingBucketId === bucket.id && renderComposer ? (
+                <div className="mt-compose-card">{renderComposer(bucket.id)}</div>
+              ) : (
+                <button
+                  type="button"
+                  className="quick-add-btn"
+                  onClick={() => onAddTask(bucket.id)}
+                >
+                  + {t.addTask}
+                </button>
+              )}
             </div>
           </section>
         ))}

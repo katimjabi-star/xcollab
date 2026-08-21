@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { API_BASE, WORKSPACE, updateTask } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
@@ -30,6 +30,10 @@ interface TaskTableProps {
   uiLanguage: UiLanguage;
   onOpenTask: (row: TaskRow) => void;
   onAddTask?: (groupId: string) => void;
+  /** Group currently composing a new task — its ghost row becomes the inline
+      composer rendered by renderComposer, so the form opens where clicked. */
+  composingGroupId?: string | null;
+  renderComposer?: (groupId: string) => ReactNode;
   /** Bottom "+ Add section" ghost — omit where sections are derived (My Tasks). */
   onAddSection?: () => void;
 }
@@ -56,6 +60,8 @@ export function TaskTable({
   uiLanguage,
   onOpenTask,
   onAddTask,
+  composingGroupId = null,
+  renderComposer,
   onAddSection,
 }: TaskTableProps): ReactElement {
   const t = STRINGS[uiLanguage];
@@ -166,7 +172,9 @@ export function TaskTable({
                     </div>
                   );
                 })}
-            {!isCollapsed && onAddTask ? (
+            {!isCollapsed && composingGroupId === group.id && renderComposer ? (
+              <div className="tt-compose-row">{renderComposer(group.id)}</div>
+            ) : !isCollapsed && onAddTask ? (
               <button type="button" className="tt-ghost-row" onClick={() => onAddTask(group.id)}>
                 {t.myTasksGhostAddTask}
               </button>

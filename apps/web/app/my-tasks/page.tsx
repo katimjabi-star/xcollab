@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, WORKSPACE, ApiError, listPrograms } from "../../lib/api-client.ts";
 import {
@@ -22,6 +22,7 @@ import {
 import { programColor } from "../../lib/program-format.ts";
 import { TaskTable, type TaskRow } from "../../components/task-table.tsx";
 import { MyTasksBoard } from "../../components/my-tasks-board.tsx";
+import { AddTaskForm } from "../../components/my-tasks-add-form.tsx";
 import { MyTasksToolbar, type MyTasksSort } from "../../components/my-tasks-toolbar.tsx";
 import { CalendarView, type CalendarItem } from "../../components/calendar-view.tsx";
 import { FilesView } from "../../components/files-view.tsx";
@@ -66,6 +67,8 @@ function MyTasksBody({
   emptyLabel,
   onOpenTask,
   onStartAdd,
+  composingBucket,
+  renderComposer,
 }: {
   view: ViewId;
   sorted: MyTask[];
@@ -76,6 +79,8 @@ function MyTasksBody({
   emptyLabel: string;
   onOpenTask: (task: { programId: string; id: string }) => void;
   onStartAdd: (bucket: BucketId) => void;
+  composingBucket: BucketId | null;
+  renderComposer: (bucket: BucketId) => ReactNode;
 }) {
   if (view === "list") {
     return (
@@ -89,6 +94,8 @@ function MyTasksBody({
         uiLanguage={language}
         onOpenTask={onOpenTask}
         onAddTask={(groupId) => onStartAdd(groupId as BucketId)}
+        composingGroupId={composingBucket}
+        renderComposer={(groupId) => renderComposer(groupId as BucketId)}
       />
     );
   }
@@ -99,6 +106,8 @@ function MyTasksBody({
         uiLanguage={language}
         onOpenTask={onOpenTask}
         onAddTask={onStartAdd}
+        composingBucketId={composingBucket}
+        renderComposer={renderComposer}
       />
     );
   }
@@ -137,7 +146,6 @@ export default function MyTasksPage() {
   const [filterProgramId, setFilterProgramId] = useState<string | null>(null);
   const [sort, setSort] = useState<MyTasksSort>("default");
   const [createOpen, setCreateOpen] = useState(false);
-  const [presetDueDate, setPresetDueDate] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetchMyTasks(API_BASE, WORKSPACE)
@@ -190,10 +198,25 @@ export default function MyTasksPage() {
   const openTask = (task: { programId: string; id: string }) => {
     router.push(`/projects/${task.programId}?view=board&task=${task.id}`);
   };
+  // Bucket adds compose INLINE at the clicked row/column (the toolbar popover
+  // stays reserved for the toolbar's own "+ Add task" button).
+  const [composingBucket, setComposingBucket] = useState<BucketId | null>(null);
   const startAdd = (bucket: BucketId) => {
-    setPresetDueDate(presetFor(bucket, today));
-    setCreateOpen(true);
+    setCreateOpen(false);
+    setComposingBucket(bucket);
   };
+  const renderComposer = (bucket: BucketId): ReactNode => (
+    <AddTaskForm
+      programs={programs ?? []}
+      uiLanguage={language}
+      username={user?.username ?? ""}
+      presetDueDate={presetFor(bucket, today)}
+      defaultProgramId={filterProgramId}
+      onCreated={load}
+      onClose={() => setComposingBucket(null)}
+      compact
+    />
+  );
 
   const viewLabels: Record<ViewId, string> = {
     list: t.viewList,
@@ -243,9 +266,9 @@ export default function MyTasksPage() {
         createOpen={createOpen}
         onCreateOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) setPresetDueDate(null);
+          if (open) setComposingBucket(null);
         }}
-        presetDueDate={presetDueDate}
+        presetDueDate={null}
         onCreated={load}
       />
 
@@ -266,6 +289,8 @@ export default function MyTasksPage() {
         emptyLabel={t.myTasksEmpty}
         onOpenTask={openTask}
         onStartAdd={startAdd}
+        composingBucket={composingBucket}
+        renderComposer={renderComposer}
       />
     </div>
   );
