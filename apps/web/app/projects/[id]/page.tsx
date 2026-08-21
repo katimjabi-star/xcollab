@@ -13,14 +13,39 @@ import { ProgramView } from "../../../components/program-view.tsx";
 import { Board } from "../../../components/board.tsx";
 import { TimelineView } from "../../../components/timeline-view.tsx";
 import { InsightsView } from "../../../components/insights-view.tsx";
+import { CalendarView, type CalendarItem } from "../../../components/calendar-view.tsx";
+import { FilesView } from "../../../components/files-view.tsx";
 import { TaskPanel } from "../../../components/task-panel.tsx";
 import { locateTask } from "../../../components/task-panel-content.tsx";
-import { formatIsoDate, programDisplayName } from "../../../lib/program-format.ts";
+import { formatIsoDate, programColor, programDisplayName } from "../../../lib/program-format.ts";
 import { Icon } from "../../../components/ui/icon.tsx";
 
-/** Views that persist in ?view=; "list" is the default and keeps a clean URL. */
-const URL_VIEWS = ["board", "timeline", "insights"] as const;
+/** Views that persist in ?view=; "list" is the default and keeps a clean URL.
+    Tab order matches the target IA: List · Board · Timeline · Dashboard ·
+    Calendar · Files. */
+const URL_VIEWS = ["board", "timeline", "dashboard", "calendar", "files"] as const;
 type ViewId = "list" | (typeof URL_VIEWS)[number];
+
+/** Old deep links used ?view=insights; it stays an alias of dashboard. */
+function normalizeViewParam(raw: string | null): string | null {
+  return raw === "insights" ? "dashboard" : raw;
+}
+
+/** Program tasks → calendar bars; one stable accent per program. */
+function toCalendarItems(program: Program): CalendarItem[] {
+  const color = programColor(program.id);
+  return program.packages.flatMap((pkg) =>
+    pkg.tasks.map((task) => ({
+      id: task.id,
+      name: task.name,
+      startDate: task.startDate,
+      dueDate: task.dueDate,
+      color,
+      programId: program.id,
+      done: task.status === "done",
+    })),
+  );
+}
 
 function taskExists(program: Program | null, taskId: string | null): boolean {
   if (!program || !taskId) return false;
@@ -77,7 +102,9 @@ function ProgramTopline({
     list: t.viewList,
     board: t.viewBoard,
     timeline: t.viewTimeline,
-    insights: t.viewInsights,
+    dashboard: t.viewInsights,
+    calendar: t.viewCalendar,
+    files: t.viewFiles,
   };
   const compact = view !== "list";
   return (
@@ -114,6 +141,58 @@ function ProgramTopline({
   );
 }
 
+/** Body for the active tab — branch chain lives here to keep the page's own
+    cyclomatic complexity within the lint budget. */
+function SelectedView({
+  view,
+  program,
+  parent,
+  language,
+  onTaskSelect,
+  onProgramUpdate,
+}: {
+  view: ViewId;
+  program: Program;
+  parent: Program | null;
+  language: "en" | "ar";
+  onTaskSelect: (taskId: string) => void;
+  onProgramUpdate: (program: Program) => void;
+}) {
+  return view === "list" ? (
+    <ProgramView
+      program={program}
+      uiLanguage={language}
+      detail
+      parent={parent}
+      onTaskSelect={onTaskSelect}
+      onProgramUpdate={onProgramUpdate}
+    />
+  ) : view === "board" ? (
+    /* Board reads filter/sort from useSearchParams — Suspense keeps
+       the prerender contract (see next/docs use-search-params). */
+    <Suspense fallback={null}>
+      <Board
+        program={program}
+        uiLanguage={language}
+        onProgramUpdate={onProgramUpdate}
+        onTaskSelect={onTaskSelect}
+      />
+    </Suspense>
+  ) : view === "timeline" ? (
+    <TimelineView program={program} uiLanguage={language} onTaskSelect={onTaskSelect} />
+  ) : view === "dashboard" ? (
+    <InsightsView program={program} uiLanguage={language} onTaskSelect={onTaskSelect} />
+  ) : view === "calendar" ? (
+    <CalendarView
+      items={toCalendarItems(program)}
+      uiLanguage={language}
+      onOpenItem={(item) => onTaskSelect(item.id)}
+    />
+  ) : (
+    <FilesView programId={program.id} uiLanguage={language} />
+  );
+}
+
 export default function ProgramDetailPage() {
   const { t, language, dir } = useUi();
   const { id } = useParams<{ id: string }>();
@@ -128,7 +207,7 @@ export default function ProgramDetailPage() {
   // mismatch; useSearchParams here would force Suspense around the whole page.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const match = URL_VIEWS.find((v) => v === params.get("view"));
+    const match = URL_VIEWS.find((v) => v === normalizeViewParam(params.get("view")));
     if (match) setViewState(match);
     const task = params.get("task");
     if (task) setSelectedTaskId(task);
@@ -187,31 +266,14 @@ export default function ProgramDetailPage() {
         {program ? (
           <>
             <ProgramTopline program={program} parent={parent} view={view} onViewChange={setView} />
-            {view === "list" ? (
-              <ProgramView
-                program={program}
-                uiLanguage={language}
-                detail
-                parent={parent}
-                onTaskSelect={selectTask}
-                onProgramUpdate={setPatched}
-              />
-            ) : view === "board" ? (
-              /* Board reads filter/sort from useSearchParams — Suspense keeps
-                 the prerender contract (see next/docs use-search-params). */
-              <Suspense fallback={null}>
-                <Board
-                  program={program}
-                  uiLanguage={language}
-                  onProgramUpdate={setPatched}
-                  onTaskSelect={selectTask}
-                />
-              </Suspense>
-            ) : view === "timeline" ? (
-              <TimelineView program={program} uiLanguage={language} onTaskSelect={selectTask} />
-            ) : (
-              <InsightsView program={program} uiLanguage={language} onTaskSelect={selectTask} />
-            )}
+            <SelectedView
+              view={view}
+              program={program}
+              parent={parent}
+              language={language}
+              onTaskSelect={selectTask}
+              onProgramUpdate={setPatched}
+            />
           </>
         ) : null}
       </div>

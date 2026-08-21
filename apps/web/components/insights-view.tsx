@@ -1,20 +1,33 @@
 "use client";
 
-import { Diamond } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState, type ReactNode } from "react";
+import { Check, ListFilter, Plus } from "lucide-react";
 import type { Program, Task } from "@xcollab/core";
-import type { Severity } from "../lib/program-insights.ts";
-import { computeInsights } from "../lib/program-insights.ts";
+import { getLedger, listPrograms } from "../lib/api-client.ts";
+import type { BarDatum } from "../lib/program-insights.ts";
+import {
+  completionSeries,
+  dashboardStats,
+  donutSegments,
+  sectionCounts,
+} from "../lib/program-insights.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
-import { fullName, useWorkspaceUsers } from "./assignee-picker.tsx";
-import { Avatar } from "./ui/avatar.tsx";
-import { Chip } from "./ui/chip.tsx";
+import { programDisplayName } from "../lib/program-format.ts";
+import { useWorkspaceData } from "../lib/use-workspace-data.ts";
+import { AreaChart, BarChart, DonutChart, DONUT_COLORS } from "./insights-charts.tsx";
 import { Icon } from "./ui/icon.tsx";
+import { Popover } from "./ui/popover.tsx";
 
 type Strings = (typeof STRINGS)["en"];
 
-const STATUS_ORDER: Task["status"][] = ["todo", "in_progress", "blocked", "done"];
-const SEVERITY_ORDER: Severity[] = ["critical", "high", "medium", "low"];
+const WIDGET_IDS = ["bySection", "byStatus", "byProject", "overTime"] as const;
+type WidgetId = (typeof WIDGET_IDS)[number];
+type WidgetPrefs = Record<WidgetId, boolean>;
+
+const WIDGETS_KEY = "xcollab.dashboard.widgets.v1";
+const ALL_VISIBLE: WidgetPrefs = { bySection: true, byStatus: true, byProject: true, overTime: true };
 
 function localTodayIso(): string {
   const now = new Date();
@@ -23,187 +36,227 @@ function localTodayIso(): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function statusLabels(t: Strings): Record<Task["status"], string> {
-  return {
-    todo: t.statusTodo,
-    in_progress: t.statusInProgress,
-    blocked: t.statusBlocked,
-    done: t.statusDone,
-  };
+function readWidgetPrefs(): WidgetPrefs {
+  try {
+    const raw = localStorage.getItem(WIDGETS_KEY);
+    if (!raw) return ALL_VISIBLE;
+    const parsed = JSON.parse(raw) as Partial<Record<WidgetId, boolean>>;
+    return { ...ALL_VISIBLE, ...parsed };
+  } catch {
+    return ALL_VISIBLE;
+  }
 }
 
-function severityLabels(t: Strings): Record<Severity, string> {
-  return {
-    low: t.severityLow,
-    medium: t.severityMedium,
-    high: t.severityHigh,
-    critical: t.severityCritical,
-  };
-}
+const DONUT_LEGEND: { status: Task["status"]; key: keyof Strings }[] = [
+  { status: "done", key: "statusDone" },
+  { status: "in_progress", key: "statusInProgress" },
+  { status: "todo", key: "statusTodo" },
+  { status: "blocked", key: "statusBlocked" },
+];
 
-/** Metric-card anatomy (brief §metric-cards): muted label row above a large
-    tabular-nums value. */
-function MetricTile({ value, label, alert = false }: { value: string; label: string; alert?: boolean }) {
+/** Decorative filter chip in a card footer (reference anatomy). */
+function FilterChip({ label }: { label: string }) {
   return (
-    <div className={alert ? "in-tile in-tile-alert" : "in-tile"}>
-      <span className="in-tile-label">{label}</span>
-      <span className="in-tile-value num">{value}</span>
+    <span className="dash-filter-chip">
+      <Icon icon={ListFilter} size={12} />
+      {label}
+    </span>
+  );
+}
+
+function StatCard({ label, value, chip }: { label: string; value: number; chip: string }) {
+  return (
+    <div className="dash-card dash-stat">
+      <h3 className="dash-card-title">{label}</h3>
+      <span className="dash-stat-value dash-num">{value}</span>
+      <div className="dash-card-footer dash-stat-footer">
+        <FilterChip label={chip} />
+      </div>
     </div>
   );
 }
 
-/** CSS-only program analytics: metric tiles, per-package progress bars, a
-    stacked status bar, team load, overdue tasks, milestones and risks. */
+function ChartCard({
+  title,
+  chip,
+  seeAll,
+  children,
+}: {
+  title: string;
+  chip: string;
+  /** Optional deep link rendered as a ghost "See all" footer button. */
+  seeAll?: { href: string; label: string };
+  children: ReactNode;
+}) {
+  return (
+    <section className="dash-card">
+      <h3 className="dash-card-title">{title}</h3>
+      <div className="dash-card-body" dir="ltr">
+        {children}
+      </div>
+      <div className="dash-card-footer">
+        <FilterChip label={chip} />
+        {seeAll ? (
+          <Link className="dash-see-all" href={seeAll.href}>
+            {seeAll.label}
+          </Link>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/** Widget dashboard: stat-card row + 2×2 inline-SVG chart grid, widget
+    visibility toggled from the "+ Add widget" popover (localStorage). */
 export function InsightsView({
   program,
   uiLanguage,
-  onTaskSelect,
 }: {
   program: Program;
   uiLanguage: UiLanguage;
-  /** When provided, overdue task rows open the task panel. */
+  /** Kept for page compatibility; the widget dashboard opens no task panel. */
   onTaskSelect?: (taskId: string) => void;
 }) {
   const t = STRINGS[uiLanguage];
-  const ins = computeInsights(program, localTodayIso());
-  const users = useWorkspaceUsers();
-  const namesByUsername = new Map(users.map((user) => [user.username, fullName(user)]));
-  const dateFormat = new Intl.DateTimeFormat(uiLanguage === "ar" ? "ar" : "en", {
-    month: "short",
-    day: "numeric",
-  });
-  const totalTasks = STATUS_ORDER.reduce((sum, s) => sum + ins.statusCounts[s], 0);
-  const openTasks = totalTasks - ins.statusCounts.done;
-  const maxLoad = Math.max(1, ...ins.assigneeLoad.map((row) => row.open + row.done));
-  const sLabels = statusLabels(t);
+  const today = localTodayIso();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [prefs, setPrefs] = useState<WidgetPrefs>(ALL_VISIBLE);
+  // Prefs load post-mount (localStorage is client-only; avoids hydration mismatch).
+  useEffect(() => setPrefs(readWidgetPrefs()), []);
+  const toggleWidget = (id: WidgetId) => {
+    setPrefs((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(WIDGETS_KEY, JSON.stringify(next));
+      } catch {
+        /* Private-mode storage failures only lose persistence, not the toggle. */
+      }
+      return next;
+    });
+  };
+
+  const { data: allPrograms } = useWorkspaceData(listPrograms);
+  const { data: ledger } = useWorkspaceData(getLedger);
+
+  const stats = dashboardStats(program, today);
+  const donut = donutSegments(
+    (() => {
+      const counts: Record<Task["status"], number> = { todo: 0, in_progress: 0, blocked: 0, done: 0 };
+      for (const pkg of program.packages) for (const task of pkg.tasks) counts[task.status] += 1;
+      return counts;
+    })(),
+  );
+  const sections = sectionCounts(program);
+  const children = (allPrograms ?? []).filter((p) => p.parentId === program.id);
+  const byProject: BarDatum[] = children.map((child) => ({
+    id: child.id,
+    name: programDisplayName(child),
+    count: child.packages.reduce((sum, pkg) => sum + pkg.tasks.length, 0),
+  }));
+  const series = completionSeries(ledger?.entries ?? [], program.id, today, 11);
+  // No sub-projects → the card falls back to incomplete-by-section rather than
+  // duplicating the total-by-section widget next to it.
+  const incompleteSections: BarDatum[] = program.packages.map((pkg) => ({
+    id: pkg.id,
+    name: pkg.name,
+    count: pkg.tasks.filter((task) => task.status !== "done").length,
+  }));
+
+  const widgetLabels: Record<WidgetId, string> = {
+    bySection: t.dashBySection,
+    byStatus: t.dashByStatus,
+    byProject: byProject.length > 0 ? t.dashByProject : t.dashIncompleteBySection,
+    overTime: t.dashOverTime,
+  };
 
   return (
-    <div className="in-region" dir={program.language === "ar" ? "rtl" : "ltr"}>
-      <div className="in-tiles">
-        <MetricTile value={`${ins.completionPct}%`} label={t.insightCompletion} />
-        <MetricTile value={String(openTasks)} label={t.insightOpenTasks} />
-        <MetricTile
-          value={String(ins.overdueTasks.length)}
-          label={t.overdueLabel}
-          alert={ins.overdueTasks.length > 0}
-        />
-        <MetricTile value={String(ins.dueThisWeek.length)} label={t.insightDueThisWeek} />
+    <div className="dash-region" dir={uiLanguage === "ar" ? "rtl" : "ltr"}>
+      <div className="dash-toolbar">
+        <Popover
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          align="start"
+          role="menu"
+          anchor={
+            <button
+              type="button"
+              className="dash-ghost-btn"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <Icon icon={Plus} size={14} />
+              {t.dashAddWidget}
+            </button>
+          }
+        >
+          <div className="dash-widget-menu">
+            <span className="dash-widget-menu-label">{t.dashWidgetsMenuLabel}</span>
+            {WIDGET_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={prefs[id]}
+                className="dash-widget-item"
+                onClick={() => toggleWidget(id)}
+              >
+                <span className="dash-widget-check">
+                  {prefs[id] ? <Icon icon={Check} size={14} /> : null}
+                </span>
+                {widgetLabels[id]}
+              </button>
+            ))}
+          </div>
+        </Popover>
       </div>
 
-      <div className="in-grid">
-        <section className="in-section">
-          <h3 className="in-subhead">{t.insightsPackageProgress}</h3>
-          {ins.perPackage.map((pkg) => (
-            <div key={pkg.id} className="in-progress-row">
-              <span className="in-progress-label">
-                <span className="in-progress-name">{pkg.name}</span>
-                <span className="in-progress-pct num">{pkg.pct}%</span>
-              </span>
-              <span className="in-track" role="presentation">
-                <span className="in-fill" style={{ inlineSize: `${pkg.pct}%` }} />
-              </span>
+      <div className="dash-stats">
+        <StatCard label={t.dashTotalCompleted} value={stats.completed} chip={t.dashFilterOne} />
+        <StatCard label={t.dashTotalIncomplete} value={stats.incomplete} chip={t.dashFilterOne} />
+        <StatCard label={t.dashTotalOverdue} value={stats.overdue} chip={t.dashFilterOne} />
+        <StatCard label={t.dashTotalTasks} value={stats.total} chip={t.dashFilterNone} />
+      </div>
+
+      <div className="dash-grid">
+        {prefs.bySection ? (
+          <ChartCard
+            title={t.dashBySection}
+            chip={t.dashFilterOne}
+            seeAll={{ href: `/projects/${program.id}?view=board`, label: t.dashSeeAll }}
+          >
+            <BarChart data={sections} yTitle={t.dashAxisTasks} />
+          </ChartCard>
+        ) : null}
+        {prefs.byStatus ? (
+          <ChartCard title={t.dashByStatus} chip={t.dashFilterTwo}>
+            <div className="dash-donut-row">
+              <DonutChart donut={donut} title={t.dashByStatus} />
+              <ul className="dash-legend" dir={uiLanguage === "ar" ? "rtl" : "ltr"}>
+                {DONUT_LEGEND.map(({ status, key }) => (
+                  <li key={status}>
+                    <span className="dash-legend-swatch" style={{ background: DONUT_COLORS[status] }} />
+                    {t[key]}
+                  </li>
+                ))}
+              </ul>
             </div>
-          ))}
-        </section>
-
-        <section className="in-section">
-          <h3 className="in-subhead">{t.insightsStatusBreakdown}</h3>
-          <span className="in-stack" role="presentation">
-            {STATUS_ORDER.filter((s) => ins.statusCounts[s] > 0).map((status) => (
-              <span
-                key={status}
-                className={`in-seg in-seg-${status}`}
-                style={{ inlineSize: `${(ins.statusCounts[status] / Math.max(1, totalTasks)) * 100}%` }}
-                title={`${sLabels[status]} · ${ins.statusCounts[status]}`}
-              />
-            ))}
-          </span>
-          <ul className="in-legend">
-            {STATUS_ORDER.map((status) => (
-              <li key={status}>
-                <span className={`in-dot in-seg-${status}`} />
-                {sLabels[status]} <span className="num">{ins.statusCounts[status]}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="in-section">
-          <h3 className="in-subhead">{t.insightsTeamLoad}</h3>
-          {ins.assigneeLoad.map((row) => {
-            const name = row.assignee
-              ? (namesByUsername.get(row.assignee) ?? row.assignee)
-              : t.noAssignee;
-            return (
-              <div key={row.assignee ?? "__none"} className="in-load-row">
-                <Avatar name={name} className={row.assignee ? undefined : "in-avatar-none"} />
-                <span className="in-load-name">{name}</span>
-                <span className="in-load-bar" role="presentation">
-                  <span className="in-load-done" style={{ inlineSize: `${(row.done / maxLoad) * 100}%` }} />
-                  <span className="in-load-open" style={{ inlineSize: `${(row.open / maxLoad) * 100}%` }} />
-                </span>
-                <span className="in-load-counts num" title={`${sLabels.done} ${row.done}`}>
-                  {row.open} / {row.done}
-                </span>
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="in-section">
-          <h3 className="in-subhead">{t.overdueLabel}</h3>
-          {ins.overdueTasks.length === 0 ? (
-            <p className="in-empty">{t.insightsNoOverdue}</p>
-          ) : (
-            ins.overdueTasks.slice(0, 5).map((task) => (
-              <button
-                key={task.id}
-                type="button"
-                className="in-task-row"
-                onClick={() => onTaskSelect?.(task.id)}
-              >
-                <span className="in-task-name">{task.name}</span>
-                {task.dueDate ? (
-                  <Chip variant="dueDate" overdue title={`${t.overdueLabel} · ${task.dueDate}`}>
-                    {dateFormat.format(new Date(`${task.dueDate}T00:00:00`))}
-                  </Chip>
-                ) : null}
-              </button>
-            ))
-          )}
-        </section>
-
-        <section className="in-section">
-          <h3 className="in-subhead">{t.milestonesHeading}</h3>
-          {ins.milestoneHealth.length === 0 ? (
-            <p className="in-empty">{t.insightsNoMilestones}</p>
-          ) : (
-            ins.milestoneHealth.map((ms) => (
-              <div key={ms.id} className={ms.state === "past" ? "in-ms-row past" : "in-ms-row"}>
-                <Icon icon={Diamond} size={12} className="in-ms-icon" />
-                <span className="in-ms-name">{ms.name}</span>
-                <span className="in-ms-date num" title={ms.dueDate}>
-                  {dateFormat.format(new Date(`${ms.dueDate}T00:00:00`))}
-                </span>
-              </div>
-            ))
-          )}
-        </section>
-
-        <section className="in-section">
-          <h3 className="in-subhead">{t.risksHeading}</h3>
-          {program.risks.length === 0 ? (
-            <p className="in-empty">{t.insightsNoRisks}</p>
-          ) : (
-            <div className="in-risk-chips">
-              {SEVERITY_ORDER.filter((sev) => ins.riskCounts[sev] > 0).map((sev) => (
-                <span key={sev} className={`in-risk-chip in-risk-${sev}`}>
-                  {severityLabels(t)[sev]} <span className="num">{ins.riskCounts[sev]}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
+          </ChartCard>
+        ) : null}
+        {prefs.byProject ? (
+          <ChartCard
+            title={widgetLabels.byProject}
+            chip={t.dashFilterNone}
+            seeAll={{ href: "/projects", label: t.dashSeeAll }}
+          >
+            <BarChart data={byProject.length > 0 ? byProject : incompleteSections} yTitle={t.dashAxisTasks} />
+          </ChartCard>
+        ) : null}
+        {prefs.overTime ? (
+          <ChartCard title={t.dashOverTime} chip={t.dashFilterNone}>
+            <AreaChart data={series} yTitle={t.dashAxisTasks} />
+          </ChartCard>
+        ) : null}
       </div>
     </div>
   );

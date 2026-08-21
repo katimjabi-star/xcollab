@@ -137,3 +137,120 @@ export function computeInsights(program: Program, today: string): ProgramInsight
     riskCounts,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Dashboard widget calculators (2026-08 widget sprint) — pure, clock- */
+/* free: `today` is always injected as an ISO date (YYYY-MM-DD).       */
+/* ------------------------------------------------------------------ */
+
+export interface DashboardStats {
+  completed: number;
+  incomplete: number;
+  overdue: number;
+  total: number;
+}
+
+/** Stat-card counters: completed = done; incomplete = everything else;
+    overdue = open tasks dated strictly before today. */
+export function dashboardStats(program: Program, today: string): DashboardStats {
+  let completed = 0;
+  let overdue = 0;
+  let total = 0;
+  for (const pkg of program.packages) {
+    for (const task of pkg.tasks) {
+      total += 1;
+      if (task.status === "done") completed += 1;
+      else if (isOverdue(task, today)) overdue += 1;
+    }
+  }
+  return { completed, incomplete: total - completed, overdue, total };
+}
+
+export interface DonutSegment {
+  status: Task["status"];
+  count: number;
+  /** count / total, 0..1 — the arc sweep for stroke-dasharray rendering. */
+  fraction: number;
+}
+
+export interface DonutData {
+  total: number;
+  /** Fixed paint order done → in_progress → todo → blocked; zero-count
+      statuses are omitted so no zero-length arcs render. */
+  segments: DonutSegment[];
+}
+
+const DONUT_ORDER: Task["status"][] = ["done", "in_progress", "todo", "blocked"];
+
+export function donutSegments(counts: Record<Task["status"], number>): DonutData {
+  const total = DONUT_ORDER.reduce((sum, status) => sum + counts[status], 0);
+  const segments = DONUT_ORDER.filter((status) => counts[status] > 0).map((status) => ({
+    status,
+    count: counts[status],
+    fraction: counts[status] / total,
+  }));
+  return { total, segments };
+}
+
+/** Named-count bar datum ("tasks by section" / "tasks by project"). */
+export interface BarDatum {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export function sectionCounts(program: Program): BarDatum[] {
+  return program.packages.map((pkg) => ({ id: pkg.id, name: pkg.name, count: pkg.tasks.length }));
+}
+
+/** Minimal ledger-entry shape the completion series reads — matches
+    @xcollab/core LedgerEntry structurally without importing it. */
+export interface CompletionEvent {
+  action: string;
+  input: string;
+  occurredAt: string;
+}
+
+export interface DailyCount {
+  /** ISO date (YYYY-MM-DD, UTC day of occurredAt). */
+  date: string;
+  count: number;
+}
+
+/** True when the entry records a task of `programId` moving to "done" —
+    either a status-only move or a wider task.update whose changes include
+    status → done. Malformed input JSON never throws (ledger is untrusted). */
+function isCompletionEvent(entry: CompletionEvent, programId: string): boolean {
+  if (entry.action !== "task.status_update" && entry.action !== "task.update") return false;
+  try {
+    const input = JSON.parse(entry.input) as {
+      programId?: string;
+      to?: string;
+      changes?: { status?: { to?: string } };
+    };
+    if (input.programId !== programId) return false;
+    if (entry.action === "task.status_update") return input.to === "done";
+    return input.changes?.status?.to === "done";
+  } catch {
+    return false;
+  }
+}
+
+/** Daily done-transition counts for the trailing `days` window ending at
+    `today` (inclusive), zero-filled so every day charts a point. */
+export function completionSeries(
+  entries: CompletionEvent[],
+  programId: string,
+  today: string,
+  days = 11,
+): DailyCount[] {
+  const perDay = new Map<string, number>();
+  for (let i = days - 1; i >= 0; i -= 1) perDay.set(addDays(today, -i), 0);
+  for (const entry of entries) {
+    if (!isCompletionEvent(entry, programId)) continue;
+    const day = entry.occurredAt.slice(0, 10);
+    const current = perDay.get(day);
+    if (current !== undefined) perDay.set(day, current + 1);
+  }
+  return [...perDay.entries()].map(([date, count]) => ({ date, count }));
+}

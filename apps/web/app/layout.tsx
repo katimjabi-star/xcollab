@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { AppShell } from "../components/app-shell.tsx";
+import { AppFrame } from "../components/shell/app-frame.tsx";
 import { AuthGate } from "../components/auth-gate.tsx";
 import { Toasts } from "../components/toasts.tsx";
 import { AuthProvider } from "../lib/auth-context.tsx";
 import { ToastProvider } from "../lib/toast-context.tsx";
 import { UiProvider } from "../lib/ui-context.tsx";
 import "./globals.css";
+import "./styles/shell2.css";
 
 export const metadata: Metadata = {
   title: "XCollab",
@@ -36,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <AuthProvider>
             <ToastProvider>
               <AuthGate>
-                <AppShell>{children}</AppShell>
+                <AppFrame>{children}</AppFrame>
               </AuthGate>
               <Toasts />
             </ToastProvider>

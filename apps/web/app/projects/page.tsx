@@ -1,116 +1,161 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { CornerDownRight } from "lucide-react";
-import type { Program } from "@xcollab/core";
-import { ApiError, listPrograms } from "../../lib/api-client.ts";
-import { STRINGS } from "../../lib/i18n.ts";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Search } from "lucide-react";
+import type { LedgerEntry, Program } from "@xcollab/core";
+import {
+  API_BASE,
+  ApiError,
+  WORKSPACE,
+  getLedger,
+  listPrograms,
+  programTeamId,
+} from "../../lib/api-client.ts";
+import type { Team } from "../../lib/api-teams.ts";
 import { setDocumentTitle } from "../../lib/nav.ts";
+import { programDisplayName, programStatus } from "../../lib/program-format.ts";
 import { useUi } from "../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
-import { ProgramCard } from "../../components/program-view.tsx";
-import { programDisplayName } from "../../lib/program-format.ts";
+import { fullName, useWorkspaceUsers } from "../../components/assignee-picker.tsx";
+import { findTeam, useWorkspaceTeams } from "../../components/teams-data.tsx";
+import {
+  BrowseFilterChips,
+  EMPTY_BROWSE_FILTER,
+  type BrowseFilter,
+} from "../../components/browse-filters.tsx";
+import { BrowseTemplates } from "../../components/browse-templates.tsx";
+import { ProjectRow } from "../../components/project-row.tsx";
 import { Icon } from "../../components/ui/icon.tsx";
 import { Skeleton } from "../../components/ui/skeleton.tsx";
 
-type Strings = (typeof STRINGS)["en"];
-
-/** Skeletons appear only once loading has visibly taken longer than 300ms. */
-function useSkeletonGate(loaded: boolean): boolean {
-  const [pastDelay, setPastDelay] = useState(false);
-  useEffect(() => {
-    const id = setTimeout(() => setPastDelay(true), 300);
-    return () => clearTimeout(id);
-  }, []);
-  return pastDelay && !loaded;
+/** Newest ledger timestamp per program. Entry inputs are JSON written by the
+    API; task/program/attachment actions carry { programId }. program.generate
+    entries carry the raw model interaction instead (no programId), so freshly
+    generated, untouched programs legitimately stay unmapped → "—". Entries
+    arrive in seq order, so the last write per program wins. */
+function lastModifiedByProgram(entries: LedgerEntry[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const entry of entries) {
+    try {
+      const input = JSON.parse(entry.input) as { programId?: unknown };
+      if (typeof input.programId === "string") map.set(input.programId, entry.occurredAt);
+    } catch {
+      /* non-JSON input — a generation interaction, never program-scoped */
+    }
+  }
+  return map;
 }
 
-function ProgramsSkeleton({ label }: { label: string }) {
+function matchesFilter(
+  program: Program,
+  team: Team | undefined,
+  filter: BrowseFilter,
+  query: string,
+): boolean {
+  if (query && !programDisplayName(program).toLowerCase().includes(query)) return false;
+  if (filter.status !== null && programStatus(program) !== filter.status) return false;
+  const members = team?.members ?? [];
+  if (
+    filter.owner !== null &&
+    !members.some((m) => m.role === "lead" && m.username === filter.owner)
+  ) {
+    return false;
+  }
+  if (filter.member !== null && !members.some((m) => m.username === filter.member)) return false;
+  return true;
+}
+
+function BrowseSkeleton({ label }: { label: string }) {
   return (
-    <div className="programs-grid">
-      {Array.from({ length: 6 }, (_, i) => (
-        <div className="program-tile" key={i}>
-          <div className="program-tile-head">
-            <Skeleton width="70%" height="13px" label={i === 0 ? label : undefined} />
-            <Skeleton width="28px" height="20px" radius="999px" />
-          </div>
-          <Skeleton width="100%" height="12px" />
-          <Skeleton width="55%" height="12px" />
-        </div>
+    <ul className="browse-rows" aria-hidden={false}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <li className="browse-row browse-row-skeleton" key={i}>
+          <Skeleton width="28px" height="28px" radius="8px" label={i === 0 ? label : undefined} />
+          <Skeleton width="30%" height="13px" />
+          <Skeleton width="52px" height="24px" radius="999px" />
+        </li>
       ))}
-    </div>
-  );
-}
-
-/** Compact indented sub-program rows under a parent card. Recursion is safe:
-    each program has one parent, so a child link chain can never revisit a node. */
-function SubProgramRows({
-  parentId,
-  byParent,
-  depth,
-  t,
-}: {
-  parentId: string;
-  byParent: Map<string, Program[]>;
-  depth: number;
-  t: Strings;
-}) {
-  const children = byParent.get(parentId);
-  if (!children || children.length === 0) return null;
-  return (
-    <ul className="subprogram-rows" aria-label={depth === 0 ? t.subProgramsLabel : undefined}>
-      {children.map((program) => {
-        const taskCount = program.packages.reduce((n, pkg) => n + pkg.tasks.length, 0);
-        return (
-          <li key={program.id}>
-            <Link
-              className="subprogram-row"
-              href={`/projects/${program.id}`}
-              style={{ paddingInlineStart: `calc(var(--space-2) + ${depth} * var(--space-4))` }}
-            >
-              <Icon icon={CornerDownRight} size={14} directional />
-              <span className="subprogram-name" dir="auto">
-                {programDisplayName(program)}
-              </span>
-              <span className="subprogram-count num">
-                {taskCount} {t.tasksLabel}
-              </span>
-            </Link>
-            <SubProgramRows parentId={program.id} byParent={byParent} depth={depth + 1} t={t} />
-          </li>
-        );
-      })}
     </ul>
   );
 }
 
-export default function ProgramsPage() {
+export default function BrowseProjectsPage() {
   const { t, language } = useUi();
-  // Re-assert the list title: detail → list keeps the same route label, so
-  // the shell's label-keyed effect won't clear a stale program title.
   useEffect(() => {
-    setDocumentTitle([t.navPrograms]);
-  }, [t.navPrograms]);
-  const { data, error, loaded } = useWorkspaceData(listPrograms);
-  const programs = data ? [...data].reverse() : [];
-  const showSkeleton = useSkeletonGate(loaded);
+    setDocumentTitle([t.browseTitle]);
+  }, [t.browseTitle]);
 
-  // Tree shape: roots are programs without a parentId — or with a parentId
-  // that isn't in the workspace (orphans render honestly as roots).
-  const ids = new Set(programs.map((program) => program.id));
-  const roots = programs.filter((program) => !program.parentId || !ids.has(program.parentId));
-  const byParent = new Map<string, Program[]>();
-  for (const program of programs) {
-    if (program.parentId && ids.has(program.parentId)) {
-      const siblings = byParent.get(program.parentId) ?? [];
-      siblings.push(program);
-      byParent.set(program.parentId, siblings);
-    }
-  }
+  const { data, error, loaded } = useWorkspaceData(listPrograms);
+  const teams = useWorkspaceTeams();
+  const users = useWorkspaceUsers();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<BrowseFilter>(EMPTY_BROWSE_FILTER);
+  const [modified, setModified] = useState<Map<string, string>>(new Map());
+
+  // Last-modified derives from the workspace ledger (single existing fetch,
+  // same endpoint the overview uses). Fail-soft: rows show "—" without it.
+  useEffect(() => {
+    let cancelled = false;
+    getLedger(API_BASE, WORKSPACE)
+      .then((ledger) => {
+        if (!cancelled) setModified(lastModifiedByProgram(ledger.entries));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const nameOf = useMemo(() => {
+    const map = new Map(users.map((user) => [user.username, fullName(user) || user.username]));
+    return (username: string) => map.get(username) ?? username;
+  }, [users]);
+
+  const q = query.trim().toLowerCase();
+  const rows = useMemo(() => {
+    const programs = data ? [...data].reverse() : [];
+    return programs
+      .map((program) => ({
+        program,
+        team: findTeam(teams, programTeamId(program)),
+        lastModifiedIso: modified.get(program.id) ?? null,
+      }))
+      .filter((row) => matchesFilter(row.program, row.team, filter, q))
+      .sort((a, b) => {
+        // Newest ledger activity first; unmapped programs keep list order last.
+        if (a.lastModifiedIso === b.lastModifiedIso) return 0;
+        if (a.lastModifiedIso === null) return 1;
+        if (b.lastModifiedIso === null) return -1;
+        return a.lastModifiedIso < b.lastModifiedIso ? 1 : -1;
+      });
+  }, [data, teams, modified, filter, q]);
+
+  const showSkeleton = !loaded && !error;
 
   return (
-    <div className="content">
+    <div className="content browse-page">
+      <div className="browse-head">
+        <h1 className="browse-title">{t.browseTitle}</h1>
+        <Link className="browse-create-btn" href="/">
+          <Icon icon={Plus} size={14} />
+          {t.browseCreateProject}
+        </Link>
+      </div>
+
+      <label className="browse-search">
+        <Icon icon={Search} size={14} className="browse-search-icon" />
+        <input
+          type="search"
+          value={query}
+          placeholder={t.browseFindPlaceholder}
+          aria-label={t.browseFindPlaceholder}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+
+      <BrowseFilterChips t={t} users={users} filter={filter} onChange={setFilter} />
+
       {error ? (
         <p className="error-note" role="alert">
           {t.errorGeneric}
@@ -118,35 +163,33 @@ export default function ProgramsPage() {
         </p>
       ) : null}
 
-      {showSkeleton && !error ? <ProgramsSkeleton label={t.skeletonLoading} /> : null}
-
-      {loaded && !error && programs.length === 0 ? (
-        <p className="empty">{t.emptyState}</p>
-      ) : null}
-
-      {roots.length > 0 ? (
-        <div className="programs-grid">
-          {/* Sub-projects render INSIDE the parent card as an indented section
-              under a hairline (audit #10) — never as floating gutter rows.
-              Parents with children carry the card chrome on the wrapper. */}
-          {roots.map((program) => {
-            const hasChildren = byParent.has(program.id);
-            return (
-              <div
-                key={program.id}
-                className={`program-tree-item${hasChildren ? " has-children" : ""}`}
-              >
-                <Link className="card-link" href={`/projects/${program.id}`}>
-                  <ProgramCard program={program} uiLanguage={language} />
-                </Link>
-                {hasChildren ? (
-                  <SubProgramRows parentId={program.id} byParent={byParent} depth={0} t={t} />
-                ) : null}
-              </div>
-            );
-          })}
+      <div className="browse-table">
+        <div className="browse-table-head" aria-hidden>
+          <span className="browse-col-name">{t.sortName}</span>
+          <span className="browse-col-members">{t.browseMembersCol}</span>
+          <span className="browse-col-modified">↓ {t.browseLastModified}</span>
         </div>
-      ) : null}
+        {showSkeleton ? <BrowseSkeleton label={t.skeletonLoading} /> : null}
+        {loaded && !error && rows.length === 0 ? (
+          <p className="empty">{data && data.length > 0 ? t.browseNoMatches : t.emptyState}</p>
+        ) : null}
+        {rows.length > 0 ? (
+          <ul className="browse-rows">
+            {rows.map(({ program, team, lastModifiedIso }) => (
+              <ProjectRow
+                key={program.id}
+                program={program}
+                memberNames={(team?.members ?? []).map((member) => nameOf(member.username))}
+                lastModifiedIso={lastModifiedIso}
+                uiLanguage={language}
+                t={t}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <BrowseTemplates t={t} />
     </div>
   );
 }
