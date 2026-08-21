@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { ArrowUpDown, ChevronDown, ListFilter } from "lucide-react";
 import type { Program } from "@xcollab/core";
-import { API_BASE, WORKSPACE, createTask, updateTask } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { programDisplayName } from "../lib/program-format.ts";
-import { useToasts } from "../lib/toast-context.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { Popover } from "./ui/popover.tsx";
+import { AddTaskForm } from "./my-tasks-add-form.tsx";
 
 export type MyTasksSort = "default" | "dueDate" | "name";
 
@@ -21,10 +20,10 @@ interface MyTasksToolbarProps {
   onFilterProgram: (id: string | null) => void;
   sort: MyTasksSort;
   onSort: (sort: MyTasksSort) => void;
-  /** Create popover is page-controlled so bucket ghost rows can open it. */
+  /** Page-controlled so opening it can dismiss any inline bucket composer. */
   createOpen: boolean;
   onCreateOpenChange: (open: boolean) => void;
-  /** Due date preset chosen by the bucket the add started from; null = none. */
+  /** Due date preset for the toolbar add; bucket adds compose inline instead. */
   presetDueDate: string | null;
   onCreated: () => void;
 }
@@ -44,58 +43,8 @@ export function MyTasksToolbar({
   onCreated,
 }: MyTasksToolbarProps): ReactElement {
   const t = STRINGS[uiLanguage];
-  const { push } = useToasts();
-  const [programId, setProgramId] = useState<string | null>(null);
-  const [packageId, setPackageId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [pending, setPending] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-
-  // Default target: the filtered project when set, else the first project.
-  useEffect(() => {
-    if (!createOpen) return;
-    const fallback = filterProgramId ?? programs[0]?.id ?? null;
-    setProgramId((current) =>
-      current && programs.some((p) => p.id === current) ? current : fallback,
-    );
-  }, [createOpen, filterProgramId, programs]);
-
-  const program = programs.find((p) => p.id === programId) ?? null;
-  const packages = program?.packages ?? [];
-  const pkgId = packageId && packages.some((p) => p.id === packageId)
-    ? packageId
-    : (packages[0]?.id ?? null);
-
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed || !program || !pkgId || pending) return;
-    setPending(true);
-    try {
-      const created = await createTask(API_BASE, {
-        workspaceId: WORKSPACE,
-        programId: program.id,
-        packageId: pkgId,
-        name: trimmed,
-        ...(presetDueDate ? { dueDate: presetDueDate } : {}),
-      });
-      // Assign to the current user so the task shows up in My Tasks.
-      await updateTask(API_BASE, {
-        workspaceId: WORKSPACE,
-        programId: program.id,
-        taskId: created.task.id,
-        patch: { assignee: username },
-      });
-      push({ message: t.taskCreated });
-      setName("");
-      onCreateOpenChange(false);
-      onCreated();
-    } catch {
-      push({ message: t.actionFailed });
-    } finally {
-      setPending(false);
-    }
-  };
 
   return (
     <div className="mt-toolbar">
@@ -126,57 +75,17 @@ export function MyTasksToolbar({
           </span>
         }
       >
-        <form
-          className="mt-create"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit();
-          }}
-        >
-          <p className="mt-create-heading">{t.myTasksPickTarget}</p>
-          <label className="mt-create-field">
-            <span>{t.myTasksProjectLabel}</span>
-            <select
-              value={programId ?? ""}
-              onChange={(event) => {
-                setProgramId(event.target.value || null);
-                setPackageId(null);
-              }}
-            >
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {programDisplayName(p)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-create-field">
-            <span>{t.taskPackage}</span>
-            <select value={pkgId ?? ""} onChange={(event) => setPackageId(event.target.value)}>
-              {packages.map((pkg) => (
-                <option key={pkg.id} value={pkg.id}>
-                  {pkg.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-create-field">
-            <span>{t.taskName}</span>
-            <input
-              autoFocus
-              value={name}
-              placeholder={t.addTaskPlaceholder}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <button
-            type="submit"
-            className="mt-create-submit"
-            disabled={pending || !name.trim() || !pkgId}
-          >
-            {t.addTask}
-          </button>
-        </form>
+        {createOpen ? (
+          <AddTaskForm
+            programs={programs}
+            uiLanguage={uiLanguage}
+            username={username}
+            presetDueDate={presetDueDate}
+            defaultProgramId={filterProgramId}
+            onCreated={onCreated}
+            onClose={() => onCreateOpenChange(false)}
+          />
+        ) : null}
       </Popover>
 
       <div className="mt-toolbar-end">
