@@ -22,6 +22,25 @@ export function programDisplayName(program: { name: string }): string {
   );
 }
 
+/** Stable per-project accent swatch: hash the id onto an 8-color palette.
+    Values are CSS vars so light/dark pairs resolve from tokens.css. */
+const PROJECT_SWATCHES = [
+  "var(--swatch-green)",
+  "var(--swatch-blue)",
+  "var(--swatch-purple)",
+  "var(--swatch-pink)",
+  "var(--swatch-orange)",
+  "var(--swatch-teal)",
+  "var(--swatch-yellow)",
+  "var(--swatch-red)",
+] as const;
+
+export function programColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return PROJECT_SWATCHES[hash % PROJECT_SWATCHES.length] as string;
+}
+
 /** Roll-up status for a program: blocked > done > in progress > todo. */
 export function programStatus(program: Program): Task["status"] {
   const tasks = program.packages.flatMap((pkg) => pkg.tasks);

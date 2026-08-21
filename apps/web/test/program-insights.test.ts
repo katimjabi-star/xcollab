@@ -230,3 +230,6 @@ describe("computeInsights: risk counts", () => {
     });
   });
 });
+/* Dashboard widget calculators are covered in program-insights-dashboard.test.ts
+   (kept separate to honor the 300-line lint cap). */
+

@@ -1,0 +1,126 @@
+/* My Tasks + spreadsheet task list (sprint-asana-B). Logical properties only
+   (RTL-safe); tokens from tokens.css. Row height 36px, 13px type. */
+
+/* ---- Page header ---- */
+.mt-page { gap: var(--space-4); }
+.mt-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.mt-title-row { display: flex; align-items: center; gap: var(--space-3); }
+.mt-title { margin: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: var(--text-high); }
+.mt-head-end { margin-inline-start: auto; display: flex; gap: var(--space-2); }
+.mt-ghost-btn {
+  border: 1px solid var(--border); background: none; color: var(--text-medium);
+  font-size: var(--text-sm); padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md); cursor: pointer;
+}
+.mt-ghost-btn:hover { background: var(--surface-thin); color: var(--text-high); }
+
+/* ---- Toolbar ---- */
+.mt-toolbar { display: flex; align-items: center; gap: var(--space-2); }
+.mt-toolbar-end { margin-inline-start: auto; display: flex; gap: var(--space-1); }
+.mt-split { display: inline-flex; }
+.mt-split-main, .mt-split-caret {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: var(--button-primary); color: var(--on-primary); border: none;
+  font-size: var(--text-md); font-weight: var(--weight-medium);
+  padding: var(--space-1) var(--space-3); cursor: pointer; block-size: 28px;
+}
+.mt-split-main { border-start-start-radius: var(--radius-md); border-end-start-radius: var(--radius-md); }
+.mt-split-caret {
+  border-start-end-radius: var(--radius-md); border-end-end-radius: var(--radius-md);
+  padding-inline: var(--space-1);
+  border-inline-start: 1px solid color-mix(in srgb, var(--on-primary) 30%, transparent);
+}
+.mt-split-main:hover, .mt-split-caret:hover { background: var(--button-primary-hover); }
+
+.mt-create { display: flex; flex-direction: column; gap: var(--space-2); inline-size: 260px; padding: var(--space-1); }
+.mt-create-heading { margin: 0; font-size: var(--text-sm); color: var(--text-medium); }
+.mt-create-field { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); color: var(--text-medium); }
+.mt-create-field select, .mt-create-field input {
+  font: inherit; color: var(--text-high); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2); block-size: 28px;
+}
+.mt-create-submit {
+  align-self: flex-end; background: var(--button-primary); color: var(--on-primary);
+  border: none; border-radius: var(--radius-md); padding: var(--space-1) var(--space-3);
+  font-size: var(--text-md); font-weight: var(--weight-medium); cursor: pointer;
+}
+.mt-create-submit:hover { background: var(--button-primary-hover); }
+.mt-create-submit:disabled { opacity: 0.5; cursor: default; }
+.mt-menu-item { display: block; inline-size: 100%; text-align: start; }
+
+/* ---- Spreadsheet list ---- */
+.task-table { display: flex; flex-direction: column; font-size: var(--text-md); }
+.tt-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 200px 110px 210px 48px;
+  align-items: center;
+}
+.tt-head {
+  block-size: 32px; color: var(--text-low); font-size: var(--text-sm);
+  border-block: 1px solid var(--divider-low);
+  position: sticky; inset-block-start: 0; background: var(--background); z-index: 1;
+}
+.tt-col { padding-inline: var(--space-2); border-inline-end: 1px solid var(--divider-low); block-size: 100%; display: flex; align-items: center; }
+.tt-col:last-child { border-inline-end: none; }
+.tt-col-plus { justify-content: center; }
+.tt-group { display: flex; flex-direction: column; }
+.tt-group-head {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: none; border: none; cursor: pointer; text-align: start;
+  padding: var(--space-2); margin-block-start: var(--space-3);
+  color: var(--text-high);
+}
+.tt-group-label { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.tt-row { block-size: 36px; border-block-end: 1px solid var(--divider-low); }
+.tt-row:hover { background: var(--surface-thin); }
+.tt-cell {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding-inline: var(--space-2); min-inline-size: 0; block-size: 100%;
+  border-inline-end: 1px solid var(--divider-low);
+  overflow: hidden; white-space: nowrap;
+}
+.tt-cell:last-child { border-inline-end: none; }
+.tt-name-cell { padding-inline-start: var(--space-6); }
+.tt-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text-low); flex: 0 0 auto;
+}
+.tt-check:hover { color: var(--status-done-fg, #58a182); }
+.tt-check.done { color: var(--status-done-fg, #58a182); }
+.mt-card-check { color: var(--text-low); flex: 0 0 auto; }
+.mt-card-check.done { color: var(--status-done-fg, #58a182); }
+.tt-name {
+  background: none; border: none; padding: 0; cursor: pointer; font: inherit;
+  color: var(--text-high); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tt-name:hover { text-decoration: underline; }
+.tt-name.done { color: var(--text-low); }
+.tt-due { color: var(--text-medium); font-variant-numeric: tabular-nums; }
+.tt-due.overdue { color: var(--error); }
+.tt-ghost-row, .tt-add-section {
+  background: none; border: none; text-align: start; cursor: pointer;
+  color: var(--text-low); font-size: var(--text-md);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-6);
+  padding-inline-start: var(--space-8);
+}
+.tt-ghost-row:hover, .tt-add-section:hover { color: var(--text-brand); }
+.tt-add-section { margin-block-start: var(--space-3); padding-inline-start: var(--space-2); }
+
+/* ---- Project pill (list rows + board cards) ---- */
+.project-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  background: var(--surface-thin); border-radius: var(--radius-full);
+  padding: 2px var(--space-2); font-size: var(--text-sm); color: var(--text-high);
+  max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.project-swatch { inline-size: 10px; block-size: 10px; border-radius: 3px; flex: 0 0 auto; }
+
+/* ---- My Tasks board ---- */
+.mt-board-scroller { flex: 1; min-block-size: 0; overflow: auto; overscroll-behavior: contain; }
+.mt-board .board-col { flex: 0 0 300px; }
+.mt-card { cursor: pointer; }
+.mt-card-title { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
+.mt-card-date { font-size: var(--text-sm); color: var(--text-medium); font-variant-numeric: tabular-nums; }
+.mt-card-date.overdue { color: var(--error); }

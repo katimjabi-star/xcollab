@@ -144,6 +144,23 @@
   --toast-fg: rgba(255, 255, 255, 0.92);
   --toast-border: rgba(255, 255, 255, 0.08);
   --toast-action: #ff8a65;
+
+  /* Project accent swatches — muted mid-tones that hold on light AND dark
+     grounds (defined once; both themes inherit). Assigned per-project via
+     programColor() in lib/program-format.ts. */
+  --swatch-green: #5da283;
+  --swatch-blue: #4573d2;
+  --swatch-purple: #8d84e8;
+  --swatch-pink: #f26fb2;
+  --swatch-orange: #ec8d71;
+  --swatch-teal: #4ecbc4;
+  --swatch-yellow: #f1bd6c;
+  --swatch-red: #f06a6a;
+
+  /* Dashboard chart accent — lavender pair (2026-08 widget sprint). Deeper in
+     light for contrast on white; the tint fills area charts and donut tracks. */
+  --chart-1: #7c70dd;
+  --chart-1-tint: rgba(124, 112, 221, 0.16);
 }
 
 /* ---- Dark (KDS dark mode) — same tokens redefined, twice-guarded ---- */
@@ -215,6 +232,10 @@
     --toast-fg: rgba(255, 255, 255, 0.92);
     --toast-border: rgba(255, 255, 255, 0.08);
     --toast-action: #ff8a65;
+
+    /* Dashboard chart accent — lavender lifted for dark bg (widget sprint) */
+    --chart-1: #a99ff3;
+    --chart-1-tint: rgba(169, 159, 243, 0.18);
   }
 }
 
@@ -283,4 +304,8 @@
   --toast-fg: rgba(255, 255, 255, 0.92);
   --toast-border: rgba(255, 255, 255, 0.08);
   --toast-action: #ff8a65;
+
+  /* Dashboard chart accent — lavender lifted for dark bg (widget sprint) */
+  --chart-1: #a99ff3;
+  --chart-1-tint: rgba(169, 159, 243, 0.18);
 }

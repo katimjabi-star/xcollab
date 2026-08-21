@@ -7,6 +7,7 @@ import { createAuthMiddleware, type AuthEnv } from "./auth.ts";
 import type { LedgerActor, TaskFieldChanges, WorkGraphRepository } from "./repository.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
+import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
 import { AttachmentStore } from "./storage.ts";
 
 const CreateProgramRequestSchema = z.object({
@@ -193,6 +194,7 @@ export function createApp(
 
   registerTeamRoutes(app, repo);
   registerAttachmentRoutes(app, repo, store);
+  registerMyTaskRoutes(app, repo);
 
   app.get("/api/ledger", async (c) => {
     const workspaceId = c.req.query("workspaceId");

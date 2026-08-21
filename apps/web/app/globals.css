@@ -8,9 +8,12 @@
 @import "./styles/primitives.css";
 @import "./styles/pages.css";
 @import "./styles/board.css";
+@import "./styles/list.css";
 @import "./styles/views.css";
+@import "./styles/calendar.css";
 @import "./styles/panel.css";
 @import "./styles/settings.css";
+@import "./styles/browse.css";
 
 /* Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
 @font-face {
