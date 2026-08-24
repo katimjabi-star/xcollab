@@ -1,0 +1,157 @@
+"use client";
+
+import { Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { API_BASE, WORKSPACE, listPrograms } from "../../lib/api-client.ts";
+import { makeRefResolver } from "../../lib/assistant-refs.ts";
+import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
+import {
+  AssistantExecuteError,
+  executeProposal,
+  streamAssistantTurn,
+} from "../../lib/api-assistant.ts";
+import {
+  appendResult,
+  appendUser,
+  applyEvent,
+  setProposalState,
+  toWireMessages,
+  type ChatMessage,
+} from "../../lib/assistant-transcript.ts";
+import { useToasts } from "../../lib/toast-context.tsx";
+import { useUi } from "../../lib/ui-context.tsx";
+import { Icon } from "../ui/icon.tsx";
+import { Composer } from "./composer.tsx";
+import { MessageList } from "./message-list.tsx";
+
+type ProposalMessage = Extract<ChatMessage, { kind: "proposal" }>;
+
+function EmptyState({ onPick }: { onPick: (text: string) => void }): ReactElement {
+  const { t } = useUi();
+  const suggestions = [
+    t.aiSuggestCreateProject,
+    t.aiSuggestAddTask,
+    t.aiSuggestMyTasks,
+    t.aiSuggestSummarize,
+  ];
+  return (
+    <div className="xai-empty">
+      <span className="s2-ai-glyph" aria-hidden>
+        <Icon icon={Sparkles} size={28} />
+      </span>
+      <h3 className="xai-empty-title">{t.aiEmptyTitle}</h3>
+      <p className="xai-empty-body">{t.aiEmptyBody}</p>
+      <div className="xai-suggestions">
+        {suggestions.map((text) => (
+          <button key={text} type="button" className="xai-suggestion" onClick={() => onPick(text)}>
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The /ai chat surface: client-held transcript (spec D6), SSE turns, and
+    the confirm-before-act proposal flow (spec D3). */
+export function AssistantChat(): ReactElement {
+  const { t, language } = useUi();
+  const { push } = useToasts();
+  const { data: programs } = useWorkspaceData(listPrograms);
+  const resolveRef = useMemo(() => makeRefResolver(programs ?? []), [programs]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const threadRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, [messages, busy]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const runTurn = async (list: ChatMessage[]) => {
+    setBusy(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let current = list;
+    try {
+      const turn = streamAssistantTurn(
+        API_BASE,
+        { workspaceId: WORKSPACE, language, messages: toWireMessages(list) },
+        controller.signal,
+      );
+      for await (const event of turn) {
+        current = applyEvent(current, event);
+        setMessages(current);
+      }
+    } catch {
+      if (!controller.signal.aborted) {
+        current = applyEvent(current, { type: "error", message: t.aiErrorTransport });
+        setMessages(current);
+        push({ message: t.aiErrorTransport });
+      }
+    } finally {
+      // A user abort mid-delta leaves a streaming bubble — seal it.
+      setMessages((prev) => applyEvent(prev, { type: "done", finishReason: "stop" }));
+      abortRef.current = null;
+      setBusy(false);
+    }
+  };
+
+  const send = (text: string) => {
+    if (busy) return;
+    const next = appendUser(messages, text);
+    setMessages(next);
+    void runTurn(next);
+  };
+
+  const confirm = async (proposal: ProposalMessage) => {
+    setMessages((prev) => setProposalState(prev, proposal.proposalId, "executing"));
+    try {
+      const outcome = await executeProposal(API_BASE, {
+        workspaceId: WORKSPACE,
+        language,
+        proposalId: proposal.proposalId,
+        tool: proposal.tool,
+        args: proposal.args,
+      });
+      setMessages((prev) => appendResult(prev, proposal.proposalId, proposal.tool, outcome));
+    } catch (error) {
+      const code = error instanceof AssistantExecuteError ? error.code : null;
+      setMessages((prev) => setProposalState(prev, proposal.proposalId, "failed", code));
+    }
+  };
+
+  const cancel = (proposal: ProposalMessage) => {
+    setMessages((prev) => setProposalState(prev, proposal.proposalId, "cancelled"));
+  };
+
+  const lastMessage = messages[messages.length - 1];
+  const thinking = busy && !(lastMessage?.kind === "assistant" && lastMessage.streaming);
+
+  return (
+    <div className="xai-chat">
+      <div className="xai-thread" ref={threadRef}>
+        <div className="xai-col">
+          {messages.length === 0 ? (
+            <EmptyState onPick={send} />
+          ) : (
+            <MessageList
+              t={t}
+              messages={messages}
+              resolveRef={resolveRef}
+              thinking={thinking}
+              onConfirm={(p) => void confirm(p)}
+              onCancel={cancel}
+            />
+          )}
+        </div>
+      </div>
+      <div className="xai-composer-row">
+        <Composer t={t} busy={busy} onSend={send} onStop={() => abortRef.current?.abort()} />
+      </div>
+    </div>
+  );
+}

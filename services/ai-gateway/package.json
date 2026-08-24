@@ -12,7 +12,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
     "@xcollab/core": "workspace:*",
-    "@xcollab/synthesizer": "workspace:*"
+    "@xcollab/synthesizer": "workspace:*",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

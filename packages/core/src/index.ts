@@ -21,6 +21,32 @@ export {
 } from "./schemas.ts";
 export { findDependencyCycle } from "./dag.ts";
 export {
+  ASSISTANT_MUTATION_TOOL_NAMES,
+  ASSISTANT_MUTATION_TOOLS,
+  ASSISTANT_READ_TOOL_NAMES,
+  ASSISTANT_READ_TOOLS,
+  AssistantEventSchema,
+  assistantToolDefinition,
+  assistantToolSpecs,
+  CreateProjectArgsSchema,
+  CreateTaskArgsSchema,
+  GetProjectArgsSchema,
+  GetProjectSummaryArgsSchema,
+  isAssistantMutationTool,
+  ListProjectsArgsSchema,
+  ListTeamsArgsSchema,
+  ListUsersArgsSchema,
+  SearchTasksArgsSchema,
+  UpdateProjectArgsSchema,
+  UpdateTaskArgsSchema,
+  type AssistantEvent,
+  type AssistantMutationToolName,
+  type AssistantReadToolName,
+  type AssistantToolDefinition,
+  type AssistantToolName,
+  type ProposalPreview,
+} from "./assistant-tools.ts";
+export {
   computeEntryHash,
   GENESIS_HASH,
   LedgerEntrySchema,

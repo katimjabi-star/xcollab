@@ -14,7 +14,14 @@ import { listRealmUsers } from "./users.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
 import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
+import { registerSearchRoutes } from "./routes-search.ts";
+import { registerAssistantChatRoute } from "./routes-assistant.ts";
+import { registerAssistantExecuteRoute } from "./routes-assistant-execute.ts";
+import { ProposalStore } from "./assistant-proposals.ts";
+import { createActorResolver, type AssistantConfig } from "./assistant-actor.ts";
 import { AttachmentStore } from "./storage.ts";
+
+export type { AssistantConfig } from "./assistant-actor.ts";
 
 const CreateProgramRequestSchema = z.object({
   workspaceId: z.string().min(1),
@@ -95,6 +102,7 @@ export function createApp(
   repo: WorkGraphRepository,
   gateway: AiGateway,
   store: AttachmentStore = new AttachmentStore(),
+  assistant?: AssistantConfig,
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   app.use("/api/*", cors({ origin: ["http://localhost:3000"] }));
@@ -124,10 +132,10 @@ export function createApp(
 
   app.use("/api/*", createAuthMiddleware());
 
-  const humanActor = (c: { get: (key: "username") => string }): LedgerActor => ({
-    kind: "human",
-    id: c.get("username"),
-  });
+  // Assistant-confirmed mutations arrive with the boot nonce and land as the
+  // ai actor with provenance merged into the ledger input; everything else —
+  // including a forged nonce header — stays a human actor (spec §2.6).
+  const { isAssistant, actorOf, provenanceOf } = createActorResolver(assistant?.nonce);
 
   app.post("/api/programs", async (c) => {
     const parsed = CreateProgramRequestSchema.safeParse(await c.req.json().catch(() => null));
@@ -148,10 +156,18 @@ export function createApp(
     if (teamId !== undefined) {
       generation.program = { ...generation.program, teamId };
     }
-    const { program, ledgerSeq } = await repo.createProgram(workspaceId, generation, {
+    // Generation is always an ai actor; assistant-confirmed creation is the
+    // assistant (D4), direct creation the generation adapter (existing shape).
+    const actor: LedgerActor = {
       kind: "ai",
-      id: generation.interaction.adapterId,
-    });
+      id: isAssistant(c) ? "assistant" : generation.interaction.adapterId,
+    };
+    const { program, ledgerSeq } = await repo.createProgram(
+      workspaceId,
+      generation,
+      actor,
+      provenanceOf(c),
+    );
     return c.json({ program, ledgerSeq, generatedBy: generation.interaction.modelId }, 201);
   });
 
@@ -178,7 +194,7 @@ export function createApp(
         parsed.data.workspaceId,
         c.req.param("id"),
         parsed.data.name,
-        humanActor(c),
+        actorOf(c),
       );
       if (renamed.outcome === "ok") return c.json({ program: renamed.program });
       return c.json({ error: "not found" }, 404);
@@ -187,7 +203,8 @@ export function createApp(
       parsed.data.workspaceId,
       c.req.param("id"),
       parsed.data.teamId ?? null,
-      humanActor(c),
+      actorOf(c),
+      provenanceOf(c),
     );
     if (result.outcome === "ok") return c.json({ program: result.program });
     if (result.outcome === "unknown_team") return c.json({ error: "unknown_team" }, 422);
@@ -216,7 +233,8 @@ export function createApp(
       c.req.param("programId"),
       c.req.param("taskId"),
       changes,
-      humanActor(c),
+      actorOf(c),
+      provenanceOf(c),
     );
     return result ? c.json(result) : c.json({ error: "not found" }, 404);
   });
@@ -232,7 +250,8 @@ export function createApp(
       c.req.param("programId"),
       packageId,
       task,
-      humanActor(c),
+      actorOf(c),
+      provenanceOf(c),
     );
     return result ? c.json(result, 201) : c.json({ error: "not found" }, 404);
   });
@@ -244,7 +263,7 @@ export function createApp(
       workspaceId,
       c.req.param("programId"),
       c.req.param("taskId"),
-      humanActor(c),
+      actorOf(c),
     );
     if (result.outcome === "deleted") {
       return c.json({ program: result.program, ledgerSeq: result.ledgerSeq });
@@ -258,6 +277,17 @@ export function createApp(
   registerTeamRoutes(app, repo);
   registerAttachmentRoutes(app, repo, store);
   registerMyTaskRoutes(app, repo);
+  registerSearchRoutes(app, repo);
+
+  if (assistant) {
+    const proposals = new ProposalStore();
+    registerAssistantChatRoute(app, {
+      adapter: assistant.adapter,
+      proposals,
+      ...(assistant.limits === undefined ? {} : { limits: assistant.limits }),
+    });
+    registerAssistantExecuteRoute(app, { nonce: assistant.nonce, proposals });
+  }
 
   app.get("/api/ledger", async (c) => {
     const workspaceId = c.req.query("workspaceId");

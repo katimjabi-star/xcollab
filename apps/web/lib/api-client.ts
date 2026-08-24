@@ -56,6 +56,12 @@ export function setAuthTokenProvider(fn: () => string | null): void {
   authTokenProvider = fn;
 }
 
+/** Current access token (or null) — for clients that build their own fetch,
+    e.g. the assistant SSE stream in api-assistant.ts. */
+export function currentAuthToken(): string | null {
+  return authTokenProvider ? authTokenProvider() : null;
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const token = authTokenProvider ? authTokenProvider() : null;

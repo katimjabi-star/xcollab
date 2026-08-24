@@ -17,6 +17,7 @@
 @import "./styles/browse.css";
 @import "./styles/create.css";
 @import "./styles/teams.css";
+@import "./styles/assistant.css";
 
 /* Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
 @font-face {

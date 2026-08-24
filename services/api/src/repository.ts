@@ -29,8 +29,11 @@ import {
   type ProgramTeamResult,
 } from "./repository-programs.ts";
 
+import { enrichAppendInput, type MutationProvenance } from "./repository-provenance.ts";
+
 export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
 export { InvalidTaskDatesError } from "./repository-tasks.ts";
+export type { MutationProvenance } from "./repository-provenance.ts";
 export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
 export type { NewAttachmentInput } from "./repository-attachments.ts";
 export type { ProgramRenameResult, ProgramTeamResult } from "./repository-programs.ts";
@@ -105,6 +108,7 @@ export class WorkGraphRepository {
     workspaceId: string,
     generation: GenerationResult,
     actor: LedgerActor,
+    provenance?: MutationProvenance,
   ): Promise<{ program: Program; ledgerSeq: number }> {
     const client = await this.pool.connect();
     try {
@@ -118,7 +122,7 @@ export class WorkGraphRepository {
         "INSERT INTO programs (workspace_id, id, data) VALUES ($1, $2, $3)",
         [workspaceId, program.id, JSON.stringify(program)],
       );
-      const seq = await this.appendWithClient(client, workspaceId, {
+      const seq = await this.appendVia(provenance)(client, workspaceId, {
         actor,
         action: "program.generate",
         ...(generation.interaction.modelId ? { modelId: generation.interaction.modelId } : {}),
@@ -139,6 +143,13 @@ export class WorkGraphRepository {
   /** Bound append so task transactions ledger through the same chain logic. */
   private readonly append: AppendFn = (client, workspaceId, input) =>
     this.appendWithClient(client, workspaceId, input);
+
+  /** Same append, with assistant provenance merged into each row it writes. */
+  private appendVia(provenance?: MutationProvenance): AppendFn {
+    if (!provenance) return this.append;
+    return (client, workspaceId, input) =>
+      this.append(client, workspaceId, enrichAppendInput(input, provenance));
+  }
 
   /**
    * Human-originated mutation: task status change and its ledger row commit in
@@ -168,8 +179,17 @@ export class WorkGraphRepository {
     taskId: string,
     changes: TaskFieldChanges,
     actor: LedgerActor,
+    provenance?: MutationProvenance,
   ): Promise<{ program: Program; ledgerSeq: number } | null> {
-    return updateTaskTx(this.pool, this.append, workspaceId, programId, taskId, changes, actor);
+    return updateTaskTx(
+      this.pool,
+      this.appendVia(provenance),
+      workspaceId,
+      programId,
+      taskId,
+      changes,
+      actor,
+    );
   }
 
   /** Adds a task to a package; null when the program or package is unknown. */
@@ -179,8 +199,17 @@ export class WorkGraphRepository {
     packageId: string,
     input: NewTaskInput,
     actor: LedgerActor,
+    provenance?: MutationProvenance,
   ): Promise<{ program: Program; task: Task; ledgerSeq: number } | null> {
-    return createTaskTx(this.pool, this.append, workspaceId, programId, packageId, input, actor);
+    return createTaskTx(
+      this.pool,
+      this.appendVia(provenance),
+      workspaceId,
+      programId,
+      packageId,
+      input,
+      actor,
+    );
   }
 
   /**
@@ -202,8 +231,16 @@ export class WorkGraphRepository {
     programId: string,
     teamId: string | null,
     actor: LedgerActor,
+    provenance?: MutationProvenance,
   ): Promise<ProgramTeamResult> {
-    return updateProgramTeamTx(this.pool, this.append, workspaceId, programId, teamId, actor);
+    return updateProgramTeamTx(
+      this.pool,
+      this.appendVia(provenance),
+      workspaceId,
+      programId,
+      teamId,
+      actor,
+    );
   }
 
   /** Renames a program (ledgered "program.update"). */
