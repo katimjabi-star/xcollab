@@ -14,6 +14,7 @@ import { listRealmUsers } from "./users.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
 import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
+import { registerSubtaskRoutes } from "./routes-subtasks.ts";
 import { registerSearchRoutes } from "./routes-search.ts";
 import { registerAssistantChatRoute } from "./routes-assistant.ts";
 import { registerAssistantExecuteRoute } from "./routes-assistant-execute.ts";
@@ -211,6 +212,21 @@ export function createApp(
     return c.json({ error: "not found" }, 404);
   });
 
+  app.delete("/api/programs/:id", async (c) => {
+    const workspaceId = c.req.query("workspaceId");
+    if (!workspaceId) return c.json({ error: "workspaceId is required" }, 400);
+    const result = await repo.deleteProgram(
+      workspaceId,
+      c.req.param("id"),
+      actorOf(c),
+      provenanceOf(c),
+    );
+    if (!result) return c.json({ error: "not found" }, 404);
+    // Best-effort AFTER the commit: the rows + ledger are authoritative already.
+    for (const key of result.storageKeys) await store.removeQuietly(key);
+    return c.json({ ledgerSeq: result.ledgerSeq });
+  });
+
   app.patch("/api/programs/:programId/tasks/:taskId", async (c) => {
     const parsed = UpdateTaskRequestSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
@@ -278,6 +294,7 @@ export function createApp(
   registerAttachmentRoutes(app, repo, store);
   registerMyTaskRoutes(app, repo);
   registerSearchRoutes(app, repo);
+  registerSubtaskRoutes(app, repo, { actorOf, provenanceOf });
 
   if (assistant) {
     const proposals = new ProposalStore();

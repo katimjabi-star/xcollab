@@ -5,6 +5,14 @@ export type Language = z.infer<typeof LanguageSchema>;
 
 export const TaskStatusSchema = z.enum(["todo", "in_progress", "blocked", "done"]);
 
+/** Checklist-style subtask embedded in a task (flat list, not a task tree). */
+export const SubtaskSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(500),
+  done: z.boolean(),
+});
+export type Subtask = z.infer<typeof SubtaskSchema>;
+
 export const TaskSchema = z
   .object({
     id: z.string().min(1),
@@ -17,6 +25,7 @@ export const TaskSchema = z
     startDate: z.iso.date().optional(),
     dueDate: z.iso.date().optional(),
     description: z.string().max(4000).optional(),
+    subtasks: z.array(SubtaskSchema).max(50).optional(),
   })
   .refine((t) => !t.startDate || !t.dueDate || t.startDate <= t.dueDate, {
     message: "task startDate must be on or before dueDate",

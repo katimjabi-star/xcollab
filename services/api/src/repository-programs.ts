@@ -48,6 +48,44 @@ export async function updateProgramNameTx(
   return result ?? { outcome: "not_found" };
 }
 
+export type DeleteProgramResult = { ledgerSeq: number; storageKeys: string[] } | null;
+
+/**
+ * Deletes the program row and its attachment metadata rows in ONE transaction
+ * with the "program.delete" ledger row (ADR 0002). The ledger keeps the full
+ * history; only the mutable rows go away. Returns the deleted attachments'
+ * storage keys so the caller can best-effort remove the MinIO objects AFTER
+ * the commit (same pattern as single-attachment deletion). Null when unknown.
+ */
+export async function deleteProgramTx(
+  pool: Pool,
+  append: AppendFn,
+  workspaceId: string,
+  programId: string,
+  actor: LedgerActor,
+): Promise<DeleteProgramResult> {
+  return runProgramMutation(pool, workspaceId, programId, async (client, stored) => {
+    const orphans = await client.query<{ storage_key: string }>(
+      "DELETE FROM attachments WHERE workspace_id = $1 AND program_id = $2 RETURNING storage_key",
+      [workspaceId, programId],
+    );
+    await client.query("DELETE FROM programs WHERE workspace_id = $1 AND id = $2", [
+      workspaceId,
+      programId,
+    ]);
+    const ledgerSeq = await append(client, workspaceId, {
+      actor,
+      action: "program.delete",
+      input: JSON.stringify({ programId, name: stored.name }),
+      output: JSON.stringify({ applied: true }),
+    });
+    return {
+      commit: true,
+      value: { ledgerSeq, storageKeys: orphans.rows.map((row) => row.storage_key) },
+    };
+  });
+}
+
 export async function updateProgramTeamTx(
   pool: Pool,
   append: AppendFn,

@@ -32,6 +32,24 @@ async function getJson(ctx: ReadToolContext, path: string): Promise<{ status: nu
   return { status: res.status, body };
 }
 
+/* The loop's truncator sheds trailing ARRAY ITEMS, so a full outline that
+   overflows the digest cap silently dropped whole projects and made them
+   unresolvable by name (cross-test defect 1). When full outlines don't fit,
+   fall back to a lean index (no tasks) that keeps EVERY project present;
+   task refs then resolve via search_tasks. */
+const OUTLINE_DIGEST_BUDGET = 8_000;
+
+export function projectsIndex(programs: Program[]): unknown[] {
+  const full = programs.map(projectOutline);
+  if (JSON.stringify(full).length <= OUTLINE_DIGEST_BUDGET) return full;
+  return programs.map((program) => ({
+    id: program.id,
+    name: program.name,
+    language: program.language,
+    packages: program.packages.map((pkg) => ({ id: pkg.id, name: pkg.name })),
+  }));
+}
+
 /** Lean outline WITH task ids/names: the reference snapshot the model (and
     the deterministic intent parser) resolves every id from — ids are never
     invented, so they must all be discoverable here. */
@@ -147,7 +165,7 @@ export async function executeReadTool(
       const { status, body } = await getJson(ctx, `/api/programs?workspaceId=${ws}`);
       if (status !== 200) return { ok: false, result: body };
       const programs = (body as { programs: Program[] }).programs;
-      return { ok: true, result: programs.map(projectOutline) };
+      return { ok: true, result: projectsIndex(programs) };
     }
     case "get_project": {
       const fetched = await fetchProgram(ctx, String(args["programId"]));

@@ -23,11 +23,14 @@ import {
 import { TeamsRepository } from "./repository-teams.ts";
 import { AttachmentsRepository } from "./repository-attachments.ts";
 import {
+  deleteProgramTx,
   updateProgramNameTx,
   updateProgramTeamTx,
+  type DeleteProgramResult,
   type ProgramRenameResult,
   type ProgramTeamResult,
 } from "./repository-programs.ts";
+import { SubtasksRepository } from "./repository-subtasks.ts";
 
 import { enrichAppendInput, type MutationProvenance } from "./repository-provenance.ts";
 
@@ -36,7 +39,8 @@ export { InvalidTaskDatesError } from "./repository-tasks.ts";
 export type { MutationProvenance } from "./repository-provenance.ts";
 export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
 export type { NewAttachmentInput } from "./repository-attachments.ts";
-export type { ProgramRenameResult, ProgramTeamResult } from "./repository-programs.ts";
+export type { DeleteProgramResult, ProgramRenameResult, ProgramTeamResult } from "./repository-programs.ts";
+export type { AddSubtaskResult, DeleteSubtaskResult, SubtaskFieldChanges, UpdateSubtaskResult } from "./repository-subtasks.ts";
 
 export interface LedgerActor {
   kind: "human" | "ai" | "service";
@@ -91,12 +95,16 @@ export class WorkGraphRepository {
   /** Attachment metadata shares the same chain-append logic and invariants. */
   readonly attachments: AttachmentsRepository;
 
+  /** Checklist subtasks share the same chain-append logic and invariants. */
+  readonly subtasks: SubtasksRepository;
+
   constructor(pool: Pool) {
     this.pool = pool;
     const append: AppendFn = (client, workspaceId, input) =>
       this.appendWithClient(client, workspaceId, input);
     this.teams = new TeamsRepository(pool, append);
     this.attachments = new AttachmentsRepository(pool, append);
+    this.subtasks = new SubtasksRepository(pool, (provenance) => this.appendVia(provenance));
   }
 
   /**
@@ -223,6 +231,16 @@ export class WorkGraphRepository {
     actor: LedgerActor,
   ): Promise<DeleteTaskResult> {
     return deleteTaskTx(this.pool, this.append, workspaceId, programId, taskId, actor);
+  }
+
+  /**
+   * Deletes the program row (and its attachment metadata rows) with the
+   * "program.delete" ledger row in ONE transaction; null when unknown.
+   */
+  async deleteProgram(
+    workspaceId: string, programId: string, actor: LedgerActor, provenance?: MutationProvenance,
+  ): Promise<DeleteProgramResult> {
+    return deleteProgramTx(this.pool, this.appendVia(provenance), workspaceId, programId, actor);
   }
 
   /** Links (teamId) or unlinks (null) a workspace team on a program. */

@@ -3,6 +3,7 @@ import {
   AttachmentSchema,
   LanguageSchema,
   ProgramSchema,
+  SubtaskSchema,
   TaskSchema,
   TeamMemberSchema,
   WorkPackageSchema,
@@ -77,6 +78,37 @@ describe("TaskSchema", () => {
   it("rejects an over-long name", () => {
     expect(() => TaskSchema.parse({ ...validTask, name: "x".repeat(501) })).toThrow();
     expect(TaskSchema.parse({ ...validTask, name: "x".repeat(500) }).name).toHaveLength(500);
+  });
+});
+
+describe("TaskSchema.subtasks / SubtaskSchema", () => {
+  const validSubtask = { id: "sub-1", name: "Write the checklist", done: false };
+
+  it("accepts a task with subtasks and keeps them optional", () => {
+    const parsed = TaskSchema.parse({ ...validTask, subtasks: [validSubtask] });
+    expect(parsed.subtasks).toEqual([validSubtask]);
+    expect(TaskSchema.parse(validTask).subtasks).toBeUndefined();
+    expect(TaskSchema.parse({ ...validTask, subtasks: [] }).subtasks).toEqual([]);
+  });
+
+  it("rejects more than 50 subtasks", () => {
+    const many = Array.from({ length: 51 }, (_, i) => ({ ...validSubtask, id: `sub-${i}` }));
+    expect(() => TaskSchema.parse({ ...validTask, subtasks: many })).toThrow();
+    expect(
+      TaskSchema.parse({ ...validTask, subtasks: many.slice(0, 50) }).subtasks,
+    ).toHaveLength(50);
+  });
+
+  it("rejects empty ids, empty or over-long names, and non-boolean done", () => {
+    expect(() => SubtaskSchema.parse({ ...validSubtask, id: "" })).toThrow();
+    expect(() => SubtaskSchema.parse({ ...validSubtask, name: "" })).toThrow();
+    expect(() => SubtaskSchema.parse({ ...validSubtask, name: "x".repeat(501) })).toThrow();
+    expect(() => SubtaskSchema.parse({ ...validSubtask, done: "yes" })).toThrow();
+    expect(SubtaskSchema.parse({ ...validSubtask, name: "x".repeat(500) }).name).toHaveLength(500);
+  });
+
+  it("rejects a subtask missing done", () => {
+    expect(() => SubtaskSchema.parse({ id: "sub-1", name: "No done flag" })).toThrow();
   });
 });
 
