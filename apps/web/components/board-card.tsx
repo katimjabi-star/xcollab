@@ -7,7 +7,8 @@ import { ArrowRightLeft, CalendarDays, CheckCircle2, Circle, CircleDot, OctagonA
 import type { Task } from "@xcollab/core";
 import type { BoardCard } from "../lib/board-filter.ts";
 import { isOverdue } from "../lib/board-filter.ts";
-import { formatDayCount, type STRINGS } from "../lib/i18n.ts";
+import { dateLabel, dueTone } from "../lib/date-label.ts";
+import { formatDayCount, type STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
@@ -30,8 +31,8 @@ interface BoardCardItemProps {
   today: string;
   /** Resolved full name for task.assignee (board-level users map); username fallback. */
   assigneeName?: string;
-  /** Shared per-locale formatter ("Oct 3" style) — ISO stays in tooltips only. */
-  dateFormat: Intl.DateTimeFormat;
+  /** Locale for the relative due-date label ("Today", "Friday", "Aug 21"). */
+  uiLanguage: UiLanguage;
   dragging: boolean;
   revertError: boolean;
   /** The other three columns, in board order. */
@@ -49,7 +50,7 @@ export function BoardCardItem({
   t,
   today,
   assigneeName,
-  dateFormat,
+  uiLanguage,
   dragging,
   revertError,
   moveTargets,
@@ -133,10 +134,11 @@ export function BoardCardItem({
           <Chip
             variant="dueDate"
             overdue={overdue}
+            className={`due-${dueTone(task.dueDate, task.status === "done", today)}`}
             icon={<Icon icon={CalendarDays} size={12} />}
             title={`${overdue ? t.overdueLabel : t.dueLabel} · ${task.dueDate}`}
           >
-            {dateFormat.format(new Date(`${task.dueDate}T00:00:00`))}
+            {dateLabel(task.dueDate, uiLanguage, today)}
           </Chip>
         ) : null}
         <span className="board-chip-estimate" title={t.taskEstimate}>

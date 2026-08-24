@@ -362,6 +362,11 @@ const en = {
   missionRequiredError: "Enter a mission brief before generating.",
   createDatesOrderError: "The start date must be on or before the target end date.",
   taskDatesOrderError: "The start date must be on or before the due date.",
+  // fix-wave-F keys
+  dateTomorrow: "Tomorrow",
+  dateYesterday: "Yesterday",
+  overdueBy: "Overdue by",
+  pastDueDateWarning: "This due date is in the past.",
 };
 
 type Dictionary = Record<keyof typeof en, string>;
@@ -721,6 +726,11 @@ const ar: Dictionary = {
   missionRequiredError: "أدخل موجز المهمة قبل التوليد.",
   createDatesOrderError: "يجب أن يكون تاريخ البداية في نفس يوم النهاية المستهدفة أو قبله.",
   taskDatesOrderError: "يجب أن يكون تاريخ البدء في نفس يوم الاستحقاق أو قبله.",
+  // fix-wave-F keys
+  dateTomorrow: "غدًا",
+  dateYesterday: "أمس",
+  overdueBy: "متأخرة منذ",
+  pastDueDateWarning: "تاريخ الاستحقاق هذا في الماضي.",
 };
 
 export const STRINGS: Record<UiLanguage, Dictionary> = { en, ar };

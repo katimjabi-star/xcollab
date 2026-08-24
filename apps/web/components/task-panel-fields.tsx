@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { Task } from "@xcollab/core";
 import type { TaskPatch } from "../lib/api-client.ts";
-import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+import { overdueDays } from "../lib/date-label.ts";
+import { formatDayCount, STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { AssigneePicker } from "./assignee-picker.tsx";
+import { DateRows } from "./task-panel-dates.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { Popover } from "./ui/popover.tsx";
@@ -236,52 +238,17 @@ export function TaskPanelFields({
             />
           </div>
         </div>
-        <div className="prop-row">
-          <label className="prop-label" htmlFor="task-panel-start">
-            {t.taskStartDate}
-          </label>
-          <div className="prop-value">
-            <input
-              id="task-panel-start"
-              type="date"
-              className="prop-input"
-              value={startDate}
-              aria-invalid={dateError || undefined}
-              aria-describedby={dateError ? "task-panel-dates-error" : undefined}
-              onChange={(event) =>
-                commitDate("startDate", event.target.value, setStartDate, task.startDate ?? "")
-              }
-            />
-          </div>
-        </div>
-        <div className="prop-row">
-          <label className="prop-label" htmlFor="task-panel-due">
-            {t.taskDueDate}
-          </label>
-          <div className="prop-value">
-            <input
-              id="task-panel-due"
-              type="date"
-              className="prop-input"
-              value={dueDate}
-              aria-invalid={dateError || undefined}
-              aria-describedby={dateError ? "task-panel-dates-error" : undefined}
-              onChange={(event) =>
-                commitDate("dueDate", event.target.value, setDueDate, task.dueDate ?? "")
-              }
-            />
-            {overdue ? (
-              <Chip variant="dueDate" overdue>
-                {t.overdueLabel}
-              </Chip>
-            ) : null}
-          </div>
-        </div>
-        {dateError ? (
-          <p className="error-note" id="task-panel-dates-error" role="alert">
-            {t.taskDatesOrderError}
-          </p>
-        ) : null}
+        <DateRows
+          t={t}
+          startDate={startDate}
+          dueDate={dueDate}
+          dateError={dateError}
+          overdueChip={
+            overdue ? `${t.overdueBy} ${formatDayCount(t, overdueDays(dueDate, todayIso()))}` : null
+          }
+          onStart={(value) => commitDate("startDate", value, setStartDate, task.startDate ?? "")}
+          onDue={(value) => commitDate("dueDate", value, setDueDate, task.dueDate ?? "")}
+        />
         <div className="prop-row">
           <span className="prop-label">{t.taskPackage}</span>
           <div className="prop-value">

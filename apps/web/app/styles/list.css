@@ -146,3 +146,10 @@
 .mt-card-title { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
 .mt-card-date { font-size: var(--text-sm); color: var(--text-medium); font-variant-numeric: tabular-nums; }
 .mt-card-date.overdue { color: var(--error); }
+
+/* ---- Due-date tones (reference model): expired red, today/tomorrow green,
+   future neutral, completed muted — shared by list rows, cards, home meta. */
+.due-overdue { color: var(--error); }
+.due-soon { color: var(--status-done-fg); }
+.due-muted { color: var(--text-low); }
+.ui-chip.due-soon { color: var(--status-done-fg); }

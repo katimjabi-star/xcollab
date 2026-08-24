@@ -9,11 +9,9 @@ import { STRINGS } from "../../lib/i18n.ts";
 import { useAuth } from "../../lib/auth-context.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
-import {
-  formatIsoDate,
-  programColor,
-  programDisplayName,
-} from "../../lib/program-format.ts";
+import { programColor, programDisplayName } from "../../lib/program-format.ts";
+import { dateLabel, dueTone } from "../../lib/date-label.ts";
+import { localTodayIso } from "../../lib/my-tasks.ts";
 import { Icon } from "../../components/ui/icon.tsx";
 
 const PREVIEW_LIMIT = 5;
@@ -122,7 +120,12 @@ export default function HomePage() {
                     </span>
                     <span className="s2-home-task-meta" dir="auto">
                       {programName}
-                      {task.dueDate ? ` · ${formatIsoDate(task.dueDate, language)}` : ""}
+                      {task.dueDate ? " · " : ""}
+                      {task.dueDate ? (
+                        <span className={`due-${dueTone(task.dueDate, task.status === "done", localTodayIso())}`}>
+                          {dateLabel(task.dueDate, language, localTodayIso())}
+                        </span>
+                      ) : null}
                     </span>
                   </Link>
                 </li>

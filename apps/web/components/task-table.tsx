@@ -5,7 +5,8 @@ import { CheckCircle2, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import type { Program } from "@xcollab/core";
 import { API_BASE, WORKSPACE, updateTask } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
-import { formatDueRange, isDueOverdue, localTodayIso } from "../lib/my-tasks.ts";
+import { dueRangeLabel, dueTone } from "../lib/date-label.ts";
+import { localTodayIso } from "../lib/my-tasks.ts";
 import { programColor, programDisplayName } from "../lib/program-format.ts";
 import { useToasts } from "../lib/toast-context.tsx";
 import { Avatar } from "./ui/avatar.tsx";
@@ -140,8 +141,8 @@ export function TaskTable({
               ? null
               : resolved.map((row) => {
                   const done = statusOf(row) === "done";
-                  const dueText = formatDueRange(row, today, uiLanguage, t.timelineTodayLabel);
-                  const overdue = !done && isDueOverdue(row.dueDate, today);
+                  const dueText = dueRangeLabel(row, uiLanguage, today);
+                  const tone = dueTone(row.dueDate, done, today);
                   return (
                     <div key={keyOf(row)} className="tt-grid tt-row" role="row">
                       <div className="tt-cell tt-name-cell">
@@ -163,7 +164,7 @@ export function TaskTable({
                           {row.name}
                         </button>
                       </div>
-                      <span className={`tt-cell tt-due${overdue ? " overdue" : ""}`} dir="auto">
+                      <span className={`tt-cell tt-due due-${tone}`} dir="auto">
                         {dueText}
                       </span>
                       <span className="tt-cell tt-collab">

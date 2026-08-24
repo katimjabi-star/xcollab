@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { listPrograms } from "../lib/api-client.ts";
 import { useAuth } from "../lib/auth-context.tsx";
+import { localTodayIso } from "../lib/my-tasks.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { useWorkspaceData } from "../lib/use-workspace-data.ts";
 import { AddTaskForm } from "./my-tasks-add-form.tsx";
@@ -49,6 +50,11 @@ export function CreateTaskDialog({ uiLanguage, onClose }: CreateTaskDialogProps)
           onChange={(event) => setDueDate(event.target.value)}
         />
       </label>
+      {dueDate && dueDate < localTodayIso() ? (
+        <p className="s2-taskdialog-warn" role="status">
+          {t.pastDueDateWarning}
+        </p>
+      ) : null}
       {loaded && programs ? (
         <AddTaskForm
           programs={programs}

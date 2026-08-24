@@ -898,3 +898,9 @@
 .s2-taskdialog .mt-create-field {
   flex: 0 0 auto;
 }
+
+.s2-taskdialog-warn {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--status-overdue-fg);
+}

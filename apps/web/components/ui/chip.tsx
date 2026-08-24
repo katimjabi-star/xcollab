@@ -16,6 +16,8 @@ interface ChipProps {
   interactive?: boolean;
   children: ReactNode;
   title?: string;
+  /** Extra class for contextual tones (e.g. due-soon on date chips). */
+  className?: string;
 }
 
 /** 20px-tall tinted chip: 10-15% tint background + full-strength text. */
@@ -27,6 +29,7 @@ export function Chip({
   interactive = false,
   children,
   title,
+  className,
 }: ChipProps) {
   const variantClass =
     variant === "status" && status
@@ -38,7 +41,10 @@ export function Chip({
         : "";
   const interactiveClass = interactive ? " ui-chip-interactive" : "";
   return (
-    <span className={`ui-chip${variantClass}${interactiveClass}`} title={title}>
+    <span
+      className={`ui-chip${variantClass}${interactiveClass}${className ? ` ${className}` : ""}`}
+      title={title}
+    >
       {icon}
       {children}
     </span>

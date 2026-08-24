@@ -4,12 +4,8 @@ import type { KeyboardEvent, ReactElement, ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import type { MyTask } from "../lib/api-my-tasks.ts";
-import {
-  formatDueRange,
-  isDueOverdue,
-  localTodayIso,
-  type BucketId,
-} from "../lib/my-tasks.ts";
+import { dueRangeLabel, dueTone } from "../lib/date-label.ts";
+import { localTodayIso, type BucketId } from "../lib/my-tasks.ts";
 import { programColor, programDisplayName } from "../lib/program-format.ts";
 import { Icon } from "./ui/icon.tsx";
 
@@ -56,8 +52,8 @@ export function MyTasksBoard({
             <div className="board-col-body">
               {bucket.tasks.map((task) => {
                 const done = task.status === "done";
-                const dueText = formatDueRange(task, today, uiLanguage, t.timelineTodayLabel);
-                const overdue = !done && isDueOverdue(task.dueDate, today);
+                const dueText = dueRangeLabel(task, uiLanguage, today);
+                const tone = dueTone(task.dueDate, done, today);
                 const open = () => onOpenTask(task);
                 const onKeyDown = (event: KeyboardEvent) => {
                   if (event.key === "Enter" && event.target === event.currentTarget) {
@@ -90,7 +86,7 @@ export function MyTasksBoard({
                       {programDisplayName({ name: task.programName })}
                     </span>
                     {dueText ? (
-                      <span className={`mt-card-date${overdue ? " overdue" : ""}`} dir="auto">
+                      <span className={`mt-card-date due-${tone}`} dir="auto">
                         {dueText}
                       </span>
                     ) : null}
