@@ -15,6 +15,39 @@ export type ProgramTeamResult =
  * under the per-workspace advisory lock, so the link can never reference a
  * team deleted concurrently.
  */
+export type ProgramRenameResult =
+  | { outcome: "ok"; program: Program; ledgerSeq: number }
+  | { outcome: "not_found" };
+
+/** Renames a program; the write and its "program.update" ledger row share one
+    transaction under the per-workspace advisory lock (ADR 0002). */
+export async function updateProgramNameTx(
+  pool: Pool,
+  append: AppendFn,
+  workspaceId: string,
+  programId: string,
+  name: string,
+  actor: LedgerActor,
+): Promise<ProgramRenameResult> {
+  const result = await runProgramMutation<ProgramRenameResult>(
+    pool,
+    workspaceId,
+    programId,
+    async (client, stored) => {
+      const from = stored.name;
+      const program = await writeProgram(client, workspaceId, programId, { ...stored, name });
+      const ledgerSeq = await append(client, workspaceId, {
+        actor,
+        action: "program.update",
+        input: JSON.stringify({ programId, changes: { name: { from, to: name } } }),
+        output: JSON.stringify({ applied: true }),
+      });
+      return { commit: true, value: { outcome: "ok", program, ledgerSeq } };
+    },
+  );
+  return result ?? { outcome: "not_found" };
+}
+
 export async function updateProgramTeamTx(
   pool: Pool,
   append: AppendFn,

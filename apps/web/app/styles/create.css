@@ -72,6 +72,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
 .create-hero-icon {
@@ -92,40 +93,45 @@
   color: var(--text-medium);
 }
 
-.create-hero textarea {
+/* Borderless hero textarea — the prompt is the product's name-first field,
+   so the card is the frame (quick-add reference: .s2-taskdialog-name). The
+   focused card border carries the keyboard-focus cue. */
+.create-mission {
   inline-size: 100%;
-  min-block-size: 72px;
+  min-block-size: 88px;
   resize: vertical;
-  border: 1px solid var(--input-line);
-  border-radius: var(--radius-md);
-  background: var(--surface-thin);
+  border: none;
+  background: none;
   color: var(--text-high);
   font: inherit;
-  font-size: var(--text-md);
-  padding: var(--space-2) var(--space-3);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.45;
+  padding: var(--space-1) 0;
 }
 
-.create-hero textarea:hover {
-  border-color: var(--border);
+.create-mission:focus-visible {
+  outline: none;
 }
 
-.create-hero textarea::placeholder {
+.create-mission::placeholder {
   color: var(--text-low);
 }
 
-.create-hero textarea:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: 1px;
+.create-hero:focus-within {
+  border-color: var(--elev-border-strong);
 }
 
 /* One meta row: dates · parent · team, labels above inputs, the primary
-   action pinned inline-end. */
+   action pinned inline-end. Divider seats the meta controls below the hero
+   prompt (quick-add picker-row pattern). */
 .create-form-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: end;
+  border-block-start: 1px solid var(--divider-low);
+  padding-block-start: var(--space-3);
 }
 
 .create-field {
@@ -368,4 +374,9 @@ a.create-stat:focus-visible {
 
 .create-row-skeleton > :last-child {
   margin-inline-start: auto;
+}
+
+/* Optional explicit project name under the mission textarea */
+.create-name-field {
+  max-inline-size: 26rem;
 }

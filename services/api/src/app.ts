@@ -28,11 +28,17 @@ const CreateProgramRequestSchema = z.object({
   teamId: z.string().min(1).optional(),
 });
 
-/** teamId null unlinks; a string re-links (must be an existing workspace team). */
-const UpdateProgramRequestSchema = z.object({
-  workspaceId: z.string().min(1),
-  teamId: z.string().min(1).nullable(),
-});
+/** Exactly one operation per request: teamId (null unlinks; a string re-links
+    to an existing workspace team) or name (rename). */
+const UpdateProgramRequestSchema = z
+  .object({
+    workspaceId: z.string().min(1),
+    teamId: z.string().min(1).nullable().optional(),
+    name: z.string().trim().min(1).max(500).optional(),
+  })
+  .refine((body) => (body.teamId !== undefined) !== (body.name !== undefined), {
+    message: "exactly one of teamId or name is required",
+  });
 
 const UPDATABLE_TASK_KEYS = [
   "status",
@@ -167,10 +173,20 @@ export function createApp(
     if (!parsed.success) {
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
     }
+    if (parsed.data.name !== undefined) {
+      const renamed = await repo.updateProgramName(
+        parsed.data.workspaceId,
+        c.req.param("id"),
+        parsed.data.name,
+        humanActor(c),
+      );
+      if (renamed.outcome === "ok") return c.json({ program: renamed.program });
+      return c.json({ error: "not found" }, 404);
+    }
     const result = await repo.updateProgramTeam(
       parsed.data.workspaceId,
       c.req.param("id"),
-      parsed.data.teamId,
+      parsed.data.teamId ?? null,
       humanActor(c),
     );
     if (result.outcome === "ok") return c.json({ program: result.program });

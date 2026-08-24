@@ -22,13 +22,18 @@ import {
 
 import { TeamsRepository } from "./repository-teams.ts";
 import { AttachmentsRepository } from "./repository-attachments.ts";
-import { updateProgramTeamTx, type ProgramTeamResult } from "./repository-programs.ts";
+import {
+  updateProgramNameTx,
+  updateProgramTeamTx,
+  type ProgramRenameResult,
+  type ProgramTeamResult,
+} from "./repository-programs.ts";
 
 export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
 export { InvalidTaskDatesError } from "./repository-tasks.ts";
 export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
 export type { NewAttachmentInput } from "./repository-attachments.ts";
-export type { ProgramTeamResult } from "./repository-programs.ts";
+export type { ProgramRenameResult, ProgramTeamResult } from "./repository-programs.ts";
 
 export interface LedgerActor {
   kind: "human" | "ai" | "service";
@@ -199,6 +204,16 @@ export class WorkGraphRepository {
     actor: LedgerActor,
   ): Promise<ProgramTeamResult> {
     return updateProgramTeamTx(this.pool, this.append, workspaceId, programId, teamId, actor);
+  }
+
+  /** Renames a program (ledgered "program.update"). */
+  async updateProgramName(
+    workspaceId: string,
+    programId: string,
+    name: string,
+    actor: LedgerActor,
+  ): Promise<ProgramRenameResult> {
+    return updateProgramNameTx(this.pool, this.append, workspaceId, programId, name, actor);
   }
 
   /** Non-mutating model interactions are ledgered through the same chain. */

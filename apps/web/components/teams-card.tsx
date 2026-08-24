@@ -12,6 +12,7 @@ import { useToasts } from "../lib/toast-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { MemberAvatarStack } from "./teams-avatar.tsx";
+import { invalidateTeamsCache } from "./teams-data.tsx";
 import { TeamMembers } from "./teams-members.tsx";
 
 /** Same arm/disarm window as the task panel delete. */
@@ -171,6 +172,7 @@ export function TeamCard({ team, users, usersError, programs, onChange, onDelete
     }
     updateTeam(API_BASE, { workspaceId: WORKSPACE, teamId: team.id, patch: { name: trimmed } })
       .then((next) => {
+        invalidateTeamsCache();
         onChange(next);
         push({ message: t.teamUpdated });
       })
@@ -190,6 +192,7 @@ export function TeamCard({ team, users, usersError, programs, onChange, onDelete
     setArmed(false);
     deleteTeam(API_BASE, { workspaceId: WORKSPACE, teamId: team.id })
       .then(() => {
+        invalidateTeamsCache();
         onDeleted(team.id);
         push({ message: t.teamDeleted });
       })

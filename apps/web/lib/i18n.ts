@@ -369,6 +369,10 @@ const en = {
   pastDueDateWarning: "This due date is in the past.",
   // fix-wave-G keys
   createTaskAction: "Create task",
+  projectNameLabel: "Project name",
+  projectNamePlaceholder: "Optional — the AI names it from the mission",
+  // fix-wave-I keys
+  teamDuplicateNameError: "A team with this name already exists.",
 };
 
 type Dictionary = Record<keyof typeof en, string>;
@@ -735,6 +739,10 @@ const ar: Dictionary = {
   pastDueDateWarning: "تاريخ الاستحقاق هذا في الماضي.",
   // fix-wave-G keys
   createTaskAction: "إنشاء المهمة",
+  projectNameLabel: "اسم المشروع",
+  projectNamePlaceholder: "اختياري — يسمّيه الذكاء الاصطناعي من المهمة",
+  // fix-wave-I keys
+  teamDuplicateNameError: "يوجد فريق بهذا الاسم بالفعل.",
 };
 
 export const STRINGS: Record<UiLanguage, Dictionary> = { en, ar };

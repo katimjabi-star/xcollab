@@ -8,6 +8,7 @@ import { useToasts } from "../lib/toast-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
 import { Icon } from "./ui/icon.tsx";
 import { findUser, fullNameOf, MemberAvatar } from "./teams-avatar.tsx";
+import { invalidateTeamsCache } from "./teams-data.tsx";
 import { TeamsPeoplePicker } from "./teams-people-picker.tsx";
 
 interface TeamMembersProps {
@@ -29,6 +30,7 @@ export function TeamMembers({ team, users, usersError, onChange }: TeamMembersPr
     pending.current = true;
     removeTeamMember(API_BASE, { workspaceId: WORKSPACE, teamId: team.id, username })
       .then((next) => {
+        invalidateTeamsCache();
         onChange(next);
         push({ message: t.memberRemoved });
       })

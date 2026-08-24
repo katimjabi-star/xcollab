@@ -227,6 +227,27 @@ export function createTask(
   );
 }
 
+export interface UpdateProgramNameInput {
+  workspaceId: string;
+  programId: string;
+  name: string;
+}
+
+/** Renames a program (ledgered "program.update"). */
+export function updateProgramName(
+  base: string,
+  { programId, ...body }: UpdateProgramNameInput,
+): Promise<{ program: Program }> {
+  return request<{ program: Program }>(
+    `${base}/api/programs/${encodeURIComponent(programId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 export interface DeleteTaskInput {
   workspaceId: string;
   programId: string;

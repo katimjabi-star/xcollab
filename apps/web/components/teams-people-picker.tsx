@@ -12,6 +12,7 @@ import { useToasts } from "../lib/toast-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
 import { Popover } from "./ui/popover.tsx";
 import { fullNameOf, MemberAvatar } from "./teams-avatar.tsx";
+import { invalidateTeamsCache } from "./teams-data.tsx";
 
 interface TeamsPeoplePickerProps {
   team: Team;
@@ -47,6 +48,7 @@ export function TeamsPeoplePicker({ team, users, usersError, onChange }: TeamsPe
     pending.current = true;
     addTeamMember(API_BASE, { workspaceId: WORKSPACE, teamId: team.id, username, role })
       .then((next) => {
+        invalidateTeamsCache();
         onChange(next);
         push({ message: t.memberAdded });
       })

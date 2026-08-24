@@ -163,6 +163,43 @@ describe("PATCH /api/programs/:id team link", () => {
   });
 });
 
+describe("PATCH /api/programs/:id (rename)", () => {
+  it("renames the program and ledgers the change", async () => {
+    const program = await createProgram("Rename me please today");
+    const res = await api("PATCH", `/api/programs/${program.id}`, {
+      workspaceId: WORKSPACE,
+      name: "Field readiness dashboard",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { program: Program };
+    expect(body.program.name).toBe("Field readiness dashboard");
+    const fetched = await api("GET", `/api/programs/${program.id}?workspaceId=${WORKSPACE}`);
+    expect(((await fetched.json()) as { program: Program }).program.name).toBe(
+      "Field readiness dashboard",
+    );
+  });
+
+  it("rejects empty names, oversized names, and combined ops", async () => {
+    const program = await createProgram("Rename validation");
+    for (const body of [
+      { workspaceId: WORKSPACE, name: "   " },
+      { workspaceId: WORKSPACE, name: "x".repeat(501) },
+      { workspaceId: WORKSPACE, name: "ok", teamId: null },
+    ]) {
+      const res = await api("PATCH", `/api/programs/${program.id}`, body);
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("404s on an unknown program", async () => {
+    const res = await api("PATCH", `/api/programs/prog-nope`, {
+      workspaceId: WORKSPACE,
+      name: "Ghost",
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("ledger integrity after program-team operations", () => {
   it("keeps the hash chain valid", async () => {
     const res = await api("GET", `/api/ledger?workspaceId=${WORKSPACE}`);

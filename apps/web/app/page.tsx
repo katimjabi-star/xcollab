@@ -3,19 +3,25 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Program, Task } from "@xcollab/core";
-import { API_BASE, WORKSPACE, createProgram, getLedger, listPrograms } from "../lib/api-client.ts";
+import {
+  API_BASE,
+  WORKSPACE,
+  createProgram,
+  getLedger,
+  listPrograms,
+  updateProgramName,
+} from "../lib/api-client.ts";
 import { setDocumentTitle } from "../lib/nav.ts";
 import { useToasts } from "../lib/toast-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
 import { StatsRow } from "../components/stats-row.tsx";
 import { programColor, programDisplayName, programStatus } from "../lib/program-format.ts";
-import { MissionBrief, TimelineFields } from "../components/create-form-fields.tsx";
+import { MissionBrief, OverviewSkeleton, TimelineFields } from "../components/create-form-fields.tsx";
 import { useWorkspaceTeams } from "../components/teams-data.tsx";
 import { Chip } from "../components/ui/chip.tsx";
 import { Icon } from "../components/ui/icon.tsx";
-import { Skeleton } from "../components/ui/skeleton.tsx";
 
 const RECENT_LIMIT = 6;
 
@@ -29,46 +35,21 @@ function useSkeletonGate(loaded: boolean): boolean {
   return pastDelay && !loaded;
 }
 
-function OverviewSkeleton({ label }: { label: string }) {
-  return (
-    <>
-      <div className="create-stats">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div className="create-stat" key={i}>
-            <Skeleton width="60%" height="12px" label={i === 0 ? label : undefined} />
-            <Skeleton width="32px" height="20px" />
-          </div>
-        ))}
-      </div>
-      <section className="create-card">
-        <div className="create-card-head">
-          <Skeleton width="8rem" height="15px" />
-        </div>
-        <div className="create-recent-list">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div className="create-row-skeleton" key={i}>
-              <Skeleton width="28px" height="28px" radius="8px" />
-              <Skeleton width="14rem" height="13px" />
-              <Skeleton width="5rem" height="20px" radius="999px" />
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
 export default function Home() {
   const { language, t } = useUi();
   const router = useRouter();
   const { push } = useToasts();
   const [mission, setMission] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [parentId, setParentId] = useState("");
   const [teamId, setTeamId] = useState("");
   const teams = useWorkspaceTeams();
   const [busy, setBusy] = useState(false);
+  // Synchronous double-submit latch: two clicks in one tick both see the
+  // stale `busy` closure, so the state flag alone lets a duplicate POST out.
+  const submitting = useRef(false);
   const [error, setError] = useState(false);
   const [missionError, setMissionError] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -116,14 +97,16 @@ export default function Home() {
 
   async function onGenerate(event: React.FormEvent) {
     event.preventDefault();
-    if (busy) return;
-    // Visible field errors block the submit: whitespace-only mission (passes
-    // the native `required`) and a start after the target end.
+    if (submitting.current) return;
+    // Visible field errors block the submit: the form is noValidate, so the
+    // localized inline error covers empty AND whitespace-only missions (the
+    // native bubble is browser-locale and would break the AR experience).
     if (!mission.trim()) {
       setMissionError(true);
       return;
     }
     if (datesInvalid) return; // inline error already showing under the dates
+    submitting.current = true;
     setBusy(true);
     setError(false);
     try {
@@ -135,6 +118,15 @@ export default function Home() {
         ...(parentId ? { parentId } : {}),
         ...(teamId ? { teamId } : {}),
       });
+      // An explicit name overrides the AI-derived one (ledgered rename); a
+      // rename failure never strands the flow — the project already exists.
+      if (projectName.trim()) {
+        await updateProgramName(API_BASE, {
+          workspaceId: WORKSPACE,
+          programId: created.program.id,
+          name: projectName.trim(),
+        }).catch(() => undefined);
+      }
       // Success: confirm via toast (survives navigation — the stack lives in
       // the root layout) and land on the new project. busy stays true until
       // the route change unmounts this page, so no double-submit window.
@@ -143,6 +135,7 @@ export default function Home() {
     } catch {
       setError(true);
       setBusy(false);
+      submitting.current = false;
     }
   }
 
@@ -156,7 +149,7 @@ export default function Home() {
       </header>
 
       {/* Mission composer — the product's signature action, the hero card. */}
-      <form className="create-card create-hero" onSubmit={onGenerate}>
+      <form className="create-card create-hero" onSubmit={onGenerate} noValidate>
         <div className="create-card-head">
           <span className="create-hero-icon" aria-hidden>
             <Icon icon={Sparkles} size={16} />
@@ -166,12 +159,14 @@ export default function Home() {
         <MissionBrief
           t={t}
           mission={mission}
+          name={projectName}
           busy={busy}
           showError={missionError}
           onChange={(value) => {
             setMission(value);
             if (value.trim()) setMissionError(false);
           }}
+          onName={setProjectName}
         />
         {/* One meta row: dates · parent · team, labels above inputs, primary
             action pinned inline-end. */}

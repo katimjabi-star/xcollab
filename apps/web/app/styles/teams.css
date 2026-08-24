@@ -32,6 +32,79 @@
   background: var(--card-hover);
 }
 
+/* ---- Create-team card (fix-wave-I) — quick-create dialog language:
+   title + close header, large borderless name-first input, borderless
+   description, hairline-separated primary-action footer. In-flow under the
+   section head so it stays anchored to the "+ New team" affordance. ---- */
+.tm-create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 35rem;
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+}
+.tm-create-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tm-create-head h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-medium);
+}
+.tm-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+/* Borderless name input — the card is the frame (s2-taskdialog pattern). */
+.tm-create-name {
+  border: none;
+  background: none;
+  color: var(--text-high);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-1) 0;
+}
+.tm-create-name:focus {
+  outline: none;
+  box-shadow: none;
+}
+.tm-create-name::placeholder,
+.tm-create-desc::placeholder {
+  color: var(--text-low);
+}
+.tm-create-desc {
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: var(--text-md);
+  resize: vertical;
+  min-block-size: 2.5rem;
+  padding: 0;
+}
+.tm-create-desc:focus {
+  outline: none;
+}
+.tm-create-form .error-note {
+  margin: 0;
+}
+.tm-create-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-block-start: 1px solid var(--divider-low);
+  padding-block-start: var(--space-3);
+}
+
 /* ---- Header: tinted glyph · name · hover-revealed actions ---- */
 .tm-card-head {
   display: flex;

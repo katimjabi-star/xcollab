@@ -85,6 +85,7 @@ export default function TeamsPage() {
 
       {creating ? (
         <TeamsCreateForm
+          existingNames={teams?.map((team) => team.name) ?? []}
           onCreated={(team) => {
             setTeams((prev) => (prev ? [...prev, team] : [team]));
             setCreating(false);
