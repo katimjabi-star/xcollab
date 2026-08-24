@@ -14,26 +14,28 @@ interface TopBarProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onOpenPalette: () => void;
+  /** Opens the global quick-create task dialog (owned by the app frame). */
+  onCreateTask: () => void;
   t: Strings;
 }
 
 /** Full-width ~44px top bar: hamburger (sidebar collapse) · "+ Create" pill ·
     centered search affordance (opens the ⌘K palette) · avatar menu. */
-export function TopBar({ collapsed, onToggleCollapsed, onOpenPalette, t }: TopBarProps) {
+export function TopBar({ collapsed, onToggleCollapsed, onOpenPalette, onCreateTask, t }: TopBarProps) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
 
-  /* Each create flow lives on the page that owns it today:
-     Task → project quick-add, Project → the mission composer, Team → /teams. */
+  /* Task opens the global quick-create dialog in place (reference behavior);
+     Project → the mission composer, Team → /teams. */
   const createItems = [
-    { label: t.createTask, icon: SquareCheckBig, href: "/projects" },
-    { label: t.createProject, icon: FolderKanban, href: "/" },
-    { label: t.createTeam, icon: Users, href: "/teams" },
+    { label: t.createTask, icon: SquareCheckBig, action: onCreateTask },
+    { label: t.createProject, icon: FolderKanban, action: () => router.push("/") },
+    { label: t.createTeam, icon: Users, action: () => router.push("/teams") },
   ] as const;
 
-  function goCreate(href: string) {
+  function goCreate(action: () => void) {
     setCreateOpen(false);
-    router.push(href);
+    action();
   }
 
   return (
@@ -76,7 +78,7 @@ export function TopBar({ collapsed, onToggleCollapsed, onOpenPalette, t }: TopBa
               type="button"
               role="menuitem"
               className="s2-menu-item"
-              onClick={() => goCreate(item.href)}
+              onClick={() => goCreate(item.action)}
             >
               <Icon icon={item.icon} size={14} />
               {item.label}

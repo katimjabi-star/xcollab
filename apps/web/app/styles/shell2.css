@@ -852,3 +852,49 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Global quick-create task dialog (top bar "+ Create" → Task) ----
+   Floating card at the trailing bottom corner, above the peek panel (30)
+   and below popovers (35) so its selects' menus stay on top. */
+.s2-taskdialog {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline-end: var(--space-4);
+  width: min(30rem, calc(100vw - 2rem));
+  z-index: 32;
+  background: var(--popover);
+  border: 1px solid var(--popover-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.s2-taskdialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.s2-taskdialog-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+/* The shared composer stacks vertically inside the dialog (same override
+   the board's compose card uses). */
+.s2-taskdialog .mt-create-inline {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-width: none;
+  border: none;
+  padding: 0;
+  background: none;
+}
+
+.s2-taskdialog .mt-create-field {
+  flex: 0 0 auto;
+}

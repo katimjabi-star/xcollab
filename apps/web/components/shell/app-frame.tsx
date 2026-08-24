@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { routeLabelKey, setDocumentTitle } from "../../lib/nav.ts";
 import { useUi } from "../../lib/ui-context.tsx";
 import { CommandPalette } from "../command-palette.tsx";
+import { CreateTaskDialog } from "../create-task-dialog.tsx";
 import { IconRail } from "./icon-rail.tsx";
 import { SideNav } from "./side-nav.tsx";
 import { TopBar } from "./top-bar.tsx";
@@ -19,6 +20,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
 
   /* Hydrate after mount — SSR markup must match the client's first render. */
   useEffect(() => {
@@ -60,6 +62,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         onOpenPalette={() => setPaletteOpen(true)}
+        onCreateTask={() => setCreateTaskOpen(true)}
         t={t}
       />
       <IconRail pathname={pathname} t={t} />
@@ -68,6 +71,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
         {children}
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {createTaskOpen ? (
+        <CreateTaskDialog uiLanguage={language} onClose={() => setCreateTaskOpen(false)} />
+      ) : null}
     </div>
   );
 }
