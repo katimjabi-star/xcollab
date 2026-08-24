@@ -1,4 +1,4 @@
-import type { LedgerEntry, Program, Task } from "@xcollab/core";
+import type { LedgerEntry, Program, Subtask, Task } from "@xcollab/core";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 export const WORKSPACE = "hq";
@@ -252,6 +252,94 @@ export function updateProgramName(
       body: JSON.stringify(body),
     },
   );
+}
+
+export interface AddSubtaskInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+  name: string;
+}
+
+export interface SubtaskMutationResult {
+  program: Program;
+  task: Task;
+  subtask: Subtask;
+  ledgerSeq: number;
+}
+
+/** POST a checklist subtask (409 at the 50-per-task cap). */
+export function addSubtask(
+  base: string,
+  { programId, taskId, ...body }: AddSubtaskInput,
+): Promise<SubtaskMutationResult> {
+  return request<SubtaskMutationResult>(
+    `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}/subtasks`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+/** PATCH payload — any subset of the mutable subtask fields. */
+export interface SubtaskPatch {
+  name?: string;
+  done?: boolean;
+}
+
+export interface UpdateSubtaskInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+  subtaskId: string;
+  patch: SubtaskPatch;
+}
+
+export function updateSubtask(
+  base: string,
+  { workspaceId, programId, taskId, subtaskId, patch }: UpdateSubtaskInput,
+): Promise<SubtaskMutationResult> {
+  const path = `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}/subtasks/${encodeURIComponent(subtaskId)}`;
+  return request<SubtaskMutationResult>(path, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ workspaceId, ...patch }),
+  });
+}
+
+export interface DeleteSubtaskInput {
+  workspaceId: string;
+  programId: string;
+  taskId: string;
+  subtaskId: string;
+}
+
+export function deleteSubtask(
+  base: string,
+  { workspaceId, programId, taskId, subtaskId }: DeleteSubtaskInput,
+): Promise<TaskMutationResult> {
+  const path = `${base}/api/programs/${encodeURIComponent(programId)}/tasks/${encodeURIComponent(taskId)}/subtasks/${encodeURIComponent(subtaskId)}`;
+  return request<TaskMutationResult>(`${path}?workspaceId=${encodeURIComponent(workspaceId)}`, {
+    method: "DELETE",
+  });
+}
+
+export interface DeleteProgramInput {
+  workspaceId: string;
+  programId: string;
+}
+
+/** Deletes a program and all its contents (ledgered "program.delete"). */
+export function deleteProgram(
+  base: string,
+  { workspaceId, programId }: DeleteProgramInput,
+): Promise<{ ledgerSeq: number }> {
+  const path = `${base}/api/programs/${encodeURIComponent(programId)}`;
+  return request<{ ledgerSeq: number }>(`${path}?workspaceId=${encodeURIComponent(workspaceId)}`, {
+    method: "DELETE",
+  });
 }
 
 export interface DeleteTaskInput {

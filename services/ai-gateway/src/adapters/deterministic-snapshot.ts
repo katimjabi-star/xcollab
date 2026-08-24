@@ -95,12 +95,73 @@ export function extractSnapshot(messages: ChatMessage[]): SnapshotProgram[] | un
   return undefined;
 }
 
+/**
+ * A `search_tasks` result row (packages/core/src/assistant-tools.ts): a flat
+ * task carrying its parent program/package identity, used to resolve a task
+ * reference when the (possibly lean) list_projects snapshot has no match.
+ */
+export interface SearchTaskRow {
+  programId: string;
+  programName: string;
+  packageId: string;
+  packageName: string;
+  id: string;
+  name: string;
+  status?: string;
+}
+
+function readSearchTaskRow(value: unknown): SearchTaskRow | undefined {
+  if (!isRecord(value)) return undefined;
+  const { programId, programName, packageId, packageName, id, name, status } = value;
+  if (
+    typeof programId !== "string" ||
+    typeof programName !== "string" ||
+    typeof packageId !== "string" ||
+    typeof packageName !== "string" ||
+    typeof id !== "string" ||
+    typeof name !== "string"
+  ) {
+    return undefined;
+  }
+  return {
+    programId,
+    programName,
+    packageId,
+    packageName,
+    id,
+    name,
+    ...(typeof status === "string" ? { status } : {}),
+  };
+}
+
+/** Latest search_tasks tool_result in the history wins — mirrors extractSnapshot. */
+export function extractSearchTaskRows(messages: ChatMessage[]): SearchTaskRow[] | undefined {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (!message || message.role !== "tool_result" || message.tool !== "search_tasks") continue;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(message.content);
+    } catch {
+      continue;
+    }
+    const list = Array.isArray(payload)
+      ? payload
+      : isRecord(payload) && Array.isArray(payload.tasks)
+        ? payload.tasks
+        : undefined;
+    if (!list) continue;
+    return list.map(readSearchTaskRow).filter((r): r is SearchTaskRow => r !== undefined);
+  }
+  return undefined;
+}
+
 /** Case-insensitive matching with Arabic alef/yaa unification — never invents ids. */
 function normalizeRef(value: string): string {
   return value.trim().toLowerCase().replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
 }
 
-function resolveByName<T>(items: T[], ref: string, nameOf: (item: T) => string): Resolution<T> {
+export function resolveByName<T>(items: T[], ref: string, nameOf: (item: T) => string): Resolution<T> {
   const needle = normalizeRef(ref);
   const matches = items.filter((item) => normalizeRef(nameOf(item)).includes(needle));
   if (matches.length === 1) {
@@ -126,6 +187,13 @@ export function resolveTask(snapshot: SnapshotProgram[], ref: string): Resolutio
   const byId = all.find((m) => m.task.id === ref.trim());
   if (byId) return { match: byId, candidates: [byId.task.name] };
   return resolveByName(all, ref, (m) => m.task.name);
+}
+
+/** Same unique-substring/ambiguity semantics as resolveTask, over search_tasks rows. */
+export function resolveSearchTask(rows: SearchTaskRow[], ref: string): Resolution<SearchTaskRow> {
+  const byId = rows.find((r) => r.id === ref.trim());
+  if (byId) return { match: byId, candidates: [byId.name] };
+  return resolveByName(rows, ref, (r) => r.name);
 }
 
 export function resolvePackage(
@@ -159,8 +227,10 @@ export function ambiguousReply(language: Language, ref: string, candidates: stri
 
 export function capabilityReply(language: Language): string {
   return language === "ar"
-    ? "يمكنني إنشاء مشروع أو مهمة، تحديث حالة أو موعد أو تعيين مهمة، البحث في المهام (مثل: اعرض مهامي المتأخرة)، وتلخيص مشروع."
+    ? "يمكنني إنشاء مشروع أو مهمة، تحديث حالة أو موعد أو تعيين مهمة، حذف مهمة أو مشروع، " +
+        "إضافة أو إزالة عضو فريق، إضافة مهمة فرعية، البحث في المهام (مثل: اعرض مهامي المتأخرة)، وتلخيص مشروع."
     : "I can create a project or task, update a task's status, due date or assignee, " +
+        "delete a task or project, add or remove a team member, add a subtask, " +
         "search tasks (e.g. \"show my overdue tasks\"), and summarize a project.";
 }
 

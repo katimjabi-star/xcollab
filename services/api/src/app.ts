@@ -280,6 +280,7 @@ export function createApp(
       c.req.param("programId"),
       c.req.param("taskId"),
       actorOf(c),
+      provenanceOf(c),
     );
     if (result.outcome === "deleted") {
       return c.json({ program: result.program, ledgerSeq: result.ledgerSeq });
@@ -290,7 +291,7 @@ export function createApp(
     return c.json({ error: "not found" }, 404);
   });
 
-  registerTeamRoutes(app, repo);
+  registerTeamRoutes(app, repo, { actorOf });
   registerAttachmentRoutes(app, repo, store);
   registerMyTaskRoutes(app, repo);
   registerSearchRoutes(app, repo);

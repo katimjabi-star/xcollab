@@ -13,11 +13,13 @@
 @import "./styles/views.css";
 @import "./styles/calendar.css";
 @import "./styles/panel.css";
+@import "./styles/subtasks.css";
 @import "./styles/settings.css";
 @import "./styles/browse.css";
 @import "./styles/create.css";
 @import "./styles/teams.css";
 @import "./styles/assistant.css";
+@import "./styles/assistant-float.css";
 
 /* Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
 @font-face {

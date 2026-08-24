@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { LanguageSchema, TaskSchema, TaskStatusSchema, TimelineSchema } from "./schemas.ts";
+import {
+  LanguageSchema,
+  SubtaskSchema,
+  TaskSchema,
+  TaskStatusSchema,
+  TimelineSchema,
+} from "./schemas.ts";
 
 /**
  * XCollab AI tool contract (cross-team: api loop, gateway adapters, web UI).
@@ -94,6 +100,29 @@ export const UpdateProjectArgsSchema = z.object({
   teamId: z.string().min(1).nullable(),
 });
 
+export const DeleteTaskArgsSchema = z.object({
+  programId: z.string().min(1),
+  taskId: z.string().min(1),
+});
+
+export const DeleteProjectArgsSchema = z.object({ programId: z.string().min(1) });
+
+export const AddTeamMemberArgsSchema = z.object({
+  teamId: z.string().min(1),
+  username: z.string().min(1).max(200),
+});
+
+export const RemoveTeamMemberArgsSchema = z.object({
+  teamId: z.string().min(1),
+  username: z.string().min(1).max(200),
+});
+
+export const AddSubtaskArgsSchema = z.object({
+  programId: z.string().min(1),
+  taskId: z.string().min(1),
+  name: SubtaskSchema.shape.name,
+});
+
 // ---------- Registry ----------
 
 export interface AssistantToolDefinition {
@@ -149,6 +178,36 @@ export const ASSISTANT_MUTATION_TOOLS = {
       "PROPOSE linking (teamId) or unlinking (null) a workspace team on a project. " +
       "Requires user confirmation.",
     args: UpdateProjectArgsSchema,
+  },
+  delete_task: {
+    description:
+      "PROPOSE deleting a task from its work package. Requires user confirmation. " +
+      "Resolve programId/taskId via read tools first — never invent ids.",
+    args: DeleteTaskArgsSchema,
+  },
+  delete_project: {
+    description:
+      "PROPOSE deleting an entire project (program) and everything in it. " +
+      "Requires user confirmation. Resolve programId via read tools first.",
+    args: DeleteProjectArgsSchema,
+  },
+  add_team_member: {
+    description:
+      "PROPOSE adding a workspace user to a team. Requires user confirmation. " +
+      "Resolve teamId via list_teams and the username via list_users first.",
+    args: AddTeamMemberArgsSchema,
+  },
+  remove_team_member: {
+    description:
+      "PROPOSE removing a member from a team. Requires user confirmation. " +
+      "Resolve teamId and the member username via list_teams first.",
+    args: RemoveTeamMemberArgsSchema,
+  },
+  add_subtask: {
+    description:
+      "PROPOSE adding a checklist subtask to a task. Requires user confirmation. " +
+      "Resolve programId/taskId via read tools first — never invent ids.",
+    args: AddSubtaskArgsSchema,
   },
 } as const satisfies Record<string, AssistantToolDefinition>;
 

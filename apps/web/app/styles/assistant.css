@@ -247,3 +247,8 @@
   .xai-msg.user, .xai-proposal, .xai-result, .xai-dot { animation: none; }
   .xai-msg.ai.streaming > :last-child::after { animation: none; }
 }
+
+/* Destructive proposals (delete_*): the card and Confirm signal danger. */
+.xai-proposal.danger { border-color: var(--error); }
+.xai-proposal.danger .xai-proposal-head { color: var(--error); }
+.xai-confirm-btn.danger { background: var(--error); color: var(--on-primary); }

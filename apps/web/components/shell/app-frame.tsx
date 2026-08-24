@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { routeLabelKey, setDocumentTitle } from "../../lib/nav.ts";
 import { useUi } from "../../lib/ui-context.tsx";
+import { AssistantPanel } from "../assistant/assistant-panel.tsx";
 import { CommandPalette } from "../command-palette.tsx";
 import { CreateTaskDialog } from "../create-task-dialog.tsx";
 import { IconRail } from "./icon-rail.tsx";
@@ -21,6 +22,15 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  /* First open mounts the panel; it then STAYS mounted (hidden via CSS) so
+     the chat transcript survives close/reopen and page navigation. */
+  const [assistantMounted, setAssistantMounted] = useState(false);
+
+  function toggleAssistant() {
+    setAssistantMounted(true);
+    setAssistantOpen((open) => !open);
+  }
 
   /* Hydrate after mount — SSR markup must match the client's first render. */
   useEffect(() => {
@@ -63,6 +73,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
         onToggleCollapsed={toggleCollapsed}
         onOpenPalette={() => setPaletteOpen(true)}
         onCreateTask={() => setCreateTaskOpen(true)}
+        onToggleAssistant={toggleAssistant}
+        assistantOpen={assistantOpen}
         t={t}
       />
       <IconRail pathname={pathname} t={t} />
@@ -73,6 +85,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {createTaskOpen ? (
         <CreateTaskDialog uiLanguage={language} onClose={() => setCreateTaskOpen(false)} />
+      ) : null}
+      {assistantMounted ? (
+        <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
       ) : null}
     </div>
   );

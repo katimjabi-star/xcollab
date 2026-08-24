@@ -161,12 +161,6 @@ describe("DeterministicChatAdapter — disambiguation and misses", () => {
     expect(events.at(-1)).toEqual({ type: "finish", reason: "stop" });
   });
 
-  it("says it couldn't find an unknown reference", async () => {
-    const events = await run([user("mark Zeppelin as done"), snapshotMessage]);
-    expect(onlyText(events)).toContain('"Zeppelin"');
-    expect(events.some((e) => e.type === "tool_call")).toBe(false);
-  });
-
   it("answers outside-grammar utterances with the canned capability reply", async () => {
     const events = await run([user("hello there, what can you do?")]);
     expect(onlyText(events)).toMatch(/create a project/i);

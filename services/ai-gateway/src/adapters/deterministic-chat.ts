@@ -10,9 +10,9 @@ import {
   notFoundReply,
   resolvePackage,
   resolveProgram,
-  resolveTask,
   type SnapshotProgram,
 } from "./deterministic-snapshot.ts";
+import { call, collabMutation, resolveTaskTarget, say } from "./deterministic-chat-collab.ts";
 
 /**
  * Air-gapped / no-key chat adapter — spec §2.7. NOT an LLM: a rule intent
@@ -52,6 +52,11 @@ export class DeterministicChatAdapter implements ChatAdapter {
       case "project_query":
       case "summarize":
         return this.projectRead(intent, language, results, messages);
+      case "delete_task":
+      case "delete_project":
+      case "team_member":
+      case "add_subtask":
+        return collabMutation(intent, language, messages);
       default:
         return this.mutation(intent, language, messages);
     }
@@ -105,9 +110,9 @@ export class DeterministicChatAdapter implements ChatAdapter {
   }
 
   private mutation(
-    intent: Exclude<
+    intent: Extract<
       ParsedIntent,
-      { kind: "unknown" | "create_project" | "my_tasks" | "project_query" | "summarize" }
+      { kind: "create_task" | "set_status" | "assign" | "reschedule" | "describe" }
     >,
     language: Language,
     messages: ChatMessage[],
@@ -116,21 +121,25 @@ export class DeterministicChatAdapter implements ChatAdapter {
     if (!snapshot) return call("list_projects", {});
     if (intent.kind === "create_task") return createTask(intent, language, snapshot);
 
-    const resolved = resolveTask(snapshot, intent.taskRef);
-    if (!resolved.match) {
-      return say(
-        resolved.candidates.length === 0
-          ? notFoundReply(language, intent.taskRef)
-          : ambiguousReply(language, intent.taskRef, resolved.candidates),
-      );
-    }
-    const { program, task } = resolved.match;
-    return call("update_task", {
-      programId: program.id,
-      taskId: task.id,
-      patch: patchOf(intent),
-    });
+    return resolveTaskRefMutation(intent, language, snapshot, messages);
   }
+}
+
+/**
+ * Resolves a task-ref mutation (set_status/assign/reschedule/describe) via
+ * the shared snapshot-then-search_tasks resolution in
+ * deterministic-chat-collab.ts (the lean list_projects digest ships
+ * programs/packages but no tasks).
+ */
+function resolveTaskRefMutation(
+  intent: Extract<ParsedIntent, { kind: "set_status" | "assign" | "reschedule" | "describe" }>,
+  language: Language,
+  snapshot: SnapshotProgram[],
+  messages: ChatMessage[],
+): ChatEvent[] {
+  const resolved = resolveTaskTarget(intent.taskRef, language, snapshot, messages);
+  if ("events" in resolved) return resolved.events;
+  return call("update_task", { ...resolved.target, patch: patchOf(intent) });
 }
 
 function createProjectArgs(
@@ -221,18 +230,4 @@ function parseJson(content: string): unknown {
   } catch {
     return undefined;
   }
-}
-
-function say(text: string): ChatEvent[] {
-  return [
-    { type: "text_delta", text },
-    { type: "finish", reason: "stop" },
-  ];
-}
-
-function call(name: string, args: unknown): ChatEvent[] {
-  return [
-    { type: "tool_call", id: "det-1", name, args },
-    { type: "finish", reason: "tool_calls" },
-  ];
 }

@@ -2,7 +2,8 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { TeamMemberSchema, WorkspaceTeamSchema } from "@xcollab/core";
 import type { AuthEnv } from "./auth.ts";
-import type { LedgerActor, TeamMutationResult, WorkGraphRepository } from "./repository.ts";
+import type { TeamMutationResult, WorkGraphRepository } from "./repository.ts";
+import type { ActorResolver } from "./assistant-actor.ts";
 import { listRealmUsers } from "./users.ts";
 
 const CreateTeamRequestSchema = z.object({
@@ -40,12 +41,18 @@ function respond(c: Context<AuthEnv>, result: TeamMutationResult): Response {
   }
 }
 
-/** Team + user routes; auth middleware is already installed on /api/* by app.ts. */
-export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository): void {
-  const humanActor = (c: { get: (key: "username") => string }): LedgerActor => ({
-    kind: "human",
-    id: c.get("username"),
-  });
+/**
+ * Team + user routes; auth middleware is already installed on /api/* by
+ * app.ts. The actor comes from the shared resolver so an assistant-confirmed
+ * team mutation ledgers as {kind:"ai", id:"assistant"} (spec §2.6), while a
+ * direct call stays the human user.
+ */
+export function registerTeamRoutes(
+  app: Hono<AuthEnv>,
+  repo: WorkGraphRepository,
+  actors: Pick<ActorResolver, "actorOf">,
+): void {
+  const actorOf = actors.actorOf;
 
   app.get("/api/users", async (c) => {
     if (!c.req.query("workspaceId")) return c.json({ error: "workspaceId is required" }, 400);
@@ -64,7 +71,7 @@ export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
     }
     const { workspaceId, ...input } = parsed.data;
-    const { team } = await repo.teams.create(workspaceId, input, humanActor(c));
+    const { team } = await repo.teams.create(workspaceId, input, actorOf(c));
     return c.json({ team }, 201);
   });
 
@@ -74,7 +81,7 @@ export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
     }
     const { workspaceId, ...changes } = parsed.data;
-    const result = await repo.teams.update(workspaceId, c.req.param("id"), changes, humanActor(c));
+    const result = await repo.teams.update(workspaceId, c.req.param("id"), changes, actorOf(c));
     return respond(c, result);
   });
 
@@ -92,7 +99,7 @@ export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository
       workspaceId,
       c.req.param("id"),
       { username, role },
-      humanActor(c),
+      actorOf(c),
     );
     return respond(c, result);
   });
@@ -104,7 +111,7 @@ export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository
       workspaceId,
       c.req.param("id"),
       c.req.param("username"),
-      humanActor(c),
+      actorOf(c),
     );
     return respond(c, result);
   });
@@ -112,7 +119,7 @@ export function registerTeamRoutes(app: Hono<AuthEnv>, repo: WorkGraphRepository
   app.delete("/api/teams/:id", async (c) => {
     const workspaceId = c.req.query("workspaceId");
     if (!workspaceId) return c.json({ error: "workspaceId is required" }, 400);
-    const result = await repo.teams.remove(workspaceId, c.req.param("id"), humanActor(c));
+    const result = await repo.teams.remove(workspaceId, c.req.param("id"), actorOf(c));
     return result.deleted ? c.json({ deleted: true }) : c.json({ error: "not_found" }, 404);
   });
 }

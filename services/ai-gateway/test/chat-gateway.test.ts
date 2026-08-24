@@ -70,15 +70,15 @@ describe("ChatGateway — seam validation (no call reaches the caller unvalidate
 
   it("rejects calls to tools that are not in the registry", async () => {
     const adapter = scripted("fake", [
-      { type: "tool_call", id: "c1", name: "delete_task", args: { taskId: "t1" } },
+      { type: "tool_call", id: "c1", name: "purge_workspace", args: { taskId: "t1" } },
       { type: "finish", reason: "tool_calls" },
     ]);
     const events = await collect(new ChatGateway([adapter]).runTurn(req("x")));
     expect(events[0]).toEqual({
       type: "tool_call_invalid",
       id: "c1",
-      name: "delete_task",
-      message: 'unknown tool "delete_task"',
+      name: "purge_workspace",
+      message: 'unknown tool "purge_workspace"',
     });
   });
 });

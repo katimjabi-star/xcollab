@@ -22,10 +22,21 @@ const TURN_BUDGET = 3;
 
 export async function driveDeterministicTurn(
   utterance: string,
-  options: { today: string; snapshot: unknown },
+  options: {
+    today: string;
+    snapshot: unknown;
+    searchTasksResult?: unknown;
+    listTeamsResult?: unknown;
+    listUsersResult?: unknown;
+  },
 ): Promise<ChatTurnOutcome> {
   const gateway = new ChatGateway([new DeterministicChatAdapter({ today: options.today })]);
   const messages: ChatMessage[] = [{ role: "user", content: utterance }];
+  /** Tool results the driver auto-answers from a fixture, feeding a fresh turn. */
+  const autoAnswered: Record<string, unknown> = { list_projects: options.snapshot };
+  if (options.searchTasksResult !== undefined) autoAnswered.search_tasks = options.searchTasksResult;
+  if (options.listTeamsResult !== undefined) autoAnswered.list_teams = options.listTeamsResult;
+  if (options.listUsersResult !== undefined) autoAnswered.list_users = options.listUsersResult;
 
   for (let turn = 0; turn < TURN_BUDGET; turn += 1) {
     const events = await collect(
@@ -41,15 +52,15 @@ export async function driveDeterministicTurn(
       .join("");
     const call = events.find((e): e is Extract<ChatEvent, { type: "tool_call" }> => e.type === "tool_call");
     if (!call) return { text };
-    if (call.name !== "list_projects") {
+    if (!(call.name in autoAnswered)) {
       return { toolCall: { name: call.name, args: call.args }, text };
     }
     messages.push(
       { role: "assistant", content: "", toolCalls: [{ id: call.id, name: call.name, args: call.args }] },
       {
         role: "tool_result",
-        tool: "list_projects",
-        content: JSON.stringify(options.snapshot),
+        tool: call.name,
+        content: JSON.stringify(autoAnswered[call.name]),
         toolCallId: call.id,
       },
     );

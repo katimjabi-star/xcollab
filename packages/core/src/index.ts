@@ -23,6 +23,8 @@ export {
 } from "./schemas.ts";
 export { findDependencyCycle } from "./dag.ts";
 export {
+  AddSubtaskArgsSchema,
+  AddTeamMemberArgsSchema,
   ASSISTANT_MUTATION_TOOL_NAMES,
   ASSISTANT_MUTATION_TOOLS,
   ASSISTANT_READ_TOOL_NAMES,
@@ -32,12 +34,15 @@ export {
   assistantToolSpecs,
   CreateProjectArgsSchema,
   CreateTaskArgsSchema,
+  DeleteProjectArgsSchema,
+  DeleteTaskArgsSchema,
   GetProjectArgsSchema,
   GetProjectSummaryArgsSchema,
   isAssistantMutationTool,
   ListProjectsArgsSchema,
   ListTeamsArgsSchema,
   ListUsersArgsSchema,
+  RemoveTeamMemberArgsSchema,
   SearchTasksArgsSchema,
   UpdateProjectArgsSchema,
   UpdateTaskArgsSchema,

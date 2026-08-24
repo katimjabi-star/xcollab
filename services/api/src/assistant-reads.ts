@@ -150,6 +150,19 @@ function usersDigest(body: unknown): unknown {
   }));
 }
 
+/** Teams leaned to what resolution needs: id, name and member usernames —
+    descriptions and roles stay out of model context. */
+function teamsDigest(body: unknown): unknown {
+  const teams = (body as { teams?: { id: string; name: string; members: { username: string }[] }[] })
+    .teams;
+  if (!Array.isArray(teams)) return body;
+  return teams.map((team) => ({
+    id: team.id,
+    name: team.name,
+    members: team.members.map((member) => member.username),
+  }));
+}
+
 export async function executeReadTool(
   ctx: ReadToolContext,
   tool: AssistantReadToolName,
@@ -183,7 +196,7 @@ export async function executeReadTool(
     }
     case "list_teams": {
       const { status, body } = await getJson(ctx, `/api/teams?workspaceId=${ws}`);
-      return { ok: status === 200, result: body };
+      return { ok: status === 200, result: status === 200 ? teamsDigest(body) : body };
     }
   }
 }

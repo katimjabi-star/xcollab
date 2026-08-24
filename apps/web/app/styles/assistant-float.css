@@ -1,0 +1,138 @@
+/* XCollab AI floating companion + personalized welcome — fix-wave-M.
+   Tokens and logical properties only (RTL mirrors for free). Panel z-index
+   33: above the quick-create dialog (32), below popovers (35) and toasts
+   (40). Dark-mode elevation stays shadow-free via --shadow-overlay (none in
+   dark) — border ladder only, like the rest of the app. */
+
+/* ---- Top-bar trigger ---- */
+.s2-ai-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 28px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-brand);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.s2-ai-trigger:hover { background: var(--surface-thin); border-color: var(--elev-border-strong); }
+.s2-ai-trigger[aria-pressed="true"] {
+  background: var(--chip-selected);
+  border-color: var(--chip-selected-border);
+}
+
+/* ---- Floating panel (mounted always once opened; hidden ≠ unmounted) ---- */
+.xai-float {
+  position: fixed;
+  inset-inline-end: var(--space-4);
+  inset-block-end: var(--space-4);
+  z-index: 33;
+  inline-size: min(26rem, calc(100vw - var(--space-8)));
+  block-size: min(70vh, 44rem);
+  display: none;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--popover-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  overflow: hidden;
+}
+.xai-float[data-open] { display: flex; animation: xai-float-in var(--dur-slow) var(--ease-drawer); }
+
+.xai-float-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3) var(--space-2);
+  border-block-end: 1px solid var(--divider-low);
+}
+.xai-float-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+}
+.xai-float-title svg { color: var(--text-brand); }
+
+.xai-float-body { flex: 1; min-block-size: 0; display: flex; flex-direction: column; }
+.xai-float-body .xai-chat { flex: 1; min-block-size: 0; gap: var(--space-2); }
+.xai-float-body .xai-thread { padding-inline: var(--space-3); }
+.xai-float-body .xai-msg.user { max-inline-size: 88%; }
+.xai-float-body .xai-composer-row { padding-block-end: var(--space-3); padding-inline: var(--space-3); }
+.xai-float-body .xai-composer { box-shadow: none; }
+/* Center-stage spacing tuned down inside the compact panel. */
+.xai-float-body .xai-welcome { margin-block-start: var(--space-2); }
+
+@keyframes xai-float-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Personalized welcome (shared: /ai page + floating panel) ---- */
+.xai-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  text-align: start;
+}
+.xai-welcome-greeting {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+}
+.xai-welcome-intro { font-size: var(--text-md); color: var(--text-medium); text-wrap: pretty; }
+.xai-welcome-cando {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-low);
+}
+.xai-welcome-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--divider-low);
+  align-self: stretch;
+}
+.xai-welcome-section h5 {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-high);
+}
+.xai-welcome-section p { font-size: var(--text-sm); color: var(--text-medium); }
+.xai-welcome-examples { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* Example chips reuse .xai-suggestion, one size down inside the welcome. */
+.xai-welcome .xai-suggestion {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  text-align: start;
+}
+.xai-welcome-tip {
+  align-self: stretch;
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--divider-low);
+  font-size: var(--text-sm);
+  color: var(--text-low);
+  text-wrap: pretty;
+}
+.xai-welcome-tip strong { color: var(--text-medium); font-weight: var(--weight-semibold); }
+
+@media (prefers-reduced-motion: reduce) {
+  .xai-float[data-open] { animation: none; }
+}

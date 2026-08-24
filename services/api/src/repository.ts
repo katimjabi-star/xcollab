@@ -229,8 +229,9 @@ export class WorkGraphRepository {
     programId: string,
     taskId: string,
     actor: LedgerActor,
+    provenance?: MutationProvenance,
   ): Promise<DeleteTaskResult> {
-    return deleteTaskTx(this.pool, this.append, workspaceId, programId, taskId, actor);
+    return deleteTaskTx(this.pool, this.appendVia(provenance), workspaceId, programId, taskId, actor);
   }
 
   /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { FilePlus2, ListChecks, PenLine } from "lucide-react";
+import { FilePlus2, ListChecks, PenLine, Trash2, UserRound } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import type { STRINGS } from "../../lib/i18n.ts";
 import type { ChatMessage } from "../../lib/assistant-transcript.ts";
@@ -18,6 +18,11 @@ const TOOL_TITLES: Record<string, keyof Dict> = {
   create_task: "aiProposalCreateTask",
   update_task: "aiProposalUpdateTask",
   update_project: "aiProposalUpdateProject",
+  delete_task: "deleteTask",
+  delete_project: "deleteProject",
+  add_team_member: "aiProposalAddMember",
+  remove_team_member: "aiProposalRemoveMember",
+  add_subtask: "aiProposalAddSubtask",
 };
 
 const FIELD_LABELS: Record<string, keyof Dict> = {
@@ -37,6 +42,7 @@ const FIELD_LABELS: Record<string, keyof Dict> = {
   dueDate: "taskDueDate",
   estimateDays: "taskEstimate",
   description: "taskDescription",
+  username: "aiFieldMember",
 };
 
 const STATUS_LABELS: Record<string, keyof Dict> = {
@@ -117,8 +123,12 @@ function fieldValue(t: Dict, row: FieldRow, resolved: string | null): ReactNode 
   return <span dir="auto">{String(value)}</span>;
 }
 
-const toolIcon = (tool: string) =>
-  tool === "create_project" ? FilePlus2 : tool.startsWith("update") ? PenLine : ListChecks;
+const toolIcon = (tool: string) => {
+  if (tool.startsWith("delete")) return Trash2;
+  if (tool.endsWith("team_member")) return UserRound;
+  if (tool === "create_project") return FilePlus2;
+  return tool.startsWith("update") ? PenLine : ListChecks;
+};
 
 interface ProposalCardProps {
   t: Dict;
@@ -151,8 +161,10 @@ export function ProposalCard({
 
   const errorKey = message.errorCode ? ERROR_LABELS[message.errorCode] : undefined;
   const executing = message.state === "executing";
+  // Destructive proposals read as destructive before the click, not after.
+  const danger = message.tool.startsWith("delete");
   return (
-    <section className="xai-proposal" aria-label={title}>
+    <section className={`xai-proposal${danger ? " danger" : ""}`} aria-label={title}>
       <header className="xai-proposal-head">
         <Icon icon={toolIcon(message.tool)} size={15} />
         <h3>{title}</h3>
@@ -186,7 +198,7 @@ export function ProposalCard({
         </button>
         <button
           type="button"
-          className="xai-confirm-btn"
+          className={`xai-confirm-btn${danger ? " danger" : ""}`}
           disabled={executing}
           onClick={() => onConfirm(message)}
         >

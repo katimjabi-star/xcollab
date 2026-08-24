@@ -1,0 +1,72 @@
+/* Subtask checklist (task panel section) + project-header delete — fix-wave-S.
+   Logical properties only (RTL-safe); tokens from tokens.css; no shadows
+   (dark mode is shadow-free by design). Danger styling via --error tokens. */
+
+/* ---- Section head: label + done/total count chip ---- */
+.subtasks-head { display: flex; align-items: center; gap: var(--space-2); }
+.subtasks-count {
+  font-size: var(--text-sm); color: var(--text-medium);
+  background: var(--surface-thin); border-radius: var(--radius-full);
+  padding: 1px var(--space-2); line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Rows: 32px, hairline separators, hover-revealed remove (the
+   attachments-row idiom) ---- */
+.subtask-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.subtask-rows > li:not(:last-child) { border-block-end: 1px solid var(--hairline); }
+.subtask-row { display: flex; align-items: center; gap: var(--space-1); min-block-size: 32px; }
+.subtask-main {
+  flex: 1; min-inline-size: 0; display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.subtask-main:hover { background: var(--surface-thin); }
+.subtask-check {
+  flex: none; inline-size: 14px; block-size: 14px; margin: 0;
+  accent-color: var(--ring); cursor: pointer;
+}
+.subtask-name {
+  flex: 1; min-inline-size: 0; font-size: var(--text-md); color: var(--text-high);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+/* Done rows: muted + struck */
+.subtask-row.done .subtask-name { color: var(--text-low); text-decoration: line-through; }
+.subtask-remove { opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.subtask-row:hover .subtask-remove,
+.subtask-remove:focus-visible { opacity: 1; }
+
+/* ---- Add row: borderless input (prop-input idiom) + submit ---- */
+.subtask-add { display: flex; align-items: center; gap: var(--space-1); }
+.subtask-add-input {
+  flex: 1; min-inline-size: 0; block-size: 28px;
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  background: none; color: var(--text-high);
+  font-family: inherit; font-size: var(--text-md); padding-inline: var(--space-2);
+  transition: background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.subtask-add-input:hover:not(:disabled) { background: var(--surface-thin); }
+.subtask-add-input:focus-visible { border-color: var(--input-line); background: var(--surface); }
+.subtask-add-input:disabled { color: var(--text-low); cursor: not-allowed; }
+.subtask-add-input::placeholder { color: var(--text-low); }
+.subtask-check:focus-visible,
+.subtask-add-input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* ---- Project-header delete: ghost button turning danger; .armed is the
+   confirm state (teams pattern) ---- */
+.proj-delete-btn { display: inline-flex; align-items: center; gap: var(--space-1); }
+.proj-delete-btn .icon { flex: none; }
+.proj-delete-btn:hover { color: var(--error); background: var(--error-tint); border-color: var(--error-tint); }
+.proj-delete-btn.armed { color: var(--error); background: var(--error-tint); border-color: var(--error); }
+
+@media (prefers-reduced-motion: reduce) {
+  .subtask-main,
+  .subtask-name,
+  .subtask-remove,
+  .subtask-add-input { transition: none; }
+}

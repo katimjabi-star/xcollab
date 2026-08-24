@@ -3,11 +3,14 @@ import { CHAT_SNAPSHOT, CHAT_TODAY, GOLDEN_CHATS } from "../golden/chats.ts";
 import { driveDeterministicTurn } from "../src/chat-driver.ts";
 
 describe("fast evals — deterministic chat adapter golden intents", () => {
-  for (const { key, utterance, expected } of GOLDEN_CHATS) {
+  for (const { key, utterance, expected, searchTasksResult, listTeamsResult, listUsersResult } of GOLDEN_CHATS) {
     it(`golden[${key}] resolves to the expected ${expected.kind}`, async () => {
       const outcome = await driveDeterministicTurn(utterance, {
         today: CHAT_TODAY,
         snapshot: CHAT_SNAPSHOT,
+        searchTasksResult,
+        listTeamsResult,
+        listUsersResult,
       });
       if (expected.kind === "tool_call") {
         expect(outcome.toolCall).toEqual({ name: expected.tool, args: expected.args });

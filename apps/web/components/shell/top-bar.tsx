@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FolderKanban, Menu, Plus, Search, SquareCheckBig, Users } from "lucide-react";
+import { FolderKanban, Menu, Plus, Search, Sparkles, SquareCheckBig, Users } from "lucide-react";
 import { useState } from "react";
 import type { STRINGS } from "../../lib/i18n.ts";
 import { Icon } from "../ui/icon.tsx";
@@ -16,12 +16,23 @@ interface TopBarProps {
   onOpenPalette: () => void;
   /** Opens the global quick-create task dialog (owned by the app frame). */
   onCreateTask: () => void;
+  /** Toggles the floating XCollab AI panel (owned by the app frame). */
+  onToggleAssistant: () => void;
+  assistantOpen: boolean;
   t: Strings;
 }
 
 /** Full-width ~44px top bar: hamburger (sidebar collapse) · "+ Create" pill ·
     centered search affordance (opens the ⌘K palette) · avatar menu. */
-export function TopBar({ collapsed, onToggleCollapsed, onOpenPalette, onCreateTask, t }: TopBarProps) {
+export function TopBar({
+  collapsed,
+  onToggleCollapsed,
+  onOpenPalette,
+  onCreateTask,
+  onToggleAssistant,
+  assistantOpen,
+  t,
+}: TopBarProps) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -101,6 +112,15 @@ export function TopBar({ collapsed, onToggleCollapsed, onOpenPalette, onCreateTa
         </button>
       </div>
       <div className="s2-topbar-side s2-topbar-end">
+        <button
+          type="button"
+          className="s2-ai-trigger"
+          onClick={onToggleAssistant}
+          aria-pressed={assistantOpen}
+        >
+          <Icon icon={Sparkles} size={14} />
+          {t.aiPanelTitle}
+        </button>
         <UserMenu />
       </div>
     </header>

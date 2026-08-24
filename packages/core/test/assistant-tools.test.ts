@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  AddSubtaskArgsSchema,
+  AddTeamMemberArgsSchema,
   ASSISTANT_MUTATION_TOOL_NAMES,
   ASSISTANT_READ_TOOL_NAMES,
   AssistantEventSchema,
   assistantToolDefinition,
   assistantToolSpecs,
   CreateTaskArgsSchema,
+  DeleteProjectArgsSchema,
+  DeleteTaskArgsSchema,
   isAssistantMutationTool,
+  RemoveTeamMemberArgsSchema,
   SearchTasksArgsSchema,
   UpdateTaskArgsSchema,
 } from "../src/assistant-tools.ts";
@@ -19,6 +24,11 @@ describe("assistant tool registry", () => {
       "create_task",
       "update_task",
       "update_project",
+      "delete_task",
+      "delete_project",
+      "add_team_member",
+      "remove_team_member",
+      "add_subtask",
     ]);
     for (const name of ASSISTANT_READ_TOOL_NAMES) {
       expect(isAssistantMutationTool(name)).toBe(false);
@@ -62,6 +72,50 @@ describe("mutation arg schemas", () => {
       dueDate: "2026-09-01",
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it("requires both ids on delete_task and rejects extras being absent", () => {
+    expect(DeleteTaskArgsSchema.safeParse({ programId: "p1", taskId: "t1" }).success).toBe(true);
+    expect(DeleteTaskArgsSchema.safeParse({ programId: "p1" }).success).toBe(false);
+    expect(DeleteTaskArgsSchema.safeParse({ programId: "", taskId: "t1" }).success).toBe(false);
+  });
+
+  it("requires a non-empty programId on delete_project", () => {
+    expect(DeleteProjectArgsSchema.safeParse({ programId: "p1" }).success).toBe(true);
+    expect(DeleteProjectArgsSchema.safeParse({}).success).toBe(false);
+    expect(DeleteProjectArgsSchema.safeParse({ programId: "" }).success).toBe(false);
+  });
+
+  it("requires teamId and username on both team member tools", () => {
+    const ok = { teamId: "team-1", username: "omar" };
+    expect(AddTeamMemberArgsSchema.safeParse(ok).success).toBe(true);
+    expect(RemoveTeamMemberArgsSchema.safeParse(ok).success).toBe(true);
+    expect(AddTeamMemberArgsSchema.safeParse({ teamId: "team-1" }).success).toBe(false);
+    expect(RemoveTeamMemberArgsSchema.safeParse({ username: "omar" }).success).toBe(false);
+    expect(
+      AddTeamMemberArgsSchema.safeParse({ teamId: "team-1", username: "x".repeat(201) }).success,
+    ).toBe(false);
+  });
+
+  it("bounds the add_subtask name to 1..500 characters", () => {
+    const base = { programId: "p1", taskId: "t1" };
+    expect(AddSubtaskArgsSchema.safeParse({ ...base, name: "Check cables" }).success).toBe(true);
+    expect(AddSubtaskArgsSchema.safeParse({ ...base, name: "" }).success).toBe(false);
+    expect(AddSubtaskArgsSchema.safeParse({ ...base, name: "x".repeat(501) }).success).toBe(false);
+    expect(AddSubtaskArgsSchema.safeParse({ ...base, name: "x".repeat(500) }).success).toBe(true);
+  });
+
+  it("classifies every new mutation tool as a mutation", () => {
+    for (const name of [
+      "delete_task",
+      "delete_project",
+      "add_team_member",
+      "remove_team_member",
+      "add_subtask",
+    ]) {
+      expect(isAssistantMutationTool(name)).toBe(true);
+      expect(assistantToolDefinition(name)).toBeDefined();
+    }
   });
 
   it("requires at least one update_task patch field; null clears", () => {

@@ -1,5 +1,3 @@
-import type { Language } from "@xcollab/core";
-
 /**
  * Golden chat cases for the deterministic intent-parser adapter — one per
  * supported intent, EN + AR (spec §2.7 grammar table). Evaluated with a
@@ -7,54 +5,14 @@ import type { Language } from "@xcollab/core";
  * Synthetic content only — Connected-profile rule.
  */
 
-export const CHAT_TODAY = "2026-08-24";
+import { CHAT_SNAPSHOT, CHAT_TODAY, type GoldenChatCase } from "./chat-fixtures.ts";
+import { GOLDEN_CHATS_SEARCH_FALLBACK } from "./chats-search-fallback.ts";
+import { GOLDEN_CHATS_COLLAB } from "./chats-collab.ts";
 
-/** Fixed workspace snapshot (shape of a list_projects tool result). */
-export const CHAT_SNAPSHOT = [
-  {
-    id: "prog-falcon",
-    name: "Falcon Rollout",
-    packages: [
-      {
-        id: "pkg-discovery",
-        name: "Discovery",
-        tasks: [
-          { id: "task-audit", name: "Field kit audit", status: "todo" },
-          { id: "task-radio", name: "Radio survey", status: "blocked" },
-        ],
-      },
-      {
-        id: "pkg-build",
-        name: "Build",
-        tasks: [{ id: "task-rig", name: "Rig assembly", status: "in_progress" }],
-      },
-    ],
-  },
-  {
-    id: "prog-taawun",
-    name: "منصة التعاون",
-    packages: [
-      {
-        id: "pkg-design",
-        name: "التصميم",
-        tasks: [{ id: "task-review", name: "مراجعة الواجهة", status: "todo" }],
-      },
-    ],
-  },
-];
+export { CHAT_SNAPSHOT, CHAT_TODAY };
+export type { GoldenChatCase, GoldenChatExpectation } from "./chat-fixtures.ts";
 
-export type GoldenChatExpectation =
-  | { kind: "tool_call"; tool: string; args: Record<string, unknown> }
-  | { kind: "text"; contains: string };
-
-export interface GoldenChatCase {
-  key: string;
-  language: Language;
-  utterance: string;
-  expected: GoldenChatExpectation;
-}
-
-export const GOLDEN_CHATS: readonly GoldenChatCase[] = [
+const BASE_CHATS: readonly GoldenChatCase[] = [
   // create_project
   {
     key: "en-create-project",
@@ -304,4 +262,10 @@ export const GOLDEN_CHATS: readonly GoldenChatCase[] = [
     utterance: "اكتب لي قصيدة عن الشبكات",
     expected: { kind: "text", contains: "يمكنني" },
   },
+];
+
+export const GOLDEN_CHATS: readonly GoldenChatCase[] = [
+  ...BASE_CHATS,
+  ...GOLDEN_CHATS_SEARCH_FALLBACK,
+  ...GOLDEN_CHATS_COLLAB,
 ];

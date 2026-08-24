@@ -1,11 +1,21 @@
 import type { Language } from "@xcollab/core";
+import {
+  AR_COLLAB_RULES,
+  EN_COLLAB_RULES,
+  stripQuotes,
+  type Rule,
+} from "./deterministic-intent-collab.ts";
 
 /**
  * Deterministic EN/AR intent grammar — spec §2.7 table, implemented as pure
  * functions (same utterance + today ⇒ same intent). References to tasks and
  * projects stay unresolved strings here; resolution against the workspace
- * snapshot happens in deterministic-snapshot.ts.
+ * snapshot happens in deterministic-snapshot.ts. The collaboration rules
+ * (delete task/project, team membership, subtasks) live in
+ * deterministic-intent-collab.ts and run before these base tables.
  */
+
+export { stripQuotes, type Rule } from "./deterministic-intent-collab.ts";
 
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
@@ -26,6 +36,10 @@ export type ParsedIntent =
   | { kind: "my_tasks"; overdue?: boolean; status?: TaskStatus; dueWithinWeek?: boolean }
   | { kind: "project_query"; projectRef: string; overdue?: boolean; status?: TaskStatus }
   | { kind: "summarize"; projectRef: string }
+  | { kind: "delete_task"; taskRef: string; projectRef?: string }
+  | { kind: "delete_project"; projectRef: string }
+  | { kind: "team_member"; op: "add" | "remove"; username: string; teamRef: string }
+  | { kind: "add_subtask"; name: string; taskRef: string; projectRef?: string }
   | { kind: "unknown" };
 
 export interface ParsedUtterance {
@@ -80,11 +94,6 @@ const AR_STATUS: Record<string, TaskStatus> = {
   "قيد الانتظار": "todo",
 };
 
-type Rule = {
-  pattern: RegExp;
-  build: (m: RegExpExecArray, today: string) => ParsedIntent | undefined;
-};
-
 function statusOf(table: Record<string, TaskStatus>, raw: string): TaskStatus | undefined {
   return table[raw.trim().toLowerCase().replace(/\s+/g, " ")];
 }
@@ -116,8 +125,8 @@ const EN_RULES: Rule[] = [
     ),
     build: (m, today) => ({
       kind: "create_task",
-      name: m[1] ?? "",
-      projectRef: m[2] ?? "",
+      name: stripQuotes(m[1] ?? ""),
+      projectRef: stripQuotes(m[2] ?? ""),
       ...(m[3] === undefined ? {} : { packageRef: m[3] }),
       ...dateField("dueDate", m[4], today),
       ...(m[5] === undefined ? {} : { assignee: m[5] }),
@@ -125,15 +134,15 @@ const EN_RULES: Rule[] = [
   },
   {
     pattern: /^unassign\s+(.+)$/i,
-    build: (m) => ({ kind: "assign", taskRef: m[1] ?? "", assignee: null }),
+    build: (m) => ({ kind: "assign", taskRef: stripQuotes(m[1] ?? ""), assignee: null }),
   },
   {
     pattern: /^assign\s+(.+?)\s+to\s+(\S+)$/i,
-    build: (m) => ({ kind: "assign", taskRef: m[1] ?? "", assignee: m[2] ?? "" }),
+    build: (m) => ({ kind: "assign", taskRef: stripQuotes(m[1] ?? ""), assignee: m[2] ?? "" }),
   },
   {
     pattern: /^(?:set|update)\s+(?:the\s+)?description\s+of\s+(.+?)\s+to\s+(.+)$/i,
-    build: (m) => ({ kind: "describe", taskRef: m[1] ?? "", description: m[2] ?? "" }),
+    build: (m) => ({ kind: "describe", taskRef: stripQuotes(m[1] ?? ""), description: m[2] ?? "" }),
   },
   {
     pattern: new RegExp(
@@ -142,14 +151,14 @@ const EN_RULES: Rule[] = [
     ),
     build: (m, today) => {
       const dueDate = parseDateToken(m[2] ?? "", today);
-      return dueDate ? { kind: "reschedule", taskRef: m[1] ?? "", dueDate } : undefined;
+      return dueDate ? { kind: "reschedule", taskRef: stripQuotes(m[1] ?? ""), dueDate } : undefined;
     },
   },
   {
     pattern: /^(?:mark|set|move)\s+(.+?)\s+(?:as\s+|to\s+)?(done|blocked|in progress|in_progress|todo)$/i,
     build: (m) => {
       const status = statusOf(EN_STATUS, m[2] ?? "");
-      return status ? { kind: "set_status", taskRef: m[1] ?? "", status } : undefined;
+      return status ? { kind: "set_status", taskRef: stripQuotes(m[1] ?? ""), status } : undefined;
     },
   },
   {
@@ -162,11 +171,11 @@ const EN_RULES: Rule[] = [
   },
   {
     pattern: /^summari[sz]e\s+(?:project\s+)?(.+)$/i,
-    build: (m) => ({ kind: "summarize", projectRef: m[1] ?? "" }),
+    build: (m) => ({ kind: "summarize", projectRef: stripQuotes(m[1] ?? "") }),
   },
   {
     pattern: /^how\s+is\s+(.+?)\s+(?:doing|going)$/i,
-    build: (m) => ({ kind: "summarize", projectRef: m[1] ?? "" }),
+    build: (m) => ({ kind: "summarize", projectRef: stripQuotes(m[1] ?? "") }),
   },
 ];
 
@@ -191,8 +200,8 @@ const AR_RULES: Rule[] = [
     ),
     build: (m, today) => ({
       kind: "create_task",
-      name: m[1] ?? "",
-      projectRef: m[2] ?? "",
+      name: stripQuotes(m[1] ?? ""),
+      projectRef: stripQuotes(m[2] ?? ""),
       ...(m[3] === undefined ? {} : { packageRef: m[3] }),
       ...dateField("dueDate", m[4], today),
       ...(m[5] === undefined ? {} : { assignee: m[5] }),
@@ -200,15 +209,15 @@ const AR_RULES: Rule[] = [
   },
   {
     pattern: /^(?:الغ|ألغ|الغي|ألغي)\s+تعيين\s+(.+)$/,
-    build: (m) => ({ kind: "assign", taskRef: m[1] ?? "", assignee: null }),
+    build: (m) => ({ kind: "assign", taskRef: stripQuotes(m[1] ?? ""), assignee: null }),
   },
   {
     pattern: /^(?:عين|عيّن|كلف|كلّف)\s+(.+?)\s+(?:الى|إلى|ل)\s+(\S+)$/,
-    build: (m) => ({ kind: "assign", taskRef: m[1] ?? "", assignee: m[2] ?? "" }),
+    build: (m) => ({ kind: "assign", taskRef: stripQuotes(m[1] ?? ""), assignee: m[2] ?? "" }),
   },
   {
     pattern: /^(?:حدث|حدّث|عدل|عدّل)\s+وصف\s+(.+?)\s+(?:الى|إلى)\s+(.+)$/,
-    build: (m) => ({ kind: "describe", taskRef: m[1] ?? "", description: m[2] ?? "" }),
+    build: (m) => ({ kind: "describe", taskRef: stripQuotes(m[1] ?? ""), description: m[2] ?? "" }),
   },
   {
     pattern: new RegExp(
@@ -217,7 +226,7 @@ const AR_RULES: Rule[] = [
     ),
     build: (m, today) => {
       const dueDate = parseDateToken(m[2] ?? "", today);
-      return dueDate ? { kind: "reschedule", taskRef: m[1] ?? "", dueDate } : undefined;
+      return dueDate ? { kind: "reschedule", taskRef: stripQuotes(m[1] ?? ""), dueDate } : undefined;
     },
   },
   {
@@ -226,7 +235,7 @@ const AR_RULES: Rule[] = [
     ),
     build: (m) => {
       const status = statusOf(AR_STATUS, m[2] ?? "");
-      return status ? { kind: "set_status", taskRef: m[1] ?? "", status } : undefined;
+      return status ? { kind: "set_status", taskRef: stripQuotes(m[1] ?? ""), status } : undefined;
     },
   },
   {
@@ -240,11 +249,11 @@ const AR_RULES: Rule[] = [
   },
   {
     pattern: /^(?:لخص|لخّص)\s+(?:مشروع\s+)?(.+)$/,
-    build: (m) => ({ kind: "summarize", projectRef: m[1] ?? "" }),
+    build: (m) => ({ kind: "summarize", projectRef: stripQuotes(m[1] ?? "") }),
   },
   {
     pattern: /^كيف\s+(?:يسير|تسير|حال)\s+(?:مشروع\s+)?(.+)$/,
-    build: (m) => ({ kind: "summarize", projectRef: m[1] ?? "" }),
+    build: (m) => ({ kind: "summarize", projectRef: stripQuotes(m[1] ?? "") }),
   },
 ];
 
@@ -283,24 +292,28 @@ function projectQuery(
   projectRef: string,
   table: Record<string, TaskStatus>,
 ): ParsedIntent {
+  const ref = stripQuotes(projectRef);
   const normalized = word.trim().toLowerCase();
-  if (normalized === "overdue") return { kind: "project_query", projectRef, overdue: true };
+  if (normalized === "overdue") return { kind: "project_query", projectRef: ref, overdue: true };
   const status = statusOf(table, normalized) ?? "blocked";
-  return { kind: "project_query", projectRef, status };
+  return { kind: "project_query", projectRef: ref, status };
 }
 
 function projectQueryAr(word: string, projectRef: string): ParsedIntent {
+  const ref = stripQuotes(projectRef);
   if (word === "المتاخر" || word === "المتأخر") {
-    return { kind: "project_query", projectRef, overdue: true };
+    return { kind: "project_query", projectRef: ref, overdue: true };
   }
-  if (word === "قيد التنفيذ") return { kind: "project_query", projectRef, status: "in_progress" };
-  return { kind: "project_query", projectRef, status: "blocked" };
+  if (word === "قيد التنفيذ") return { kind: "project_query", projectRef: ref, status: "in_progress" };
+  return { kind: "project_query", projectRef: ref, status: "blocked" };
 }
 
 export function parseUtterance(utterance: string, today: string): ParsedUtterance {
   const language: Language = ARABIC_PATTERN.test(utterance) ? "ar" : "en";
   const text = utterance.trim().replace(/\s+/g, " ").replace(/[?!.؟]+$/u, "").trim();
-  for (const rule of language === "ar" ? AR_RULES : EN_RULES) {
+  const rules =
+    language === "ar" ? [...AR_COLLAB_RULES, ...AR_RULES] : [...EN_COLLAB_RULES, ...EN_RULES];
+  for (const rule of rules) {
     const match = rule.pattern.exec(text);
     if (!match) continue;
     const intent = rule.build(match, today);

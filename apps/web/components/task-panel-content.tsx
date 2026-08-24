@@ -19,6 +19,7 @@ import { Icon } from "./ui/icon.tsx";
 import { TaskActivity } from "./task-activity.tsx";
 import { AttachmentsSection } from "./attachments-section.tsx";
 import { TaskPanelFields } from "./task-panel-fields.tsx";
+import { TaskPanelSubtasks } from "./task-panel-subtasks.tsx";
 
 const DISARM_MS = 3000;
 
@@ -281,7 +282,15 @@ export function TaskPanelContent({
           programTeamId={programTeamId(program)}
           commit={commitPatch}
         />
-        {/* Attachments — under Description (TaskPanelFields ends with it). */}
+        {/* Subtasks checklist — under Description (TaskPanelFields ends with it). */}
+        <TaskPanelSubtasks
+          program={program}
+          task={task}
+          uiLanguage={uiLanguage}
+          onProgramUpdate={onProgramUpdate}
+          onMutated={onMutated}
+        />
+        {/* Attachments follow the checklist. */}
         <AttachmentsSection
           programId={program.id}
           taskId={task.id}

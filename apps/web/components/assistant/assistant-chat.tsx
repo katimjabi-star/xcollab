@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { API_BASE, WORKSPACE, listPrograms } from "../../lib/api-client.ts";
 import { makeRefResolver } from "../../lib/assistant-refs.ts";
@@ -20,37 +19,11 @@ import {
 } from "../../lib/assistant-transcript.ts";
 import { useToasts } from "../../lib/toast-context.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
-import { Icon } from "../ui/icon.tsx";
+import { AssistantWelcome } from "./assistant-welcome.tsx";
 import { Composer } from "./composer.tsx";
 import { MessageList } from "./message-list.tsx";
 
 type ProposalMessage = Extract<ChatMessage, { kind: "proposal" }>;
-
-function EmptyState({ onPick }: { onPick: (text: string) => void }): ReactElement {
-  const { t } = useUi();
-  const suggestions = [
-    t.aiSuggestCreateProject,
-    t.aiSuggestAddTask,
-    t.aiSuggestMyTasks,
-    t.aiSuggestSummarize,
-  ];
-  return (
-    <div className="xai-empty">
-      <span className="s2-ai-glyph" aria-hidden>
-        <Icon icon={Sparkles} size={28} />
-      </span>
-      <h3 className="xai-empty-title">{t.aiEmptyTitle}</h3>
-      <p className="xai-empty-body">{t.aiEmptyBody}</p>
-      <div className="xai-suggestions">
-        {suggestions.map((text) => (
-          <button key={text} type="button" className="xai-suggestion" onClick={() => onPick(text)}>
-            {text}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /** The /ai chat surface: client-held transcript (spec D6), SSE turns, and
     the confirm-before-act proposal flow (spec D3). */
@@ -136,7 +109,7 @@ export function AssistantChat(): ReactElement {
       <div className="xai-thread" ref={threadRef}>
         <div className="xai-col">
           {messages.length === 0 ? (
-            <EmptyState onPick={send} />
+            <AssistantWelcome programs={programs} onPick={send} />
           ) : (
             <MessageList
               t={t}
