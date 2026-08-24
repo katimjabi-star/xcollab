@@ -367,6 +367,8 @@ const en = {
   dateYesterday: "Yesterday",
   overdueBy: "Overdue by",
   pastDueDateWarning: "This due date is in the past.",
+  // fix-wave-G keys
+  createTaskAction: "Create task",
 };
 
 type Dictionary = Record<keyof typeof en, string>;
@@ -731,6 +733,8 @@ const ar: Dictionary = {
   dateYesterday: "أمس",
   overdueBy: "متأخرة منذ",
   pastDueDateWarning: "تاريخ الاستحقاق هذا في الماضي.",
+  // fix-wave-G keys
+  createTaskAction: "إنشاء المهمة",
 };
 
 export const STRINGS: Record<UiLanguage, Dictionary> = { en, ar };

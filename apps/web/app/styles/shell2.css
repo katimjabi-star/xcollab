@@ -855,18 +855,19 @@
 
 /* ---- Global quick-create task dialog (top bar "+ Create" → Task) ----
    Floating card at the trailing bottom corner, above the peek panel (30)
-   and below popovers (35) so its selects' menus stay on top. */
+   and below popovers (35). Name-first layout per the reference quick-add:
+   large borderless title input → description → picker row → footer action. */
 .s2-taskdialog {
   position: fixed;
   inset-block-end: var(--space-4);
   inset-inline-end: var(--space-4);
-  width: min(30rem, calc(100vw - 2rem));
+  width: min(35rem, calc(100vw - 2rem));
   z-index: 32;
   background: var(--popover);
   border: 1px solid var(--popover-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
-  padding: var(--space-3);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -880,27 +881,128 @@
 
 .s2-taskdialog-head h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: var(--weight-semibold);
+  color: var(--text-medium);
 }
 
-/* The shared composer stacks vertically inside the dialog (same override
-   the board's compose card uses). */
-.s2-taskdialog .mt-create-inline {
+.s2-taskdialog-form {
+  display: flex;
   flex-direction: column;
-  flex-wrap: nowrap;
-  max-width: none;
-  border: none;
-  padding: 0;
-  background: none;
+  gap: var(--space-3);
 }
 
-.s2-taskdialog .mt-create-field {
-  flex: 0 0 auto;
+/* Borderless title input — the card is the frame. */
+.s2-taskdialog-name {
+  border: none;
+  background: none;
+  color: var(--text-high);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-1) 0;
+}
+
+.s2-taskdialog-name:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.s2-taskdialog-name::placeholder {
+  color: var(--text-low);
+}
+
+.s2-taskdialog-desc {
+  border: none;
+  background: none;
+  color: var(--text-medium);
+  font: inherit;
+  font-size: var(--text-md);
+  resize: vertical;
+  min-block-size: 2.5rem;
+  padding: 0;
+}
+
+.s2-taskdialog-desc:focus {
+  outline: none;
+}
+
+.s2-taskdialog-desc::placeholder {
+  color: var(--text-low);
+}
+
+/* Picker row: labeled compact controls, wrapping on narrow widths. */
+.s2-taskdialog-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border-block-start: 1px solid var(--divider-low);
+  padding-block-start: var(--space-3);
+}
+
+.s2-taskdialog-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  min-inline-size: 0;
+}
+
+.s2-taskdialog-picker-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-thin);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+}
+
+.s2-taskdialog-picker-control select,
+.s2-taskdialog-picker-control input {
+  border: none;
+  background: none;
+  color: var(--text-high);
+  font-size: var(--text-md);
+  max-inline-size: 13rem;
+}
+
+.s2-taskdialog-picker-control select:focus,
+.s2-taskdialog-picker-control input:focus {
+  outline: none;
 }
 
 .s2-taskdialog-warn {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--status-overdue-fg);
+}
+
+.s2-taskdialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-block-start: 1px solid var(--divider-low);
+  padding-block-start: var(--space-3);
+}
+
+.s2-taskdialog-submit {
+  background: var(--button-primary);
+  color: var(--on-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.s2-taskdialog-submit:hover:not(:disabled) {
+  background: var(--button-primary-hover);
+}
+
+.s2-taskdialog-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
