@@ -83,7 +83,15 @@ export class AiGateway {
   }
 
   private synthesize(brief: ProgramBrief, input: string, degradedFrom?: string): GenerationResult {
-    const program = synthesizeProgram(brief);
+    // Same seam contract as adapters: no candidate reaches the caller unvalidated.
+    const parsed = ProgramSchema.safeParse(synthesizeProgram(brief));
+    if (!parsed.success) {
+      throw new ProgramGenerationError(
+        `synthesizer produced schema-invalid output: ${parsed.error.message}`,
+        "synthesizer",
+      );
+    }
+    const program = parsed.data;
     const interaction: InteractionMetadata = {
       adapterId: "synthesizer",
       modelId: "deterministic-synthesizer",

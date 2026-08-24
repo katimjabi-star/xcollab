@@ -135,6 +135,13 @@ function MyTasksBody({
   return <p className="empty">{emptyLabel}</p>;
 }
 
+/** The page-level toolbar belongs to the List and Board views only — the
+    Calendar and Files views ship their own toolbar (no stacked toolbars). */
+function ToolbarSlot({ view, children }: { view: ViewId; children: ReactNode }) {
+  if (view !== "list" && view !== "board") return null;
+  return <>{children}</>;
+}
+
 export default function MyTasksPage() {
   const { t, language } = useUi();
   const { user, getToken } = useAuth();
@@ -255,22 +262,24 @@ export default function MyTasksPage() {
         </div>
       </header>
 
-      <MyTasksToolbar
-        programs={programs ?? []}
-        uiLanguage={language}
-        username={user?.username ?? ""}
-        filterProgramId={filterProgramId}
-        onFilterProgram={setFilterProgramId}
-        sort={sort}
-        onSort={setSort}
-        createOpen={createOpen}
-        onCreateOpenChange={(open) => {
-          setCreateOpen(open);
-          if (open) setComposingBucket(null);
-        }}
-        presetDueDate={null}
-        onCreated={load}
-      />
+      <ToolbarSlot view={view}>
+        <MyTasksToolbar
+          programs={programs ?? []}
+          uiLanguage={language}
+          username={user?.username ?? ""}
+          filterProgramId={filterProgramId}
+          onFilterProgram={setFilterProgramId}
+          sort={sort}
+          onSort={setSort}
+          createOpen={createOpen}
+          onCreateOpenChange={(open) => {
+            setCreateOpen(open);
+            if (open) setComposingBucket(null);
+          }}
+          presetDueDate={null}
+          onCreated={load}
+        />
+      </ToolbarSlot>
 
       {error ? (
         <p className="error-note" role="alert">

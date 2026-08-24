@@ -5,18 +5,23 @@ export type Language = z.infer<typeof LanguageSchema>;
 
 export const TaskStatusSchema = z.enum(["todo", "in_progress", "blocked", "done"]);
 
-export const TaskSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  status: TaskStatusSchema,
-  estimateDays: z.number().positive(),
-  assigneeRole: z.string().min(1).optional(),
-  /** Keycloak username of the assigned person (assigneeRole stays the role hint). */
-  assignee: z.string().min(1).optional(),
-  startDate: z.iso.date().optional(),
-  dueDate: z.iso.date().optional(),
-  description: z.string().max(4000).optional(),
-});
+export const TaskSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(500),
+    status: TaskStatusSchema,
+    estimateDays: z.number().positive(),
+    assigneeRole: z.string().min(1).max(200).optional(),
+    /** Keycloak username of the assigned person (assigneeRole stays the role hint). */
+    assignee: z.string().min(1).max(200).optional(),
+    startDate: z.iso.date().optional(),
+    dueDate: z.iso.date().optional(),
+    description: z.string().max(4000).optional(),
+  })
+  .refine((t) => !t.startDate || !t.dueDate || t.startDate <= t.dueDate, {
+    message: "task startDate must be on or before dueDate",
+    path: ["dueDate"],
+  });
 export type Task = z.infer<typeof TaskSchema>;
 
 export const WorkPackageSchema = z.object({
@@ -43,7 +48,7 @@ export type TeamMember = z.infer<typeof TeamMemberSchema>;
 /** Standalone workspace team (distinct from the embedded per-program TeamSchema). */
 export const WorkspaceTeamSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
+  name: z.string().min(1).max(500),
   description: z.string().max(500).optional(),
   members: z.array(TeamMemberSchema),
 });

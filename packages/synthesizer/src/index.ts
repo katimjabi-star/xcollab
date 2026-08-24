@@ -91,6 +91,11 @@ function daysBetween(start: string, end: string): number {
   return Math.max(1, Math.round(ms / 86_400_000));
 }
 
+/** ISO dates compare lexicographically; keeps every generated date ≤ end. */
+function minIso(a: string, b: string): string {
+  return a <= b ? a : b;
+}
+
 function titleFromMission(mission: string, language: Language): string {
   const head = mission.trim().split(/\s+/).slice(0, 5).join(" ");
   return `${TEXT.programPrefix[language]} ${head}`;
@@ -101,15 +106,19 @@ function buildTasks(
   language: Language,
   phaseIndex: number,
   phaseWindow: { start: string; days: number },
+  timelineEnd: string,
 ): Task[] {
   const count = template.tasks[language].length;
+  // Tasks stagger across the phase window; clamping to the timeline end keeps
+  // degenerate (shorter-than-phase-count) timelines inside start–end while
+  // preserving dueDate ≥ startDate. Pure in the inputs — no clock reads.
   return template.tasks[language].map((name, i) => ({
     id: `task-${phaseIndex + 1}-${i + 1}`,
     name,
     status: "todo" as const,
     estimateDays: 3 + i,
-    startDate: addDays(phaseWindow.start, Math.round((phaseWindow.days * i) / count)),
-    dueDate: addDays(phaseWindow.start, Math.round((phaseWindow.days * (i + 1)) / count)),
+    startDate: minIso(addDays(phaseWindow.start, Math.round((phaseWindow.days * i) / count)), timelineEnd),
+    dueDate: minIso(addDays(phaseWindow.start, Math.round((phaseWindow.days * (i + 1)) / count)), timelineEnd),
   }));
 }
 
@@ -128,10 +137,13 @@ export function synthesizeProgram(brief: ProgramBrief): Program {
     id: `wbp-${i + 1}`,
     name: phase.name[language],
     scope: phase.scope[language],
-    tasks: buildTasks(phase, language, i, {
-      start: addDays(timeline.start, phaseDays * i),
-      days: phaseDays,
-    }),
+    tasks: buildTasks(
+      phase,
+      language,
+      i,
+      { start: minIso(addDays(timeline.start, phaseDays * i), timeline.end), days: phaseDays },
+      timeline.end,
+    ),
     dependsOn: i === 0 ? [] : [`wbp-${i}`],
   }));
 

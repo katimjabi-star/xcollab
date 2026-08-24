@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
+import { formatDayCount, formatMemberCount, STRINGS, type UiLanguage } from "../lib/i18n.ts";
 
 const ARABIC_PATTERN = /[؀-ۿ]/;
 
@@ -20,5 +20,27 @@ describe("i18n dictionaries", () => {
     expect(STRINGS.ar.missionLabel).toMatch(ARABIC_PATTERN);
     expect(STRINGS.ar.generate).toMatch(ARABIC_PATTERN);
     expect(STRINGS.ar.tagline).toMatch(ARABIC_PATTERN);
+  });
+});
+
+describe("count pluralization (fix-wave-C)", () => {
+  it("pluralizes day counts in English", () => {
+    expect(formatDayCount(STRINGS.en, 1)).toBe("1 day");
+    expect(formatDayCount(STRINGS.en, 2)).toBe("2 days");
+    expect(formatDayCount(STRINGS.en, 5)).toBe("5 days");
+  });
+
+  it("uses Arabic singular/dual/plural day forms", () => {
+    expect(formatDayCount(STRINGS.ar, 1)).toBe("يوم واحد");
+    expect(formatDayCount(STRINGS.ar, 2)).toBe("يومان");
+    expect(formatDayCount(STRINGS.ar, 5)).toBe("5 أيام");
+  });
+
+  it("pluralizes member counts in both languages", () => {
+    expect(formatMemberCount(STRINGS.en, 1)).toBe("1 member");
+    expect(formatMemberCount(STRINGS.en, 3)).toBe("3 members");
+    expect(formatMemberCount(STRINGS.ar, 1)).toBe("عضو واحد");
+    expect(formatMemberCount(STRINGS.ar, 2)).toBe("عضوان");
+    expect(formatMemberCount(STRINGS.ar, 4)).toBe("4 أعضاء");
   });
 });

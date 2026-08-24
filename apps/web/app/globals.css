@@ -9,11 +9,14 @@
 @import "./styles/pages.css";
 @import "./styles/board.css";
 @import "./styles/list.css";
+@import "./styles/project.css";
 @import "./styles/views.css";
 @import "./styles/calendar.css";
 @import "./styles/panel.css";
 @import "./styles/settings.css";
 @import "./styles/browse.css";
+@import "./styles/create.css";
+@import "./styles/teams.css";
 
 /* Faces per KDS Typography: Inter (Latin) + Cairo (Arabic), self-hosted. */
 @font-face {

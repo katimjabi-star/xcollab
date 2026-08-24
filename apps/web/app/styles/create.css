@@ -1,0 +1,371 @@
+/* Create-with-AI page ("/") — fix-wave-B. The app's create-project flow:
+   hero mission card, restyled stat tiles, recent-project rows. Card frame
+   mirrors shell2.css .s2-home-card (radius-card + elev border ladder +
+   shadow-raised, which is NONE in dark — dark elevation = borders only).
+   Logical properties throughout; every rule mirrors for free in RTL. */
+
+.create-page {
+  max-inline-size: 1040px;
+  margin-inline: auto;
+}
+
+/* ---- Page header (Browse-style start-aligned title) ---- */
+.create-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.create-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+  letter-spacing: -0.01em;
+}
+
+.create-tagline {
+  font-size: var(--text-md);
+  color: var(--text-medium);
+}
+
+/* ---- Shared card frame (Home/Dashboard card look) ---- */
+.create-card {
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  padding: var(--space-5);
+  min-inline-size: 0;
+}
+
+.create-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.create-card-head h2 {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+}
+
+.create-card-link {
+  margin-inline-start: auto;
+  font-size: var(--text-md);
+  color: var(--text-medium);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.create-card-link:hover {
+  color: var(--text-brand);
+}
+
+.create-card-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* ---- Hero: the mission composer ---- */
+.create-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.create-hero-icon {
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--chip-selected);
+  color: var(--text-brand);
+}
+
+.create-hero label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+.create-hero textarea {
+  inline-size: 100%;
+  min-block-size: 72px;
+  resize: vertical;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: var(--text-md);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.create-hero textarea:hover {
+  border-color: var(--border);
+}
+
+.create-hero textarea::placeholder {
+  color: var(--text-low);
+}
+
+.create-hero textarea:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* One meta row: dates · parent · team, labels above inputs, the primary
+   action pinned inline-end. */
+.create-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.create-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.create-form-row input[type="date"],
+.create-form-row select {
+  block-size: 32px;
+  border: 1px solid var(--input-line);
+  border-radius: var(--radius-md);
+  background: var(--surface-thin);
+  color: var(--text-high);
+  font: inherit;
+  font-size: var(--text-md);
+  padding-inline: var(--space-2);
+  color-scheme: light dark;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.create-form-row select {
+  max-inline-size: 240px;
+}
+
+.create-form-row input[type="date"]:hover,
+.create-form-row select:hover {
+  border-color: var(--border);
+}
+
+.create-form-row input[type="date"]:focus-visible,
+.create-form-row select:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Primary action: 32px, semibold 13px, spinner while generating */
+.create-generate-btn {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--button-primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding-inline: var(--space-4);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    transform 100ms var(--ease-out);
+}
+
+.create-generate-btn:hover {
+  background: var(--button-primary-hover);
+}
+
+.create-generate-btn:active {
+  transform: scale(0.97);
+}
+
+.create-generate-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+  transform: none;
+}
+
+.create-generate-btn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Determinate-less progress ring — the one sanctioned looping animation
+   (feedback, not decoration). Reduced motion keeps the static ring; the
+   "Generating…" label carries the signal. */
+.create-spinner {
+  flex: none;
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: var(--radius-full);
+  border: 2px solid color-mix(in oklab, var(--on-primary) 35%, transparent);
+  border-block-start-color: var(--on-primary);
+  animation: create-spin 0.8s linear infinite;
+}
+
+@keyframes create-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-spinner {
+    animation: none;
+  }
+}
+
+/* ---- Stat tiles (Home card look, linked surfaces) ---- */
+.create-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.create-stat {
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  justify-content: center;
+  min-block-size: 68px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+a.create-stat:hover {
+  border-color: var(--elev-border-strong);
+  background: var(--card-hover);
+}
+
+a.create-stat:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.create-stat-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+}
+
+.create-stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  color: var(--text-highest);
+  font-variant-numeric: tabular-nums;
+}
+
+.create-stat-value.create-stat-good {
+  color: var(--status-done-fg);
+}
+
+.create-stat-value.create-stat-bad {
+  color: var(--status-overdue-fg);
+}
+
+.create-stat-sub {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+}
+
+/* ---- Recent projects: swatch rows inside the card ---- */
+.create-recent-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.create-recent-list > li:not(:last-child) {
+  border-block-end: 1px solid var(--hairline);
+}
+
+.create-recent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 44px;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.create-recent-row:hover {
+  background: var(--surface-thin);
+}
+
+.create-recent-row:active {
+  background: var(--state-pressed);
+}
+
+.create-recent-row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.create-swatch {
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--radius-lg);
+}
+
+.create-recent-name {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-high);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-recent-meta {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+
+/* Skeleton twin of a 44px recent row (no layout shift) */
+.create-row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 44px;
+  padding-inline: var(--space-2);
+}
+
+.create-row-skeleton > :last-child {
+  margin-inline-start: auto;
+}

@@ -80,6 +80,20 @@ async function runMigration(admin: PoolClient): Promise<void> {
       ON attachments (workspace_id, program_id);
   `);
 
+  // Constraints the API already guarantees, restated at the DB layer so no
+  // other writer can store what AttachmentSchema forbids. Idempotent by name.
+  await admin.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_constraint WHERE conname = 'attachments_size_bytes_nonnegative') THEN
+        ALTER TABLE attachments ADD CONSTRAINT attachments_size_bytes_nonnegative CHECK (size_bytes >= 0);
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_constraint WHERE conname = 'attachments_sha256_format') THEN
+        ALTER TABLE attachments ADD CONSTRAINT attachments_sha256_format CHECK (sha256 ~ '^[0-9a-f]{64}$');
+      END IF;
+    END $$;
+  `);
+
   const quotedPassword = `'${APP_ROLE_PASSWORD.replaceAll("'", "''")}'`;
   await admin.query(`
     DO $$

@@ -1,15 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import type { Program } from "@xcollab/core";
 import { ApiError, listPrograms } from "../../../lib/api-client.ts";
+import { useAuth } from "../../../lib/auth-context.tsx";
 import { setDocumentTitle } from "../../../lib/nav.ts";
 import { useUi } from "../../../lib/ui-context.tsx";
 import { useWorkspaceData } from "../../../lib/use-workspace-data.ts";
-import { ProgramView } from "../../../components/program-view.tsx";
+import {
+  ProjectHeader,
+  type ProjectViewId,
+} from "../../../components/project-header.tsx";
+import { ProjectListView } from "../../../components/project-list-view.tsx";
 import { Board } from "../../../components/board.tsx";
 import { TimelineView } from "../../../components/timeline-view.tsx";
 import { InsightsView } from "../../../components/insights-view.tsx";
@@ -17,14 +20,13 @@ import { CalendarView, type CalendarItem } from "../../../components/calendar-vi
 import { FilesView } from "../../../components/files-view.tsx";
 import { TaskPanel } from "../../../components/task-panel.tsx";
 import { locateTask } from "../../../components/task-panel-content.tsx";
-import { formatIsoDate, programColor, programDisplayName } from "../../../lib/program-format.ts";
-import { Icon } from "../../../components/ui/icon.tsx";
+import { programColor, programDisplayName } from "../../../lib/program-format.ts";
 
 /** Views that persist in ?view=; "list" is the default and keeps a clean URL.
     Tab order matches the target IA: List · Board · Timeline · Dashboard ·
     Calendar · Files. */
 const URL_VIEWS = ["board", "timeline", "dashboard", "calendar", "files"] as const;
-type ViewId = "list" | (typeof URL_VIEWS)[number];
+type ViewId = ProjectViewId;
 
 /** Old deep links used ?view=insights; it stays an alias of dashboard. */
 function normalizeViewParam(raw: string | null): string | null {
@@ -84,86 +86,31 @@ function PageNotices({ error, notFound }: { error: unknown; notFound: boolean })
   );
 }
 
-/** View-switcher row; non-list views add the compact program line beside it,
-    prefixed with a "ParentName ›" crumb when the program has a parent. */
-function ProgramTopline({
-  program,
-  parent,
-  view,
-  onViewChange,
-}: {
-  program: Program;
-  parent: { id: string; name: string } | null;
-  view: ViewId;
-  onViewChange: (view: ViewId) => void;
-}) {
-  const { t } = useUi();
-  const labels: Record<ViewId, string> = {
-    list: t.viewList,
-    board: t.viewBoard,
-    timeline: t.viewTimeline,
-    dashboard: t.viewInsights,
-    calendar: t.viewCalendar,
-    files: t.viewFiles,
-  };
-  const compact = view !== "list";
-  return (
-    <div className={view === "board" ? "board-topline" : compact ? "view-topline" : undefined}>
-      {compact ? (
-        <div className="board-program-line" dir={program.language === "ar" ? "rtl" : "ltr"}>
-          {parent ? (
-            <p className="program-parent-crumb">
-              <Link href={`/projects/${parent.id}`} dir="auto">
-                {programDisplayName(parent)}
-              </Link>
-              <Icon icon={ChevronRight} size={12} directional />
-            </p>
-          ) : null}
-          <h2 className="board-program-name">{programDisplayName(program)}</h2>
-          {/* Locale dates; ISO stays in the tooltip for auditors (audit #4) */}
-          <span
-            className="board-program-dates"
-            title={`${program.timeline.start} → ${program.timeline.end}`}
-          >
-            {formatIsoDate(program.timeline.start, program.language)} →{" "}
-            {formatIsoDate(program.timeline.end, program.language)}
-          </span>
-        </div>
-      ) : null}
-      <div className="view-switcher" role="group" aria-label={t.viewSwitcherLabel}>
-        {(["list", ...URL_VIEWS] as const).map((id) => (
-          <button key={id} type="button" aria-pressed={view === id} onClick={() => onViewChange(id)}>
-            {labels[id]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** Body for the active tab — branch chain lives here to keep the page's own
     cyclomatic complexity within the lint budget. */
 function SelectedView({
   view,
   program,
-  parent,
+  programs,
+  username,
   language,
   onTaskSelect,
   onProgramUpdate,
 }: {
   view: ViewId;
   program: Program;
-  parent: Program | null;
+  programs: Program[];
+  username: string;
   language: "en" | "ar";
   onTaskSelect: (taskId: string) => void;
   onProgramUpdate: (program: Program) => void;
 }) {
   return view === "list" ? (
-    <ProgramView
+    <ProjectListView
       program={program}
+      programs={programs}
       uiLanguage={language}
-      detail
-      parent={parent}
+      username={username}
       onTaskSelect={onTaskSelect}
       onProgramUpdate={onProgramUpdate}
     />
@@ -194,7 +141,8 @@ function SelectedView({
 }
 
 export default function ProgramDetailPage() {
-  const { t, language, dir } = useUi();
+  const { language } = useUi();
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const { data, error, loaded } = useWorkspaceData(listPrograms);
   const [view, setViewState] = useState<ViewId>("list");
@@ -254,22 +202,25 @@ export default function ProgramDetailPage() {
 
   return (
     <>
-      {/* Board mode drops the centered program card: edge-to-edge surface with
-          a compact program line; the board owns the remaining viewport. */}
-      <div className={boardMode ? "content board-mode" : "content"}>
-        <Link className="back-link" href="/projects">
-          <span aria-hidden>{dir === "rtl" ? "→" : "←"}</span> {t.backToPrograms}
-        </Link>
-
+      {/* Board mode drops padding: edge-to-edge surface where the board owns
+          the remaining viewport; the header keeps its inline margins via CSS. */}
+      <div className={boardMode ? "content proj-page board-mode" : "content proj-page"}>
         <PageNotices error={error} notFound={loaded && !error && !program} />
 
         {program ? (
           <>
-            <ProgramTopline program={program} parent={parent} view={view} onViewChange={setView} />
+            <ProjectHeader
+              program={program}
+              parent={parent}
+              uiLanguage={language}
+              view={view}
+              onViewChange={setView}
+            />
             <SelectedView
               view={view}
               program={program}
-              parent={parent}
+              programs={data ?? [program]}
+              username={user?.username ?? ""}
               language={language}
               onTaskSelect={selectTask}
               onProgramUpdate={setPatched}

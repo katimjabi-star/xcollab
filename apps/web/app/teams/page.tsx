@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE, WORKSPACE } from "../../lib/api-client.ts";
+import { API_BASE, WORKSPACE, listPrograms } from "../../lib/api-client.ts";
 import {
   listTeams,
   listUsers,
@@ -11,6 +11,7 @@ import {
 } from "../../lib/api-teams.ts";
 import { useAuth } from "../../lib/auth-context.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
+import { useWorkspaceData } from "../../lib/use-workspace-data.ts";
 import { Skeleton } from "../../components/ui/skeleton.tsx";
 import { TeamCard } from "../../components/teams-card.tsx";
 import { TeamsCreateForm } from "../../components/teams-create-form.tsx";
@@ -34,6 +35,8 @@ export default function TeamsPage() {
   const [usersError, setUsersError] = useState(false);
   const [creating, setCreating] = useState(false);
   const showSkeleton = useSkeletonGate(teams !== null || teamsError);
+  /* One workspace-wide fetch feeds every card's linked-project chips. */
+  const { data: programs } = useWorkspaceData(listPrograms);
 
   useEffect(() => {
     // Register the Bearer source BEFORE the first fetch fires (same effect).
@@ -96,13 +99,13 @@ export default function TeamsPage() {
         </p>
       ) : teams === null ? (
         showSkeleton ? (
-          <div className="teams-list">
+          <div className="teams-grid">
             {Array.from({ length: 3 }, (_, i) => (
               <Skeleton
                 key={i}
                 width="100%"
-                height="44px"
-                radius="8px"
+                height="180px"
+                radius="10px"
                 label={i === 0 ? t.skeletonLoading : undefined}
               />
             ))}
@@ -111,13 +114,14 @@ export default function TeamsPage() {
       ) : teams.length === 0 && !creating ? (
         <p className="empty">{t.teamsEmpty}</p>
       ) : (
-        <div className="teams-list">
+        <div className="teams-grid">
           {teams.map((team) => (
             <TeamCard
               key={team.id}
               team={team}
               users={users}
               usersError={usersError}
+              programs={programs}
               onChange={applyTeam}
               onDeleted={dropTeam}
             />

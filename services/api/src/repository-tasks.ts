@@ -24,6 +24,27 @@ export interface NewTaskInput {
   description?: string;
 }
 
+/**
+ * Cross-field rule violation (start after due) on the MERGED task — only
+ * detectable once request changes are applied over the stored task. Thrown
+ * inside the mutation transaction so it rolls back with no ledger row; the
+ * route layer maps it to a structured 400.
+ */
+export class InvalidTaskDatesError extends Error {
+  readonly code = "invalid_task_dates";
+
+  constructor() {
+    super("task startDate must be on or before dueDate");
+    this.name = "InvalidTaskDatesError";
+  }
+}
+
+function assertDateOrder(task: Task): void {
+  if (task.startDate && task.dueDate && task.startDate > task.dueDate) {
+    throw new InvalidTaskDatesError();
+  }
+}
+
 export type DeleteTaskResult =
   | { outcome: "deleted"; program: Program; ledgerSeq: number }
   | { outcome: "not_found" }
@@ -146,7 +167,9 @@ export async function updateTaskTx(
       tasks: pkg.tasks.map((task) => {
         if (task.id !== taskId) return task;
         before = task;
-        return applyChanges(task, changes);
+        const merged = applyChanges(task, changes);
+        assertDateOrder(merged);
+        return merged;
       }),
     }));
     if (before === null) return { commit: false, value: null };
@@ -197,6 +220,7 @@ export async function createTaskTx(
       ...(input.dueDate === undefined ? {} : { dueDate: input.dueDate }),
       ...(input.description === undefined ? {} : { description: input.description }),
     };
+    assertDateOrder(task);
     const packages = stored.packages.map((pkg) =>
       pkg.id === packageId ? { ...pkg, tasks: [...pkg.tasks, task] } : pkg,
     );

@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { LanguageSchema, TaskSchema, verifyChain } from "@xcollab/core";
-import type { AiGateway } from "@xcollab/ai-gateway";
+import { LanguageSchema, TaskSchema, TimelineSchema, verifyChain } from "@xcollab/core";
+import { ProgramGenerationError, type AiGateway } from "@xcollab/ai-gateway";
 import { createAuthMiddleware, type AuthEnv } from "./auth.ts";
-import type { LedgerActor, TaskFieldChanges, WorkGraphRepository } from "./repository.ts";
+import {
+  InvalidTaskDatesError,
+  type LedgerActor,
+  type TaskFieldChanges,
+  type WorkGraphRepository,
+} from "./repository.ts";
+import { listRealmUsers } from "./users.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
 import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
@@ -14,7 +20,9 @@ const CreateProgramRequestSchema = z.object({
   workspaceId: z.string().min(1),
   mission: z.string().min(1).max(20_000),
   language: LanguageSchema,
-  timeline: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
+  // TimelineSchema enforces valid ISO dates AND end-after-start at the boundary,
+  // so an inverted brief is a 400 here — never a schema-invalid stored program.
+  timeline: TimelineSchema.optional(),
   teamHints: z.array(z.string().min(1)).max(20).optional(),
   parentId: z.string().min(1).optional(),
   teamId: z.string().min(1).optional(),
@@ -52,18 +60,30 @@ const UpdateTaskRequestSchema = z
   })
   .refine((body) => UPDATABLE_TASK_KEYS.some((key) => body[key] !== undefined), {
     message: "at least one task field is required",
-  });
+  })
+  .refine(
+    (body) =>
+      typeof body.startDate !== "string" ||
+      typeof body.dueDate !== "string" ||
+      body.startDate <= body.dueDate,
+    { message: "task startDate must be on or before dueDate", path: ["dueDate"] },
+  );
 
-const CreateTaskRequestSchema = z.object({
-  workspaceId: z.string().min(1),
-  packageId: z.string().min(1),
-  name: TaskSchema.shape.name,
-  estimateDays: TaskSchema.shape.estimateDays.optional(),
-  assigneeRole: TaskSchema.shape.assigneeRole,
-  startDate: TaskSchema.shape.startDate,
-  dueDate: TaskSchema.shape.dueDate,
-  description: TaskSchema.shape.description,
-});
+const CreateTaskRequestSchema = z
+  .object({
+    workspaceId: z.string().min(1),
+    packageId: z.string().min(1),
+    name: TaskSchema.shape.name,
+    estimateDays: TaskSchema.shape.estimateDays.optional(),
+    assigneeRole: TaskSchema.shape.assigneeRole,
+    startDate: TaskSchema.shape.startDate,
+    dueDate: TaskSchema.shape.dueDate,
+    description: TaskSchema.shape.description,
+  })
+  .refine((body) => !body.startDate || !body.dueDate || body.startDate <= body.dueDate, {
+    message: "task startDate must be on or before dueDate",
+    path: ["dueDate"],
+  });
 
 export function createApp(
   repo: WorkGraphRepository,
@@ -72,6 +92,26 @@ export function createApp(
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   app.use("/api/*", cors({ origin: ["http://localhost:3000"] }));
+
+  // Authenticated per-user API: nothing is cacheable by browsers or proxies.
+  // Set BEFORE next(): @hono/node-server's lightweight response fast-path does
+  // not serialize post-handler c.res.headers mutations, prepared headers it does.
+  app.use("/api/*", async (c, next) => {
+    c.header("cache-control", "no-store");
+    await next();
+  });
+
+  // Typed domain errors become structured 4xx/5xx; nothing leaks a stack trace.
+  app.onError((error, c) => {
+    if (error instanceof InvalidTaskDatesError) {
+      return c.json({ error: error.code, message: error.message }, 400);
+    }
+    if (error instanceof ProgramGenerationError) {
+      return c.json({ error: "generation_failed", message: error.message }, 502);
+    }
+    console.error(error);
+    return c.json({ error: "internal_error" }, 500);
+  });
 
   // Registered before the auth middleware so it stays open without a token.
   app.get("/api/health", (c) => c.json({ ok: true }));
@@ -142,6 +182,13 @@ export function createApp(
     const parsed = UpdateTaskRequestSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "invalid request", issues: parsed.error.issues }, 400);
+    }
+    // A set (non-null) assignee must be a known realm user; null still clears.
+    if (typeof parsed.data.assignee === "string") {
+      const users = await listRealmUsers();
+      if (!users.some((user) => user.username === parsed.data.assignee)) {
+        return c.json({ error: "unknown_assignee" }, 400);
+      }
     }
     const changes: TaskFieldChanges = {};
     for (const key of UPDATABLE_TASK_KEYS) {

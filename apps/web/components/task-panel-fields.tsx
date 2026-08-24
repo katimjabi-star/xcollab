@@ -114,6 +114,7 @@ export function TaskPanelFields({
   const t = STRINGS[uiLanguage];
   const [startDate, setStartDate] = useState(task.startDate ?? "");
   const [dueDate, setDueDate] = useState(task.dueDate ?? "");
+  const [dateError, setDateError] = useState(false);
   const [estimate, setEstimate] = useState(String(task.estimateDays));
   const [assignee, setAssignee] = useState(task.assigneeRole ?? "");
   const [assigneeUser, setAssigneeUser] = useState<string | null>(task.assignee ?? null);
@@ -126,6 +127,17 @@ export function TaskPanelFields({
     revert: (value: string) => void,
     previous: string,
   ) => {
+    // Cross-field order check (ISO dates compare lexicographically): an edit
+    // creating start > due keeps the typed value visible with an inline error
+    // and sends no PATCH — the server state stays at the last valid pair.
+    const start = field === "startDate" ? value : startDate;
+    const due = field === "dueDate" ? value : dueDate;
+    if (start !== "" && due !== "" && start > due) {
+      revert(value);
+      setDateError(true);
+      return;
+    }
+    setDateError(false);
     revert(value);
     void commit({ [field]: value === "" ? null : value }).then((ok) => {
       if (!ok) revert(previous);
@@ -234,6 +246,8 @@ export function TaskPanelFields({
               type="date"
               className="prop-input"
               value={startDate}
+              aria-invalid={dateError || undefined}
+              aria-describedby={dateError ? "task-panel-dates-error" : undefined}
               onChange={(event) =>
                 commitDate("startDate", event.target.value, setStartDate, task.startDate ?? "")
               }
@@ -250,6 +264,8 @@ export function TaskPanelFields({
               type="date"
               className="prop-input"
               value={dueDate}
+              aria-invalid={dateError || undefined}
+              aria-describedby={dateError ? "task-panel-dates-error" : undefined}
               onChange={(event) =>
                 commitDate("dueDate", event.target.value, setDueDate, task.dueDate ?? "")
               }
@@ -261,6 +277,11 @@ export function TaskPanelFields({
             ) : null}
           </div>
         </div>
+        {dateError ? (
+          <p className="error-note" id="task-panel-dates-error" role="alert">
+            {t.taskDatesOrderError}
+          </p>
+        ) : null}
         <div className="prop-row">
           <span className="prop-label">{t.taskPackage}</span>
           <div className="prop-value">

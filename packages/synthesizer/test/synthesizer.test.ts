@@ -52,6 +52,43 @@ describe("synthesizeProgram", () => {
     expect(synthesizeProgram(brief)).toEqual(synthesizeProgram(brief));
   });
 
+  it("dates every task inside the timeline, sections in sequence", () => {
+    const program = synthesizeProgram(brief);
+    let previousStart = timeline.start;
+    for (const pkg of program.packages) {
+      for (const task of pkg.tasks) {
+        expect(task.startDate, `${task.id} startDate`).toBeDefined();
+        expect(task.dueDate, `${task.id} dueDate`).toBeDefined();
+        const startDate = task.startDate ?? "";
+        const dueDate = task.dueDate ?? "";
+        expect(dueDate >= startDate, `${task.id} due >= start`).toBe(true);
+        expect(startDate >= timeline.start, `${task.id} inside start`).toBe(true);
+        expect(dueDate <= timeline.end, `${task.id} inside end`).toBe(true);
+        // Sections run in sequence; tasks within a section are staggered.
+        expect(startDate >= previousStart, `${task.id} staggered`).toBe(true);
+        previousStart = startDate;
+      }
+    }
+  });
+
+  it("keeps task dates inside even a degenerate 2-day timeline", () => {
+    const tiny = { start: "2026-09-01", end: "2026-09-02" };
+    const program = synthesizeProgram({ ...brief, timeline: tiny });
+    for (const task of program.packages.flatMap((pkg) => pkg.tasks)) {
+      expect((task.startDate ?? "") >= tiny.start).toBe(true);
+      expect((task.dueDate ?? "") <= tiny.end).toBe(true);
+      expect((task.dueDate ?? "") >= (task.startDate ?? "")).toBe(true);
+    }
+  });
+
+  it("dates every task inside the defaulted timeline too", () => {
+    const program = synthesizeProgram({ mission: brief.mission, language: "en" });
+    for (const task of program.packages.flatMap((pkg) => pkg.tasks)) {
+      expect((task.startDate ?? "") >= program.timeline.start).toBe(true);
+      expect((task.dueDate ?? "") <= program.timeline.end).toBe(true);
+    }
+  });
+
   it("defaults the timeline when none is given", () => {
     const program = synthesizeProgram({ mission: brief.mission, language: "en" });
     expect(() => ProgramSchema.parse(program)).not.toThrow();

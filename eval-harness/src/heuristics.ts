@@ -1,4 +1,4 @@
-import { findDependencyCycle, ProgramSchema } from "@xcollab/core";
+import { findDependencyCycle, ProgramSchema, type Task } from "@xcollab/core";
 import type { ProgramBrief } from "@xcollab/synthesizer";
 
 export interface HeuristicReport {
@@ -7,6 +7,26 @@ export interface HeuristicReport {
 }
 
 const ARABIC_PATTERN = /[؀-ۿ]/;
+
+/** Every generated task must be scheduled: dated, ordered, inside the
+    program timeline (Timeline/Calendar views are empty otherwise). */
+function checkTaskDates(
+  program: { timeline: { start: string; end: string }; packages: { tasks: Task[] }[] },
+  failures: string[],
+): void {
+  for (const task of program.packages.flatMap((pkg) => pkg.tasks)) {
+    if (!task.startDate || !task.dueDate) {
+      failures.push(`task "${task.id}" is missing startDate/dueDate`);
+      continue;
+    }
+    if (task.dueDate < task.startDate) {
+      failures.push(`task "${task.id}" is due before it starts`);
+    }
+    if (task.startDate < program.timeline.start || task.dueDate > program.timeline.end) {
+      failures.push(`task "${task.id}" falls outside the timeline`);
+    }
+  }
+}
 
 /**
  * Fast, model-free checks — the PR-gate layer of eval-driven development.
@@ -23,6 +43,7 @@ export function runHeuristics(brief: ProgramBrief, candidate: unknown): Heuristi
 
   if (findDependencyCycle(program.packages)) failures.push("dependency graph has a cycle");
   if (program.language !== brief.language) failures.push("language does not match brief");
+  checkTaskDates(program, failures);
 
   if (brief.timeline) {
     if (program.timeline.start !== brief.timeline.start || program.timeline.end !== brief.timeline.end) {

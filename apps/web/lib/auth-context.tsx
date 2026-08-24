@@ -181,8 +181,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Back/forward cache: after logout the tab navigates to Keycloak's
+    // end-session page, but Back can restore this document from bfcache with
+    // the in-memory session intact. The stored session was dropped before the
+    // navigation, so a persisted restore without one must not show live data —
+    // reload, which boots into the sign-in gate.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && sessionRef.current && !readStoredSession()) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+
     // Mount-only: processes the redirect callback exactly once.
     void bootstrap().finally(() => setReady(true));
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
   useEffect(() => {

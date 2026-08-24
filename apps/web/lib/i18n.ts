@@ -343,6 +343,25 @@ const en = {
   myTasksCustomize: "Customize",
   myTasksEmpty: "No tasks assigned to you yet.",
   myTasksPickTarget: "Add task to…",
+  // fix-wave-B keys
+  createTitle: "Create a project",
+  createWithAi: "Create with AI",
+  projectCreated: "Project created",
+  // fix-wave-A keys
+  overviewHeading: "Overview",
+  // fix-wave-C keys
+  dayCountOne: "1 day",
+  dayCountTwo: "2 days",
+  dayCountMany: "{n} days",
+  memberCountOne: "1 member",
+  memberCountTwo: "2 members",
+  memberCountMany: "{n} members",
+  teamNoDescription: "No description yet.",
+  teamProjectsLabel: "Projects",
+  // fix-wave-E keys
+  missionRequiredError: "Enter a mission brief before generating.",
+  createDatesOrderError: "The start date must be on or before the target end date.",
+  taskDatesOrderError: "The start date must be on or before the due date.",
 };
 
 type Dictionary = Record<keyof typeof en, string>;
@@ -683,6 +702,44 @@ const ar: Dictionary = {
   myTasksCustomize: "تخصيص",
   myTasksEmpty: "لا توجد مهام مُسندة إليك بعد.",
   myTasksPickTarget: "إضافة مهمة إلى…",
+  // fix-wave-B keys
+  createTitle: "إنشاء مشروع",
+  createWithAi: "أنشئ بالذكاء الاصطناعي",
+  projectCreated: "تم إنشاء المشروع",
+  // fix-wave-A keys
+  overviewHeading: "نظرة عامة",
+  // fix-wave-C keys
+  dayCountOne: "يوم واحد",
+  dayCountTwo: "يومان",
+  dayCountMany: "{n} أيام",
+  memberCountOne: "عضو واحد",
+  memberCountTwo: "عضوان",
+  memberCountMany: "{n} أعضاء",
+  teamNoDescription: "لا يوجد وصف بعد.",
+  teamProjectsLabel: "المشاريع",
+  // fix-wave-E keys
+  missionRequiredError: "أدخل موجز المهمة قبل التوليد.",
+  createDatesOrderError: "يجب أن يكون تاريخ البداية في نفس يوم النهاية المستهدفة أو قبله.",
+  taskDatesOrderError: "يجب أن يكون تاريخ البدء في نفس يوم الاستحقاق أو قبله.",
 };
 
 export const STRINGS: Record<UiLanguage, Dictionary> = { en, ar };
+
+/* fix-wave-C: unit-count formatting. English needs 1 vs N; Arabic needs
+   singular / dual / plural forms (يوم واحد / يومان / N أيام), so counts go
+   through per-unit form keys instead of a bare "<n> <suffix>" concat. */
+function formatCount(one: string, two: string, many: string, n: number): string {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  return many.replace("{n}", String(n));
+}
+
+/** Localized day count, e.g. "1 day" / "3 days" / "يومان". */
+export function formatDayCount(t: Dictionary, n: number): string {
+  return formatCount(t.dayCountOne, t.dayCountTwo, t.dayCountMany, n);
+}
+
+/** Localized member count, e.g. "1 member" / "عضوان" / "5 أعضاء". */
+export function formatMemberCount(t: Dictionary, n: number): string {
+  return formatCount(t.memberCountOne, t.memberCountTwo, t.memberCountMany, n);
+}

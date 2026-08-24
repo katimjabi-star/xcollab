@@ -1,0 +1,55 @@
+/* Project detail chrome + List tab (fix-wave-A). Mirrors the My Tasks header
+   / toolbar / spreadsheet design language. Tokens only; logical properties
+   only (RTL-safe); dark theme keeps zero shadows (none used here). */
+
+/* ---- Page frame ---- */
+.proj-page { gap: var(--space-4); }
+.content.board-mode > .proj-head { margin-inline: var(--space-6); }
+
+/* ---- Header: avatar + crumb/title/dates + Share/Customize, then tabs ---- */
+.proj-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.proj-title-row { display: flex; align-items: center; gap: var(--space-3); }
+.proj-avatar {
+  inline-size: 36px; block-size: 36px; border-radius: var(--radius-md);
+  flex: 0 0 auto;
+}
+.proj-title-block { display: flex; flex-direction: column; min-inline-size: 0; }
+.proj-title-block .program-parent-crumb { margin: 0; }
+.proj-title-line {
+  display: flex; align-items: baseline; gap: var(--space-3); min-inline-size: 0;
+}
+.proj-title {
+  margin: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold);
+  color: var(--text-high);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.proj-dates {
+  font-size: var(--text-sm); color: var(--text-low);
+  font-variant-numeric: tabular-nums; white-space: nowrap; flex: 0 0 auto;
+}
+
+/* ---- List tab ---- */
+.proj-list { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Standalone "+ Add task" (no caret half) — round both logical ends. */
+.proj-add-btn { border-radius: var(--radius-md); }
+
+/* Single-project table: no Projects column. */
+.tt-no-project .tt-grid {
+  grid-template-columns: minmax(260px, 1fr) 200px 110px 48px;
+}
+
+/* ---- Overview block demoted below the task table ---- */
+.proj-overview {
+  margin-block-start: var(--space-4);
+  border-block-start: 1px solid var(--divider-low);
+  padding-block-start: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.proj-overview-heading {
+  margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold);
+  color: var(--text-high);
+}
+.proj-overview-mission {
+  margin: 0; font-size: var(--text-md); color: var(--text-medium);
+  max-inline-size: 70ch;
+}

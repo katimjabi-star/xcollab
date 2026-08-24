@@ -7,7 +7,7 @@ import { ArrowRightLeft, CalendarDays, CheckCircle2, Circle, CircleDot, OctagonA
 import type { Task } from "@xcollab/core";
 import type { BoardCard } from "../lib/board-filter.ts";
 import { isOverdue } from "../lib/board-filter.ts";
-import type { STRINGS } from "../lib/i18n.ts";
+import { formatDayCount, type STRINGS } from "../lib/i18n.ts";
 import { Avatar } from "./ui/avatar.tsx";
 import { Chip } from "./ui/chip.tsx";
 import { Icon } from "./ui/icon.tsx";
@@ -140,18 +140,19 @@ export function BoardCardItem({
           </Chip>
         ) : null}
         <span className="board-chip-estimate" title={t.taskEstimate}>
-          {`${task.estimateDays}\u00A0${t.estimateDaysSuffix}`}
+          {formatDayCount(t, task.estimateDays).replace(" ", "\u00A0")}
         </span>
       </div>
 
-      <div className="board-card-foot">
-        <span className="board-card-id">{task.id}</span>
-        {task.assignee ? (
-          <Avatar name={assigneeName ?? task.assignee} />
-        ) : task.assigneeRole ? (
-          <Avatar name={task.assigneeRole} />
-        ) : null}
-      </div>
+      {task.assignee || task.assigneeRole ? (
+        <div className="board-card-foot">
+          {task.assignee ? (
+            <Avatar name={assigneeName ?? task.assignee} />
+          ) : (
+            <Avatar name={task.assigneeRole ?? ""} />
+          )}
+        </div>
+      ) : null}
     </article>
   );
 }

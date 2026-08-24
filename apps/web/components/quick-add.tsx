@@ -78,7 +78,9 @@ export function TaskQuickAdd({
           });
           onProgramUpdate(patched.program);
         } catch {
-          // Created as "todo"; the board already reflects the server state.
+          // Created as "todo"; the board already reflects the server state —
+          // but say so instead of silently landing in the wrong column.
+          push({ message: t.taskMoveFailed });
         }
       }
       return true;

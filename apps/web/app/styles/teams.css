@@ -1,0 +1,200 @@
+/* =========================================================
+   TEAMS page — card grid (fix-wave-C).
+   Follows the home-card ladder: var(--card) surface, --elev-border,
+   --radius-card, --shadow-raised (which is `none` in dark — dark
+   elevation stays border+surface only). Logical properties throughout.
+   ========================================================= */
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+  margin-block-start: var(--space-4);
+}
+
+.tm-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+.tm-card:hover {
+  border-color: var(--elev-border-strong);
+  background: var(--card-hover);
+}
+
+/* ---- Header: tinted glyph · name · hover-revealed actions ---- */
+.tm-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+}
+.tm-card-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  background: var(--chip-selected);
+  color: var(--text-brand);
+}
+.tm-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+}
+.tm-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.tm-card:hover .tm-card-actions,
+.tm-card-actions:focus-within {
+  opacity: 1;
+}
+
+/* ---- Description + member stack ---- */
+.tm-card-desc {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--text-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tm-card-desc-empty {
+  color: var(--text-low);
+}
+.tm-card-people {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.tm-card-people-count {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Linked-project chips ---- */
+.tm-card-projects {
+  border-block-start: 1px solid var(--hairline);
+  padding-block-start: var(--space-2);
+}
+.tm-card-projects-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+}
+.tm-card-projects-count {
+  font-size: var(--text-sm);
+  background: var(--surface-thin);
+  border-radius: var(--radius-full);
+  padding: 1px var(--space-2);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.tm-card-projects-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-low);
+}
+.tm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.tm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  min-height: 24px;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--elev-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--text-high);
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+a.tm-chip:hover {
+  border-color: var(--elev-border-strong);
+  color: var(--text-brand);
+}
+.tm-chip-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+}
+.tm-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tm-chip-more {
+  color: var(--text-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Expand toggle + member-management body ---- */
+.tm-card-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: start;
+  min-height: 28px;
+  border: none;
+  background: none;
+  padding-inline: var(--space-1);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.tm-card-toggle:hover {
+  background: var(--surface-thin);
+  color: var(--text-high);
+}
+
+/* The reused member body sheet (settings.css) carries side padding sized for
+   the old dense list; inside the card the card's own padding does that job. */
+.tm-card .team-card-body {
+  padding-inline: 0;
+}
+.tm-card .team-avatar-stack .avatar {
+  border-color: var(--card);
+}

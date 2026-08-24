@@ -25,6 +25,7 @@ import { AttachmentsRepository } from "./repository-attachments.ts";
 import { updateProgramTeamTx, type ProgramTeamResult } from "./repository-programs.ts";
 
 export type { DeleteTaskResult, NewTaskInput, TaskFieldChanges } from "./repository-tasks.ts";
+export { InvalidTaskDatesError } from "./repository-tasks.ts";
 export type { TeamFieldChanges, TeamMutationResult } from "./repository-teams.ts";
 export type { NewAttachmentInput } from "./repository-attachments.ts";
 export type { ProgramTeamResult } from "./repository-programs.ts";

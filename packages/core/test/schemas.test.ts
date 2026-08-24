@@ -73,6 +73,31 @@ describe("TaskSchema", () => {
   it("rejects non-positive estimates", () => {
     expect(() => TaskSchema.parse({ ...validTask, estimateDays: 0 })).toThrow();
   });
+
+  it("rejects an over-long name", () => {
+    expect(() => TaskSchema.parse({ ...validTask, name: "x".repeat(501) })).toThrow();
+    expect(TaskSchema.parse({ ...validTask, name: "x".repeat(500) }).name).toHaveLength(500);
+  });
+});
+
+describe("TaskSchema dates", () => {
+  it("rejects a startDate after the dueDate", () => {
+    const bad = { ...validTask, startDate: "2026-10-01", dueDate: "2026-09-01" };
+    expect(() => TaskSchema.parse(bad)).toThrow();
+  });
+
+  it("accepts equal start and due dates and single-ended ranges", () => {
+    const sameDay = { ...validTask, startDate: "2026-09-01", dueDate: "2026-09-01" };
+    expect(TaskSchema.parse(sameDay).dueDate).toBe("2026-09-01");
+    expect(TaskSchema.parse({ ...validTask, dueDate: "2026-09-01" }).startDate).toBeUndefined();
+    expect(TaskSchema.parse({ ...validTask, startDate: "2026-09-01" }).dueDate).toBeUndefined();
+  });
+
+  it("rejects calendar-invalid and non-date strings", () => {
+    for (const garbage of ["2026-13-45", "2026-02-31", "not-a-date", "2026-1-1", ""]) {
+      expect(() => TaskSchema.parse({ ...validTask, dueDate: garbage }), garbage).toThrow();
+    }
+  });
 });
 
 describe("WorkPackageSchema", () => {

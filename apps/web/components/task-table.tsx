@@ -2,6 +2,7 @@
 
 import { useState, type ReactElement, type ReactNode } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import type { Program } from "@xcollab/core";
 import { API_BASE, WORKSPACE, updateTask } from "../lib/api-client.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { formatDueRange, isDueOverdue, localTodayIso } from "../lib/my-tasks.ts";
@@ -36,6 +37,10 @@ interface TaskTableProps {
   renderComposer?: (groupId: string) => ReactNode;
   /** Bottom "+ Add section" ghost — omit where sections are derived (My Tasks). */
   onAddSection?: () => void;
+  /** Hide the Projects column on single-project surfaces (project detail). */
+  showProjectColumn?: boolean;
+  /** Fresh server program after a done-toggle PATCH (single-project hosts). */
+  onProgramUpdate?: (program: Program) => void;
 }
 
 /** Rows keyed program+task: generated dev data reuses task ids across programs. */
@@ -63,6 +68,8 @@ export function TaskTable({
   composingGroupId = null,
   renderComposer,
   onAddSection,
+  showProjectColumn = true,
+  onProgramUpdate,
 }: TaskTableProps): ReactElement {
   const t = STRINGS[uiLanguage];
   const { push } = useToasts();
@@ -78,12 +85,13 @@ export function TaskTable({
     const next = current === "done" ? "todo" : "done";
     setOverrides((prev) => ({ ...prev, [keyOf(row)]: next }));
     try {
-      await updateTask(API_BASE, {
+      const result = await updateTask(API_BASE, {
         workspaceId: WORKSPACE,
         programId: row.programId,
         taskId: row.id,
         patch: { status: next },
       });
+      onProgramUpdate?.(result.program);
     } catch {
       setOverrides((prev) => ({ ...prev, [keyOf(row)]: current }));
       push({ message: t.actionFailed });
@@ -101,12 +109,12 @@ export function TaskTable({
   };
 
   return (
-    <div className="task-table">
+    <div className={showProjectColumn ? "task-table" : "task-table tt-no-project"}>
       <div className="tt-grid tt-head" role="row">
         <span className="tt-col">{t.myTasksColName}</span>
         <span className="tt-col">{t.taskDueDate}</span>
         <span className="tt-col">{t.myTasksColCollaborators}</span>
-        <span className="tt-col">{t.programsHeading}</span>
+        {showProjectColumn ? <span className="tt-col">{t.programsHeading}</span> : null}
         <span className="tt-col tt-col-plus" aria-hidden>
           <Icon icon={Plus} size={14} />
         </span>
@@ -124,7 +132,9 @@ export function TaskTable({
               onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: !isCollapsed }))}
             >
               <Icon icon={isCollapsed ? ChevronRight : ChevronDown} size={14} directional />
-              <span className="tt-group-label">{group.label}</span>
+              <span className="tt-group-label" dir="auto">
+                {group.label}
+              </span>
             </button>
             {isCollapsed
               ? null
@@ -147,6 +157,7 @@ export function TaskTable({
                         <button
                           type="button"
                           className={`tt-name${done ? " done" : ""}`}
+                          dir="auto"
                           onClick={() => onOpenTask(row)}
                         >
                           {row.name}
@@ -158,16 +169,18 @@ export function TaskTable({
                       <span className="tt-cell tt-collab">
                         {row.assignee ? <Avatar name={row.assignee} /> : null}
                       </span>
-                      <span className="tt-cell">
-                        <span className="project-pill" title={row.packageName}>
-                          <span
-                            className="project-swatch"
-                            style={{ background: programColor(row.programId) }}
-                            aria-hidden
-                          />
-                          {programDisplayName({ name: row.programName })}
+                      {showProjectColumn ? (
+                        <span className="tt-cell">
+                          <span className="project-pill" title={row.packageName}>
+                            <span
+                              className="project-swatch"
+                              style={{ background: programColor(row.programId) }}
+                              aria-hidden
+                            />
+                            {programDisplayName({ name: row.programName })}
+                          </span>
                         </span>
-                      </span>
+                      ) : null}
                       <span className="tt-cell" aria-hidden />
                     </div>
                   );
