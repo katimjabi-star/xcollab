@@ -80,26 +80,76 @@ export function buildMessagesRequestBody(
     stream: true,
     max_tokens: maxTokens,
     system: req.system,
-    messages: req.messages.map(toWireMessage),
+    messages: toWireHistory(req.messages),
     tools: req.tools.map(toWireTool),
   };
 }
 
-function toWireMessage(message: ChatMessage): Record<string, unknown> {
-  if (message.role === "user") return { role: "user", content: message.content };
-  if (message.role === "assistant") {
-    return { role: "assistant", content: toAssistantBlocks(message) };
+type ToolResultMsg = Extract<ChatMessage, { role: "tool_result" }>;
+
+/* Anthropic requires every tool_result block to reference a tool_use id in
+   the immediately preceding assistant message, and consecutive results to
+   arrive as blocks of ONE user turn. Loop-internal history carries real ids;
+   client-replayed history (spec D6 wire format) carries neither toolCalls
+   nor toolCallIds — normalize both here instead of 400ing. */
+function toWireHistory(messages: ChatMessage[]): Record<string, unknown>[] {
+  const wire: Record<string, unknown>[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    const message = messages[i];
+    if (!message) break;
+    if (message.role !== "tool_result") {
+      wire.push(
+        message.role === "user"
+          ? { role: "user", content: message.content }
+          : { role: "assistant", content: toAssistantBlocks(message) },
+      );
+      i += 1;
+      continue;
+    }
+    const group: ToolResultMsg[] = [];
+    while (i < messages.length) {
+      const candidate = messages[i];
+      if (!candidate || candidate.role !== "tool_result") break;
+      group.push(candidate);
+      i += 1;
+    }
+    wire.push(...toToolResultTurn(wire, group));
   }
-  return {
-    role: "user",
-    content: [
-      {
-        type: "tool_result",
-        tool_use_id: message.toolCallId ?? message.tool,
-        content: message.content,
-      },
-    ],
-  };
+  return wire;
+}
+
+/** One tool round: pair each result with a (possibly synthesized) tool_use. */
+function toToolResultTurn(
+  wire: Record<string, unknown>[],
+  group: ToolResultMsg[],
+): Record<string, unknown>[] {
+  const prev = wire[wire.length - 1];
+  const prevBlocks =
+    prev !== undefined && prev["role"] === "assistant" && Array.isArray(prev["content"])
+      ? (prev["content"] as Record<string, unknown>[])
+      : null;
+  const knownIds = new Set(
+    (prevBlocks ?? [])
+      .filter((block) => block["type"] === "tool_use")
+      .map((block) => String(block["id"])),
+  );
+  const results: Record<string, unknown>[] = [];
+  const synthetic: Record<string, unknown>[] = [];
+  group.forEach((message, index) => {
+    const id = message.toolCallId ?? `hist_${wire.length}_${index}`;
+    if (!knownIds.has(id)) {
+      synthetic.push({ type: "tool_use", id, name: message.tool, input: {} });
+    }
+    results.push({ type: "tool_result", tool_use_id: id, content: message.content });
+  });
+  const turn: Record<string, unknown>[] = [];
+  if (synthetic.length > 0) {
+    if (prevBlocks) prevBlocks.push(...synthetic);
+    else turn.push({ role: "assistant", content: synthetic });
+  }
+  turn.push({ role: "user", content: results });
+  return turn;
 }
 
 function toAssistantBlocks(

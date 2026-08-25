@@ -38,7 +38,7 @@ interface PendingToolCall {
 
 interface ModelTurn {
   toolCalls: PendingToolCall[];
-  invalid: { name: string; message: string }[];
+  invalid: { id: string; name: string; message: string }[];
   finish: "stop" | "tool_calls" | "length";
 }
 
@@ -88,7 +88,7 @@ async function collectModelTurn(
         turn.toolCalls.push({ id: event.id, name: event.name, args: event.args });
         break;
       case "tool_call_invalid":
-        turn.invalid.push({ name: event.name, message: event.message });
+        turn.invalid.push({ id: event.id, name: event.name, message: event.message });
         break;
       case "degraded":
         // The fallback adapter restarts the turn; drop the partial transcript.
@@ -111,15 +111,19 @@ async function collectModelTurn(
   return turn;
 }
 
-/** Invalid calls are fed back as data so the model self-corrects (§2.5). */
+/** Invalid calls are fed back as data so the model self-corrects (§2.5).
+    toolCallId must round-trip: Anthropic rejects a turn whose tool_use blocks
+    lack a matching tool_result id (this silent mismatch degraded every live
+    Claude continuation to the deterministic fallback). */
 function feedInvalidCalls(
   history: ChatMessage[],
-  invalid: { name: string; message: string }[],
+  invalid: { id: string; name: string; message: string }[],
 ): void {
   for (const failure of invalid) {
     history.push({
       role: "tool_result",
       tool: failure.name,
+      toolCallId: failure.id,
       content: `error: ${failure.message}`,
     });
   }
@@ -136,14 +140,19 @@ async function handleToolCalls(
     if (!call) continue;
     const parsed = parseCall(call);
     if (!parsed.ok) {
-      history.push({ role: "tool_result", tool: call.name, content: parsed.message });
+      history.push({
+        role: "tool_result",
+        tool: call.name,
+        toolCallId: call.id,
+        content: parsed.message,
+      });
       continue;
     }
     if (isAssistantMutationTool(call.name)) {
       await emitProposal(deps, call.name, parsed.args, calls.length - i - 1);
       return true;
     }
-    await runReadCall(deps, history, call.name as AssistantReadToolName, parsed.args);
+    await runReadCall(deps, history, call.name as AssistantReadToolName, parsed.args, call.id);
   }
   return false;
 }
@@ -165,6 +174,7 @@ async function runReadCall(
   history: ChatMessage[],
   tool: AssistantReadToolName,
   args: Record<string, unknown>,
+  toolCallId: string,
 ): Promise<void> {
   await deps.emit({
     type: "tool_started",
@@ -177,6 +187,7 @@ async function runReadCall(
   history.push({
     role: "tool_result",
     tool,
+    toolCallId,
     content: outcome.ok ? digest : `error: ${digest}`,
   });
 }

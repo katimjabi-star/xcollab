@@ -105,6 +105,9 @@ export class ChatGateway {
             adapter.id,
           );
         }
+        // Degrades must be operator-visible: describeError carries status and
+        // adapter id only — never a request body or key.
+        console.error(`chat adapter degraded: ${adapter.id} -> ${fallback.id}: ${describeError(error)}`);
         // Consumers may have already received partial text from the failed
         // adapter; the degraded event tells them the turn restarts from here.
         yield { type: "degraded", from: adapter.id, to: fallback.id };
