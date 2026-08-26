@@ -1,0 +1,207 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $sel := include "xcollab.selectorLabels" . }}
+# All policies here select xcollab pods ONLY (label podSelector). The
+# tasdiq-* namespaces are shared with other projects — a namespace-wide
+# (empty podSelector) default-deny is forbidden in this chart.
+#
+# istio note: every pod gets an istio sidecar. If the CNI enforces
+# NetworkPolicy on sidecar control-plane traffic, the allow-istio policy
+# below (istio.networkPolicyControlPlane.enabled) grants egress to istiod
+# (XDS, 15012) and ingress to the sidecar health/metrics ports
+# (15020/15021/15090). Disable only if the cluster exempts istio traffic.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-default-deny
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  # xcollab pods only — never {} in a shared namespace.
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-web-ingress
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  ingress:
+    # istio ingress gateway -> web
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.istio.ingressGateway.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.istio.ingressGateway.podLabels | nindent 14 }}
+      ports:
+        - port: {{ .Values.web.port }}
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-api-ingress
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+  ingress:
+    # web -> api (same namespace)
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- $sel | nindent 14 }}
+              app.kubernetes.io/component: web
+      ports:
+        - port: {{ .Values.api.port }}
+          protocol: TCP
+    {{- if .Values.api.exposeViaGateway }}
+    # istio ingress gateway -> api (browser calls /api/* on the shared host)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.istio.ingressGateway.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.istio.ingressGateway.podLabels | nindent 14 }}
+      ports:
+        - port: {{ .Values.api.port }}
+          protocol: TCP
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-web-egress
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Egress
+  egress:
+    # web -> api :{{ .Values.api.port }} (server-side rendering / route handlers)
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- $sel | nindent 14 }}
+              app.kubernetes.io/component: api
+      ports:
+        - port: {{ .Values.api.port }}
+          protocol: TCP
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-api-egress
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Egress
+  egress:
+    # Backing services may live in another (shared) namespace, so these
+    # allows are port-scoped across namespaces rather than pod-scoped —
+    # tighten with pod labels once the backend labels are confirmed.
+    # api -> postgres
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: {{ .Values.backends.postgres.port }}
+          protocol: TCP
+    # api -> minio
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: {{ .Values.backends.minio.port }}
+          protocol: TCP
+    # api -> keycloak
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: {{ .Values.backends.keycloak.port }}
+          protocol: TCP
+    {{- if .Values.backends.ollama.enabled }}
+    # api -> ollama (values-toggled)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: {{ .Values.backends.ollama.port }}
+          protocol: TCP
+    {{- end }}
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+{{- if .Values.istio.networkPolicyControlPlane.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-allow-istio
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Sidecar health/metrics scraped by the mesh & prometheus.
+    - ports:
+        - port: 15020
+          protocol: TCP
+        - port: 15021
+          protocol: TCP
+        - port: 15090
+          protocol: TCP
+  egress:
+    # Sidecar -> istiod XDS.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.istio.networkPolicyControlPlane.istiodNamespace }}
+      ports:
+        - port: 15012
+          protocol: TCP
+{{- end }}
+{{- end }}

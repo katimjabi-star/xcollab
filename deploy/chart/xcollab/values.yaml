@@ -1,0 +1,133 @@
+# xcollab chart defaults. Per-env overrides live in the k2-gitops repo at
+# values/xcollab/<env>.yaml (seeded from deploy/values/xcollab/ here).
+#
+# Namespace guidance: deploy to a DEDICATED namespace per env
+# (xcollab-dev / xcollab-s / xcollab-prod) carrying the label
+#   pod-security.kubernetes.io/enforce: restricted
+# Do NOT add that label to a shared tasdiq-* namespace — it could evict or
+# block other projects' pods. Every pod spec in this chart is PSA
+# "restricted"-compliant regardless of namespace enforcement, so running
+# in a shared namespace (fallback) needs no namespace-level change at all.
+#
+# No secret material lives in this chart or any values file. Secrets are
+# consumed by NAME only (api.existingSecret) and created out of band.
+
+api:
+  replicas: 1
+  port: 4000
+  image:
+    repository: 172.26.34.205:5000/infra/xcollab-api
+    # Tags are never reused (imagePullPolicy: IfNotPresent). Edited by
+    # bin/promote.sh — values path: .api.image.tag
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Name of a pre-created Secret in the target namespace with keys:
+  # DATABASE_URL, APP_DATABASE_URL, KEYCLOAK_SVC_CLIENT_ID,
+  # KEYCLOAK_SVC_CLIENT_SECRET, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
+  existingSecret: xcollab-api
+  # Route /api/* on the VirtualService host straight to the api Service
+  # (the web bundle bakes NEXT_PUBLIC_API_URL to the shared host).
+  exposeViaGateway: true
+  env:
+    corsAllowedOrigins: "https://xcollab.xedge-internal.corp"
+    keycloakAudience: ""   # optional; omitted from the ConfigMap when empty
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+web:
+  replicas: 1
+  port: 3000
+  image:
+    repository: 172.26.34.205:5000/infra/xcollab-web
+    # Edited by bin/promote.sh — values path: .web.image.tag
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# In-cluster backing services (assumed present per env; not deployed by
+# this chart). Hostnames are Kubernetes Service DNS names — parameterize
+# per env in values/xcollab/<env>.yaml.
+backends:
+  postgres:
+    host: postgres.tasdiq-dev.svc.cluster.local
+    port: 5432
+  minio:
+    host: minio.tasdiq-dev.svc.cluster.local
+    port: 9000
+    useSSL: "false"
+  keycloak:
+    host: keycloak.tasdiq-dev.svc.cluster.local
+    port: 8080
+    # Issuer as the api validates it (must match the token's iss claim).
+    issuer: https://keycloak.xedge-internal.corp/realms/xcollab
+  ollama:
+    enabled: false
+    host: ollama.tasdiq-dev.svc.cluster.local
+    port: 11434
+    model: ""
+
+istio:
+  virtualService:
+    enabled: false
+    host: xcollab.xedge-internal.corp
+    gateways:
+      - istio-system/main-gateway
+  # Where the ingress gateway pods live — used by the NetworkPolicy
+  # ingress allowance.
+  ingressGateway:
+    namespace: istio-system
+    podLabels:
+      istio: ingressgateway
+  # Every pod gets an istio sidecar. If the cluster enforces NetworkPolicy
+  # on sidecar control-plane traffic, the pods also need egress to istiod
+  # (XDS 15012) and ingress on the sidecar health/metrics ports
+  # (15020/15021/15090). Toggle off only if the CNI exempts istio traffic.
+  networkPolicyControlPlane:
+    enabled: true
+    istiodNamespace: istio-system
+
+# Plain Kubernetes Ingress alternative (off by default — k2 fronts apps
+# with the istio ingress gateway / VirtualService instead).
+ingress:
+  enabled: false
+  className: ""
+  host: xcollab.xedge-internal.corp
+  annotations: {}
+
+networkPolicy:
+  # Default-deny ingress+egress scoped to xcollab pods ONLY (label
+  # podSelector, never namespace-wide), then explicit allows. Safe in a
+  # shared namespace: other projects' pods are not selected.
+  enabled: true
+
+# Optional, values-gated namespace budget — only for a DEDICATED xcollab
+# namespace. Leave disabled in shared tasdiq-* namespaces (a quota there
+# would constrain other projects).
+quota:
+  enabled: false
+  requests:
+    cpu: "2"
+    memory: 4Gi
+  limits:
+    cpu: "4"
+    memory: 8Gi
+  # LimitRange default request/limit for containers that omit resources.
+  limitRange:
+    enabled: false
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    default:
+      cpu: 500m
+      memory: 512Mi

@@ -1,0 +1,52 @@
+# xcollab — dev overrides. In k2-gitops this file lives at
+# values/xcollab/dev.yaml.
+#
+# Namespace: xcollab-dev (dedicated — recommended), created with the label
+#   pod-security.kubernetes.io/enforce: restricted
+# Only label a namespace xcollab owns. NEVER add that label to the shared
+# tasdiq-dev namespace (it could evict/block other projects' pods); if
+# deploying into tasdiq-dev as a fallback, make no namespace-level change —
+# the pod specs are restricted-compliant on their own.
+
+api:
+  image:
+    # Edited by bin/promote.sh (xcollab-api -> .api.image.tag).
+    # Never reuse a tag: imagePullPolicy is IfNotPresent.
+    tag: v0.1-sovereign-0000000
+  env:
+    corsAllowedOrigins: "https://xcollab.xedge-internal.corp"
+
+web:
+  image:
+    # Edited by bin/promote.sh (xcollab-web -> .web.image.tag).
+    tag: v0.1-sovereign-0000000
+
+backends:
+  # Confirm the actual Service DNS names with the platform team; these are
+  # placeholders for the shared in-cluster backends.
+  postgres:
+    host: postgres.tasdiq-dev.svc.cluster.local
+    port: 5432
+  minio:
+    host: minio.tasdiq-dev.svc.cluster.local
+    port: 9000
+    useSSL: "false"
+  keycloak:
+    host: keycloak.tasdiq-dev.svc.cluster.local
+    port: 8080
+    issuer: https://keycloak.xedge-internal.corp/realms/xcollab
+  ollama:
+    enabled: false
+    host: ollama.tasdiq-dev.svc.cluster.local
+    port: 11434
+    model: ""
+
+istio:
+  virtualService:
+    enabled: true
+    host: xcollab.xedge-internal.corp
+    gateways:
+      - istio-system/main-gateway
+
+quota:
+  enabled: false   # enable only in the dedicated xcollab-dev namespace

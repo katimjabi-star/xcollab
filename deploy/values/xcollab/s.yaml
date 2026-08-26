@@ -1,0 +1,50 @@
+# xcollab — s (staging) overrides. In k2-gitops: values/xcollab/s.yaml.
+#
+# Namespace: xcollab-s (dedicated — recommended), created with the label
+#   pod-security.kubernetes.io/enforce: restricted
+# NEVER add that label to the shared tasdiq-s namespace; fallback deploys
+# there make no namespace-level change (pod specs are restricted-compliant
+# on their own).
+#
+# Deploy discipline: promotions beyond dev happen only on explicit
+# instruction — do not self-promote here.
+
+api:
+  image:
+    # Edited by bin/promote.sh (xcollab-api -> .api.image.tag).
+    tag: v0.1-sovereign-0000000
+  env:
+    corsAllowedOrigins: "https://xcollab-s.xedge-internal.corp"
+
+web:
+  image:
+    # Edited by bin/promote.sh (xcollab-web -> .web.image.tag).
+    tag: v0.1-sovereign-0000000
+
+backends:
+  postgres:
+    host: postgres.tasdiq-s.svc.cluster.local
+    port: 5432
+  minio:
+    host: minio.tasdiq-s.svc.cluster.local
+    port: 9000
+    useSSL: "false"
+  keycloak:
+    host: keycloak.tasdiq-s.svc.cluster.local
+    port: 8080
+    issuer: https://keycloak-s.xedge-internal.corp/realms/xcollab
+  ollama:
+    enabled: false
+    host: ollama.tasdiq-s.svc.cluster.local
+    port: 11434
+    model: ""
+
+istio:
+  virtualService:
+    enabled: true
+    host: xcollab-s.xedge-internal.corp
+    gateways:
+      - istio-system/main-gateway
+
+quota:
+  enabled: false   # enable only in the dedicated xcollab-s namespace

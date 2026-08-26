@@ -1,0 +1,33 @@
+{{- if .Values.quota.enabled }}
+# ONLY for a dedicated xcollab namespace. A ResourceQuota is namespace-
+# scoped: enabling this in a shared tasdiq-* namespace would constrain the
+# other projects living there — keep quota.enabled=false in that case.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ include "xcollab.fullname" . }}-quota
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.quota.requests.cpu | quote }}
+    requests.memory: {{ .Values.quota.requests.memory | quote }}
+    limits.cpu: {{ .Values.quota.limits.cpu | quote }}
+    limits.memory: {{ .Values.quota.limits.memory | quote }}
+{{- if .Values.quota.limitRange.enabled }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ include "xcollab.fullname" . }}-limits
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        {{- toYaml .Values.quota.limitRange.defaultRequest | nindent 8 }}
+      default:
+        {{- toYaml .Values.quota.limitRange.default | nindent 8 }}
+{{- end }}
+{{- end }}

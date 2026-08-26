@@ -1,0 +1,10 @@
+apiVersion: v2
+name: xcollab
+description: >-
+  XCollab platform (sovereign profile) for the air-gapped k2 cluster:
+  api (Fastify, port 4000) + web (Next.js standalone, port 3000).
+  Images are prebuilt on a workstation and pushed to the in-cluster
+  registry; Argo CD is the only deployer.
+type: application
+version: 0.1.0
+appVersion: "0.1"

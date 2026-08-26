@@ -1,0 +1,36 @@
+{{- if .Values.istio.virtualService.enabled }}
+# Single host: /api/* -> api Service, everything else -> web. The web
+# bundle bakes NEXT_PUBLIC_API_URL to this host, so browser API calls ride
+# the same gateway.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "xcollab.fullname" . }}
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ .Values.istio.virtualService.host | quote }}
+  gateways:
+    {{- toYaml .Values.istio.virtualService.gateways | nindent 4 }}
+  http:
+    {{- if .Values.api.exposeViaGateway }}
+    - name: api
+      match:
+        - uri:
+            prefix: /api/
+        - uri:
+            exact: /api
+      route:
+        - destination:
+            host: {{ include "xcollab.fullname" . }}-api
+            port:
+              number: {{ .Values.api.port }}
+    {{- end }}
+    - name: web
+      route:
+        - destination:
+            host: {{ include "xcollab.fullname" . }}-web
+            port:
+              number: {{ .Values.web.port }}
+{{- end }}
