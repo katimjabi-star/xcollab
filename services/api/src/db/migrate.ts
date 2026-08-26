@@ -78,6 +78,16 @@ async function runMigration(admin: PoolClient): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS attachments_workspace_program_idx
       ON attachments (workspace_id, program_id);
+
+    -- Workspace access control: a workspace with zero rows is "unclaimed";
+    -- the first mutator claims it as owner (see workspace-access.ts).
+    CREATE TABLE IF NOT EXISTS workspace_members (
+      workspace_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'member')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (workspace_id, username)
+    );
   `);
 
   // Constraints the API already guarantees, restated at the DB layer so no
@@ -110,5 +120,7 @@ async function runMigration(admin: PoolClient): Promise<void> {
     GRANT SELECT, INSERT, UPDATE, DELETE ON attachments TO xcollab_app;
     GRANT SELECT, INSERT ON ledger_entries TO xcollab_app;
     REVOKE UPDATE, DELETE ON ledger_entries FROM xcollab_app;
+    -- No UPDATE: roles never change in place — membership is added or removed.
+    GRANT SELECT, INSERT, DELETE ON workspace_members TO xcollab_app;
   `);
 }

@@ -2,12 +2,13 @@ const DEFAULT_ISSUER = "http://localhost:8081/realms/xcollab";
 const CACHE_TTL_MS = 30_000;
 const MAX_USERS = 200;
 
-/** The only user fields the API ever exposes — everything else is stripped. */
+/** The only user fields the API ever exposes — everything else is stripped.
+    Email is deliberately absent: it is PII with no consumer (assignment and
+    people-picking key on username), so it never leaves this module. */
 export interface RealmUser {
   username: string;
   firstName?: string;
   lastName?: string;
-  email?: string;
 }
 
 let cache: { fetchedAt: number; users: RealmUser[] } | null = null;
@@ -23,21 +24,27 @@ function keycloakConfig(): { origin: string; realm: string } {
   return { origin: issuer.origin, realm };
 }
 
-/** Password-grant admin token against the master realm (admin-cli client). */
-async function adminToken(origin: string): Promise<string> {
-  const res = await fetch(`${origin}/realms/master/protocol/openid-connect/token`, {
+/**
+ * Client-credentials grant for the confidential service client (xcollab-svc,
+ * provisioned by keycloak/bootstrap-dev.sh) in the app's OWN realm. Its
+ * service account holds exactly the realm-management view-users role — no
+ * master-realm or admin credentials exist anywhere in this process.
+ */
+async function serviceToken(origin: string, realm: string): Promise<string> {
+  const res = await fetch(`${origin}/realms/${realm}/protocol/openid-connect/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "password",
-      client_id: "admin-cli",
-      username: process.env.KEYCLOAK_ADMIN_USER ?? "admin",
-      password: process.env.KEYCLOAK_ADMIN_PASSWORD ?? "admin_dev_only",
+      grant_type: "client_credentials",
+      client_id: process.env.KEYCLOAK_SVC_CLIENT_ID ?? "xcollab-svc",
+      // Dev-only default, matching the bootstrap script; real deployments
+      // must set KEYCLOAK_SVC_CLIENT_SECRET.
+      client_secret: process.env.KEYCLOAK_SVC_CLIENT_SECRET ?? "svc_dev_only",
     }),
   });
-  if (!res.ok) throw new Error(`keycloak admin token request failed: ${res.status}`);
+  if (!res.ok) throw new Error(`keycloak service token request failed: ${res.status}`);
   const body = (await res.json()) as { access_token?: string };
-  if (!body.access_token) throw new Error("keycloak admin token response missing access_token");
+  if (!body.access_token) throw new Error("keycloak service token response missing access_token");
   return body.access_token;
 }
 
@@ -49,7 +56,7 @@ export async function listRealmUsers(): Promise<RealmUser[]> {
   if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.users;
 
   const { origin, realm } = keycloakConfig();
-  const token = await adminToken(origin);
+  const token = await serviceToken(origin, realm);
   const res = await fetch(`${origin}/admin/realms/${realm}/users?max=${MAX_USERS}`, {
     headers: { authorization: `Bearer ${token}` },
   });
@@ -58,7 +65,6 @@ export async function listRealmUsers(): Promise<RealmUser[]> {
     username?: string;
     firstName?: string;
     lastName?: string;
-    email?: string;
   }[];
 
   const users: RealmUser[] = raw
@@ -67,7 +73,6 @@ export async function listRealmUsers(): Promise<RealmUser[]> {
       username: u.username,
       ...(u.firstName === undefined ? {} : { firstName: u.firstName }),
       ...(u.lastName === undefined ? {} : { lastName: u.lastName }),
-      ...(u.email === undefined ? {} : { email: u.email }),
     }));
 
   cache = { fetchedAt: Date.now(), users };

@@ -31,6 +31,7 @@ import {
   type ProgramTeamResult,
 } from "./repository-programs.ts";
 import { SubtasksRepository } from "./repository-subtasks.ts";
+import { WorkspaceMembersRepository } from "./repository-members.ts";
 
 import { enrichAppendInput, type MutationProvenance } from "./repository-provenance.ts";
 
@@ -98,6 +99,9 @@ export class WorkGraphRepository {
   /** Checklist subtasks share the same chain-append logic and invariants. */
   readonly subtasks: SubtasksRepository;
 
+  /** Workspace access control shares the same chain-append logic and invariants. */
+  readonly members: WorkspaceMembersRepository;
+
   constructor(pool: Pool) {
     this.pool = pool;
     const append: AppendFn = (client, workspaceId, input) =>
@@ -105,6 +109,7 @@ export class WorkGraphRepository {
     this.teams = new TeamsRepository(pool, append);
     this.attachments = new AttachmentsRepository(pool, append);
     this.subtasks = new SubtasksRepository(pool, (provenance) => this.appendVia(provenance));
+    this.members = new WorkspaceMembersRepository(pool, append);
   }
 
   /**
@@ -264,10 +269,7 @@ export class WorkGraphRepository {
 
   /** Renames a program (ledgered "program.update"). */
   async updateProgramName(
-    workspaceId: string,
-    programId: string,
-    name: string,
-    actor: LedgerActor,
+    workspaceId: string, programId: string, name: string, actor: LedgerActor,
   ): Promise<ProgramRenameResult> {
     return updateProgramNameTx(this.pool, this.append, workspaceId, programId, name, actor);
   }

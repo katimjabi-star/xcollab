@@ -11,7 +11,9 @@ import {
   type WorkGraphRepository,
 } from "./repository.ts";
 import { listRealmUsers } from "./users.ts";
+import { createWorkspaceAccessMiddleware } from "./workspace-access.ts";
 import { registerTeamRoutes } from "./routes-teams.ts";
+import { registerWorkspaceMemberRoutes } from "./routes-workspace-members.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
 import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
 import { registerSubtaskRoutes } from "./routes-subtasks.ts";
@@ -31,7 +33,7 @@ const CreateProgramRequestSchema = z.object({
   // TimelineSchema enforces valid ISO dates AND end-after-start at the boundary,
   // so an inverted brief is a 400 here — never a schema-invalid stored program.
   timeline: TimelineSchema.optional(),
-  teamHints: z.array(z.string().min(1)).max(20).optional(),
+  teamHints: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
   parentId: z.string().min(1).optional(),
   teamId: z.string().min(1).optional(),
 });
@@ -106,13 +108,20 @@ export function createApp(
   assistant?: AssistantConfig,
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
-  app.use("/api/*", cors({ origin: ["http://localhost:3000"] }));
+  // Comma-separated allowlist for deployed origins; localhost dev default.
+  const corsOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== "");
+  app.use("/api/*", cors({ origin: corsOrigins }));
 
-  // Authenticated per-user API: nothing is cacheable by browsers or proxies.
+  // Authenticated per-user API: nothing is cacheable by browsers or proxies,
+  // and responses (attachment downloads included) must never be MIME-sniffed.
   // Set BEFORE next(): @hono/node-server's lightweight response fast-path does
   // not serialize post-handler c.res.headers mutations, prepared headers it does.
   app.use("/api/*", async (c, next) => {
     c.header("cache-control", "no-store");
+    c.header("x-content-type-options", "nosniff");
     await next();
   });
 
@@ -132,6 +141,9 @@ export function createApp(
   app.get("/api/health", (c) => c.json({ ok: true }));
 
   app.use("/api/*", createAuthMiddleware());
+  // Workspace-level authorization (single enforcement point): claimed
+  // workspaces are members-only; the first mutation claims an unclaimed one.
+  app.use("/api/*", createWorkspaceAccessMiddleware(repo.members));
 
   // Assistant-confirmed mutations arrive with the boot nonce and land as the
   // ai actor with provenance merged into the ledger input; everything else —
@@ -292,6 +304,7 @@ export function createApp(
   });
 
   registerTeamRoutes(app, repo, { actorOf });
+  registerWorkspaceMemberRoutes(app, repo);
   registerAttachmentRoutes(app, repo, store);
   registerMyTaskRoutes(app, repo);
   registerSearchRoutes(app, repo);
