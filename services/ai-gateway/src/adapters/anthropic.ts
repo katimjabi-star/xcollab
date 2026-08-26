@@ -1,5 +1,6 @@
 import type { ProgramBrief } from "@xcollab/synthesizer";
 import type { ModelAdapter } from "../gateway.ts";
+import { buildProgramPrompt } from "../program-prompt.ts";
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 
@@ -35,24 +36,6 @@ export class AnthropicAdapter implements ModelAdapter {
       .join("");
     return JSON.parse(extractJson(text));
   }
-}
-
-export function buildProgramPrompt(brief: ProgramBrief): string {
-  return [
-    "Design a complete program plan as a single JSON object, no prose.",
-    "Required shape: { id, name, mission, language, timeline: {start, end},",
-    "teams: [{id, name, kind: 'internal'|'vendor'}],",
-    "packages: [{id, name, scope, tasks: [{id, name, status: 'todo', estimateDays}], dependsOn: [packageId]}],",
-    "milestones: [{id, name, dueDate}], risks: [{id, title, severity: 'low'|'medium'|'high'|'critical'}] }.",
-    "Rules: dependsOn must reference existing package ids and MUST be acyclic;",
-    "dates are YYYY-MM-DD inside the timeline; every text field in the brief's language.",
-    `Language: ${brief.language}.`,
-    brief.timeline ? `Timeline: ${brief.timeline.start} to ${brief.timeline.end}.` : "",
-    brief.teamHints?.length ? `Required teams: ${brief.teamHints.join(", ")}.` : "",
-    `Mission brief: ${brief.mission}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
 }
 
 function extractJson(text: string): string {

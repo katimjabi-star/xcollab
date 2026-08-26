@@ -5,7 +5,8 @@ export {
   type InteractionMetadata,
   type ModelAdapter,
 } from "./gateway.ts";
-export { AnthropicAdapter, buildProgramPrompt } from "./adapters/anthropic.ts";
+export { AnthropicAdapter } from "./adapters/anthropic.ts";
+export { buildProgramPrompt } from "./program-prompt.ts";
 export { OllamaAdapter } from "./adapters/ollama.ts";
 export {
   ChatGateway,

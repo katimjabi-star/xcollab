@@ -1,0 +1,10 @@
+# Keep the build context small and hermetic: installs happen inside the
+# build stage (correct linux/amd64 binaries), never copied from the host.
+**/node_modules
+.git
+**/.next
+**/dist
+**/coverage
+**/*.log
+**/.env*
+**/*.tsbuildinfo

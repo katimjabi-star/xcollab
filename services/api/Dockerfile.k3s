@@ -1,0 +1,52 @@
+# services/api — air-gapped k2 cluster image (linux/amd64, node:20-slim per
+# team convention; base image must exist in the boundary registry cache).
+#
+# Build from the REPO ROOT (workspace deps come from packages/*):
+#   docker build --platform=linux/amd64 -f services/api/Dockerfile.k3s \
+#     --build-arg PROFILE=sovereign -t xcollab-api:sovereign .
+#
+# PROFILE=sovereign (default) bundles src/entry-sovereign.ts and FAILS the
+# build if the bundle contains any hosted-adapter marker (Charter invariant 3).
+# PROFILE=connected bundles src/entry-connected.ts (hosted keys via env).
+
+FROM node:20-slim AS build
+ARG PROFILE=sovereign
+# Optional PEM bundle for TLS-intercepting corporate proxies (Zscaler et al.)
+# so corepack/pnpm can reach the registry from the build stage. Empty default
+# is a no-op; build-stage only, never present in the runtime image.
+ARG EXTRA_CA=""
+RUN printf '%s' "$EXTRA_CA" > /usr/local/share/extra-ca.pem
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/extra-ca.pem
+WORKDIR /repo
+RUN corepack enable
+
+# Manifests first: pnpm needs every workspace package.json to satisfy the
+# frozen lockfile, and this layer caches across source-only changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages/core/package.json packages/core/
+COPY packages/synthesizer/package.json packages/synthesizer/
+COPY services/api/package.json services/api/
+COPY services/ai-gateway/package.json services/ai-gateway/
+COPY apps/web/package.json apps/web/
+COPY eval-harness/package.json eval-harness/
+# Root project carries esbuild; @xcollab/api... pulls the workspace deps.
+RUN pnpm install --frozen-lockfile --filter xcollab-platform --filter "@xcollab/api..."
+
+COPY packages ./packages
+COPY services/ai-gateway ./services/ai-gateway
+COPY services/api ./services/api
+COPY bin ./bin
+RUN bin/build-api.sh "$PROFILE" \
+  && if [ "$PROFILE" = "sovereign" ]; then \
+       bin/verify-sovereign.sh services/api/dist/server-sovereign.mjs; \
+     fi
+
+FROM node:20-slim
+ARG PROFILE=sovereign
+ENV NODE_ENV=production
+RUN useradd --uid 10001 --user-group --shell /usr/sbin/nologin xcollab
+WORKDIR /app
+COPY --from=build /repo/services/api/dist/server-${PROFILE}.mjs ./server.mjs
+USER 10001
+EXPOSE 4000
+CMD ["node", "server.mjs"]

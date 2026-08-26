@@ -1,6 +1,6 @@
 import type { ProgramBrief } from "@xcollab/synthesizer";
 import type { ModelAdapter } from "../gateway.ts";
-import { buildProgramPrompt } from "./anthropic.ts";
+import { buildProgramPrompt } from "../program-prompt.ts";
 
 /**
  * Sovereign-profile adapter: in-boundary inference over an OpenAI-compatible
