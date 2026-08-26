@@ -1,17 +1,12 @@
 import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
+import { LanguageSchema, type AssistantEvent } from "@xcollab/core";
 import {
-  ASSISTANT_MUTATION_TOOLS,
-  ASSISTANT_READ_TOOLS,
-  LanguageSchema,
-  type AssistantEvent,
-} from "@xcollab/core";
-import {
+  ASSISTANT_TOOLS,
   buildChatSystemPrompt,
   type ChatAdapter,
   type ChatMessage,
-  type ToolSpec,
 } from "@xcollab/ai-gateway";
 import type { AuthEnv } from "./auth.ts";
 import type { ProposalStore } from "./assistant-proposals.ts";
@@ -75,16 +70,6 @@ class TurnRateLimiter {
   }
 }
 
-/** Tool specs for the inference seam come from the zod contract in core. */
-export function assistantToolSpecs(): ToolSpec[] {
-  const all = { ...ASSISTANT_READ_TOOLS, ...ASSISTANT_MUTATION_TOOLS };
-  return Object.entries(all).map(([name, definition]) => ({
-    name,
-    description: definition.description,
-    argsSchema: definition.args,
-  }));
-}
-
 function toChatMessage(message: z.infer<typeof IncomingMessageSchema>): ChatMessage {
   if (message.role === "tool_result") {
     return { role: "tool_result", tool: message.tool, content: message.resultDigest };
@@ -97,7 +82,9 @@ export function registerAssistantChatRoute(app: Hono<AuthEnv>, config: Assistant
     turnsPerMinute: config.limits?.turnsPerMinute ?? 10,
     concurrentStreams: config.limits?.concurrentStreams ?? 3,
   });
-  const tools = assistantToolSpecs();
+  // The single zod-derived tool projection (gateway chat-tools) — the api
+  // must never carry its own copy of the contract (charter: generated, once).
+  const tools = [...ASSISTANT_TOOLS];
 
   app.post("/api/assistant/messages", async (c) => {
     const parsed = ChatRequestSchema.safeParse(await c.req.json().catch(() => null));

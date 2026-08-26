@@ -49,7 +49,7 @@ export function LoginGate() {
           {redirecting ? t.signingIn : t.signIn}
         </button>
       </div>
-      <footer className="login-foot">Sovereign deployment · {t.workspace}</footer>
+      <footer className="login-foot">{t.sovereignDeployment} · {t.workspace}</footer>
     </div>
   );
 }

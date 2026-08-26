@@ -64,6 +64,23 @@ describe("ProgramSchema", () => {
     const arabic = { ...validProgram, language: "ar", name: "شبكة الدفاع" };
     expect(ProgramSchema.parse(arabic).name).toBe("شبكة الدفاع");
   });
+
+  it("rejects duplicate package ids", () => {
+    // Duplicate ids would silently collapse in findDependencyCycle's Map.
+    const bad = {
+      ...validProgram,
+      packages: [validPackage, { ...validPackage, name: "Duplicate id, other name" }],
+    };
+    expect(() => ProgramSchema.parse(bad)).toThrow();
+  });
+
+  it("bounds name and mission at 500 and 20000 characters", () => {
+    expect(() => ProgramSchema.parse({ ...validProgram, name: "x".repeat(501) })).toThrow();
+    expect(ProgramSchema.parse({ ...validProgram, name: "x".repeat(500) }).name).toHaveLength(500);
+    expect(() =>
+      ProgramSchema.parse({ ...validProgram, mission: "x".repeat(20_001) }),
+    ).toThrow();
+  });
 });
 
 describe("TaskSchema", () => {

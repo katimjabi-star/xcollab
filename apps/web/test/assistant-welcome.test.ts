@@ -9,8 +9,8 @@ import { STRINGS } from "../lib/i18n.ts";
 import type { WorkspaceUser } from "../lib/api-client.ts";
 
 const users: WorkspaceUser[] = [
-  { username: "jabbir", firstName: "Jabbir", lastName: "Parlapati", email: "j@x.dev" },
-  { username: "amina", firstName: "Amina", lastName: "Hassan", email: "a@x.dev" },
+  { username: "jabbir", firstName: "Jabbir", lastName: "Parlapati" },
+  { username: "amina", firstName: "Amina", lastName: "Hassan" },
 ];
 
 function program(name: string, tasks: { assignee?: string; status: string }[]): Program {

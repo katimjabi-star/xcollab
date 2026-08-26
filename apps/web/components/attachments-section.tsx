@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Download, FileArchive, FileText, Paperclip, Trash2 } from "lucide-react";
 import { Image as ImageIcon, type LucideIcon } from "lucide-react";
 import { API_BASE, ApiError, WORKSPACE } from "../lib/api-client.ts";
+import { saveBlob } from "../lib/save-blob.ts";
 import { ATTACHMENT_MAX_BYTES, deleteAttachment, fetchAttachmentBlob, listAttachments } from "../lib/api-attachments.ts";
 import { setAttachmentsAuthTokenProvider, uploadAttachment, type Attachment } from "../lib/api-attachments.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
@@ -139,14 +140,7 @@ export function AttachmentsSection({
 
   const download = (attachment: Attachment) => {
     fetchAttachmentBlob(API_BASE, { workspaceId: WORKSPACE, attachmentId: attachment.id })
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = attachment.filename;
-        anchor.click();
-        URL.revokeObjectURL(url);
-      })
+      .then((blob) => saveBlob(blob, attachment.filename))
       .catch(() => push({ message: t.actionFailed }));
   };
 

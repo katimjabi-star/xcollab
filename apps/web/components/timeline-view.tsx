@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 import type { Program, Task } from "@xcollab/core";
 import { isOverdue } from "../lib/board-filter.ts";
+import { localTodayIso } from "../lib/my-tasks.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
 
@@ -18,12 +19,6 @@ function dayIndex(iso: string): number {
   return Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) / MS_PER_DAY;
 }
 
-function localTodayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
 
 interface MonthCell {
   key: string;

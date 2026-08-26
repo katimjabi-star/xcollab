@@ -14,14 +14,9 @@ export interface CreateProgramInput {
   teamId?: string;
 }
 
-/* Program.teamId ships in @xcollab/core together with the backend drop; until
-   that lands the field is read through this widening so typecheck stays green
-   (packages/core is not ours to edit). */
-type ProgramTeamFields = { teamId?: string | null };
-
 /** The program's connected team id, or null when unset. */
 export function programTeamId(program: Program): string | null {
-  return (program as Program & ProgramTeamFields).teamId ?? null;
+  return program.teamId ?? null;
 }
 
 export interface CreateProgramResult {
@@ -115,12 +110,12 @@ export function getLedger(base: string, workspaceId: string): Promise<LedgerResu
   return request<LedgerResult>(`${base}/api/ledger?workspaceId=${encodeURIComponent(workspaceId)}`);
 }
 
-/** A workspace member, addressable by username (the Task.assignee value). */
+/** A workspace member, addressable by username (the Task.assignee value).
+    The API strips everything else (email is PII and never served). */
 export interface WorkspaceUser {
   username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export async function listUsers(

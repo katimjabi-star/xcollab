@@ -47,6 +47,16 @@ describe("assistant tool registry", () => {
     for (const spec of specs) {
       expect(spec.description.length).toBeGreaterThan(10);
       expect(spec.inputSchema["type"]).toBe("object");
+      // The generated schema must carry the zod contract's actual fields —
+      // a spec with an empty properties object would be silently useless.
+      const definition = assistantToolDefinition(spec.name);
+      expect(definition).toBeDefined();
+      const accepted = definition?.args.safeParse({});
+      const properties = (spec.inputSchema["properties"] ?? {}) as Record<string, unknown>;
+      // Either the tool takes no args ({} parses) or the JSON Schema names them.
+      if (accepted?.success !== true) {
+        expect(Object.keys(properties).length).toBeGreaterThan(0);
+      }
     }
   });
 });

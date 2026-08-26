@@ -13,10 +13,12 @@ const LedgerEntryContentSchema = z.object({
   workspaceId: z.string().min(1),
   seq: z.number().int().positive(),
   actor: LedgerActorSchema,
-  action: z.string().min(1),
-  modelId: z.string().min(1).optional(),
-  input: z.string(),
-  output: z.string(),
+  action: z.string().min(1).max(100),
+  modelId: z.string().min(1).max(200).optional(),
+  // Full prompts/outputs are retained by design (ADR 0002); the ceiling only
+  // rejects pathological rows, never legitimate model traffic.
+  input: z.string().max(1_000_000),
+  output: z.string().max(1_000_000),
   occurredAt: z.iso.datetime(),
   prevHash: z.string().length(64),
 });
@@ -52,7 +54,13 @@ export const LedgerEntrySchema = LedgerEntryContentSchema.extend({
 
 export type ChainVerification = { valid: true } | { valid: false; brokenAtSeq: number };
 
-/** Verifies content hashes, prev-hash links, and gapless sequence numbering. */
+/**
+ * Verifies content hashes, prev-hash links, gapless sequence numbering, AND
+ * the genesis anchor: a non-empty chain must start at seq 1 with GENESIS_HASH,
+ * so a truncated chain (first N entries dropped) never verifies clean. Callers
+ * verifying a partial window must fetch back to seq 1 — partial verification
+ * is deliberately unsupported for an append-only audit log.
+ */
 export function verifyChain(entries: LedgerEntry[]): ChainVerification {
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i] as LedgerEntry;
@@ -60,7 +68,7 @@ export function verifyChain(entries: LedgerEntry[]): ChainVerification {
       return { valid: false, brokenAtSeq: entry.seq };
     }
     if (i === 0) {
-      if (entry.seq === 1 && entry.prevHash !== GENESIS_HASH) {
+      if (entry.seq !== 1 || entry.prevHash !== GENESIS_HASH) {
         return { valid: false, brokenAtSeq: entry.seq };
       }
       continue;

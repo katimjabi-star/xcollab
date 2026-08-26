@@ -42,7 +42,7 @@ export const CreateProjectArgsSchema = z.object({
   mission: z.string().min(1).max(20_000),
   language: LanguageSchema,
   timeline: TimelineSchema.optional(),
-  teamHints: z.array(z.string().min(1)).max(20).optional(),
+  teamHints: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
   teamId: z.string().min(1).optional(),
 });
 

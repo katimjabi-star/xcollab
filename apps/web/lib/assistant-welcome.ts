@@ -43,7 +43,8 @@ export function resolveFirstName(
   users: readonly WorkspaceUser[] | null,
 ): string {
   const match = users?.find((u) => u.username === profile.username);
-  if (match && match.firstName.trim() !== "") return match.firstName.trim();
+  const directoryFirst = match?.firstName?.trim() ?? "";
+  if (directoryFirst !== "") return directoryFirst;
   const fromFullName = profile.fullName.trim().split(/\s+/)[0];
   return fromFullName !== undefined && fromFullName !== "" ? fromFullName : profile.username;
 }

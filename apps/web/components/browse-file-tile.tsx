@@ -57,7 +57,11 @@ export function useImageThumbs(attachments: Attachment[]): Map<string, string> {
         }
       }),
     ).then((pairs) => {
-      if (cancelled) return;
+      if (cancelled) {
+        // Cleanup already ran with an empty `urls`; these would leak.
+        for (const pair of pairs) if (pair !== null) URL.revokeObjectURL(pair[1]);
+        return;
+      }
       setThumbs(new Map(pairs.filter((pair) => pair !== null)));
     });
     return () => {

@@ -48,21 +48,21 @@ export function AssistantChat(): ReactElement {
     setBusy(true);
     const controller = new AbortController();
     abortRef.current = controller;
-    let current = list;
     try {
       const turn = streamAssistantTurn(
         API_BASE,
         { workspaceId: WORKSPACE, language, messages: toWireMessages(list) },
         controller.signal,
       );
+      // Functional updates only: a Confirm can land between stream events
+      // (setProposalState/appendResult), and a snapshot write here would
+      // silently revert an already-executed proposal card to "pending".
       for await (const event of turn) {
-        current = applyEvent(current, event);
-        setMessages(current);
+        setMessages((prev) => applyEvent(prev, event));
       }
     } catch {
       if (!controller.signal.aborted) {
-        current = applyEvent(current, { type: "error", message: t.aiErrorTransport });
-        setMessages(current);
+        setMessages((prev) => applyEvent(prev, { type: "error", message: t.aiErrorTransport }));
         push({ message: t.aiErrorTransport });
       }
     } finally {

@@ -74,11 +74,11 @@ describe("api client", () => {
 
   it("lists workspace users from GET /api/users", async () => {
     const fn = mockFetch(200, {
-      users: [{ username: "jdoe", firstName: "Jane", lastName: "Doe", email: "j@x.io" }],
+      users: [{ username: "jdoe", firstName: "Jane", lastName: "Doe" }],
     });
     const users = await listUsers(BASE, { workspaceId: "hq" });
     expect(users).toEqual([
-      { username: "jdoe", firstName: "Jane", lastName: "Doe", email: "j@x.io" },
+      { username: "jdoe", firstName: "Jane", lastName: "Doe" },
     ]);
     expect(fn.mock.calls[0]?.[0]).toBe(`${BASE}/api/users?workspaceId=hq`);
   });

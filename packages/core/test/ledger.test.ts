@@ -58,6 +58,21 @@ describe("ledger hash chain", () => {
     expect(result.valid).toBe(false);
   });
 
+  it("rejects a truncated chain that does not start at genesis", () => {
+    // The classic audit-log attack: drop the first N rows. Internally
+    // consistent from seq 7 onward, but the genesis anchor is missing.
+    const e7 = makeEntry(7, "a".repeat(64));
+    const e8 = makeEntry(8, e7.hash);
+    const result = verifyChain([e7, e8]);
+    expect(result.valid).toBe(false);
+    expect(result.valid === false && result.brokenAtSeq).toBe(7);
+  });
+
+  it("rejects a chain whose first entry is seq 1 without the genesis prev hash", () => {
+    const forged = makeEntry(1, "b".repeat(64));
+    expect(verifyChain([forged]).valid).toBe(false);
+  });
+
   it("hash is deterministic and input-sensitive", () => {
     const e1 = makeEntry(1, GENESIS_HASH);
     expect(computeEntryHash(e1)).toBe(computeEntryHash({ ...e1 }));

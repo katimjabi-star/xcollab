@@ -16,13 +16,9 @@ export function isoFromIndex(index: number): string {
   return new Date(index * MS_PER_DAY).toISOString().slice(0, 10);
 }
 
-/** Today in the user's local timezone (the one place local time matters). */
-export function localTodayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
+/** Canonical local-calendar-today lives in my-tasks; re-exported for callers
+    that reach it through the calendar module. */
+export { localTodayIso } from "./my-tasks.ts";
 
 /** First column of the week grid (getUTCDay convention, 0 = Sunday).
     English weeks start Sunday (reference grid SUN..SAT); Arabic weeks start

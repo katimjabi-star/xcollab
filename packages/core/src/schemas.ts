@@ -35,16 +35,16 @@ export type Task = z.infer<typeof TaskSchema>;
 
 export const WorkPackageSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
-  scope: z.string().min(1),
-  tasks: z.array(TaskSchema).min(1),
-  dependsOn: z.array(z.string().min(1)),
+  name: z.string().min(1).max(500),
+  scope: z.string().min(1).max(4000),
+  tasks: z.array(TaskSchema).min(1).max(200),
+  dependsOn: z.array(z.string().min(1)).max(50),
 });
 export type WorkPackage = z.infer<typeof WorkPackageSchema>;
 
 export const TeamSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
+  name: z.string().min(1).max(500),
   kind: z.enum(["internal", "vendor"]),
 });
 
@@ -65,15 +65,15 @@ export type WorkspaceTeam = z.infer<typeof WorkspaceTeamSchema>;
 
 export const MilestoneSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
+  name: z.string().min(1).max(500),
   dueDate: z.iso.date(),
 });
 
 export const RiskSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1),
+  title: z.string().min(1).max(500),
   severity: z.enum(["low", "medium", "high", "critical"]),
-  owner: z.string().min(1).optional(),
+  owner: z.string().min(1).max(200).optional(),
 });
 
 export const TimelineSchema = z
@@ -87,17 +87,24 @@ export const ProgramSchema = z
     parentId: z.string().min(1).optional(),
     /** Optional linked workspace team id (WorkspaceTeamSchema, same workspace). */
     teamId: z.string().min(1).optional(),
-    name: z.string().min(1),
-    mission: z.string().min(1),
+    name: z.string().min(1).max(500),
+    mission: z.string().min(1).max(20_000),
     language: LanguageSchema,
     timeline: TimelineSchema,
-    teams: z.array(TeamSchema).min(1),
-    packages: z.array(WorkPackageSchema).min(1),
-    milestones: z.array(MilestoneSchema),
-    risks: z.array(RiskSchema),
+    teams: z.array(TeamSchema).min(1).max(50),
+    packages: z.array(WorkPackageSchema).min(1).max(100),
+    milestones: z.array(MilestoneSchema).max(100),
+    risks: z.array(RiskSchema).max(100),
   })
   .superRefine((program, ctx) => {
     const ids = new Set(program.packages.map((p) => p.id));
+    if (ids.size !== program.packages.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "package ids must be unique",
+        path: ["packages"],
+      });
+    }
     for (const pkg of program.packages) {
       for (const dep of pkg.dependsOn) {
         if (!ids.has(dep)) {
@@ -123,11 +130,16 @@ export const AttachmentSchema = z.object({
   programId: z.string().min(1),
   /** null for program-level documents; a task id for task-scoped ones. */
   taskId: z.string().min(1).nullable(),
-  filename: z.string().min(1),
-  contentType: z.string().min(1),
-  sizeBytes: z.number().int().nonnegative(),
+  filename: z.string().min(1).max(255),
+  contentType: z.string().min(1).max(200),
+  // Contract ceiling only; the upload route enforces its own (smaller) cap.
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(1024 * 1024 * 1024),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   uploadedBy: z.string().min(1),
-  createdAt: z.string().min(1),
+  createdAt: z.iso.datetime(),
 });
 export type Attachment = z.infer<typeof AttachmentSchema>;

@@ -4,6 +4,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -17,4 +20,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # services/api tests are integration tests against real Postgres, MinIO
+      # and Keycloak — the same stack developers run (compose healthchecks gate
+      # readiness; the bootstrap script provisions the realm + test users).
+      - run: docker compose up -d --wait
+      - run: bash keycloak/bootstrap-dev.sh
       - run: pnpm test

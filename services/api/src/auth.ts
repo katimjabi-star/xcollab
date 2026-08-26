@@ -26,6 +26,9 @@ export function createAuthMiddleware(): MiddlewareHandler<AuthEnv> {
     try {
       const { payload } = await jwtVerify(header.slice("Bearer ".length), jwks, {
         issuer,
+        // Pinned: a JWKS that ever grows a non-RS256 key must not widen what
+        // this middleware accepts (ASVS V3 algorithm-confusion guard).
+        algorithms: ["RS256"],
         ...(audience ? { audience } : {}),
       });
       const username =

@@ -127,9 +127,25 @@ function buildTasks(
  * quality baseline every model must beat (Charter; ADR pending for V1 gates).
  * Same brief in, same program out — no randomness, no clock reads.
  */
+/** True for a parseable YYYY-MM-DD; guards the date arithmetic below, which
+    would otherwise throw RangeError on an Invalid Date (total function). */
+function isValidIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
+}
+
 export function synthesizeProgram(brief: ProgramBrief): Program {
   const language = brief.language;
-  const timeline = brief.timeline ?? DEFAULT_TIMELINE;
+  const requested = brief.timeline;
+  // A malformed or inverted timeline degrades to the default window instead of
+  // throwing: the synthesizer is the always-available fallback and must be
+  // total over its inputs (validated callers never hit this branch).
+  const timeline =
+    requested !== undefined &&
+    isValidIsoDate(requested.start) &&
+    isValidIsoDate(requested.end) &&
+    requested.start < requested.end
+      ? requested
+      : DEFAULT_TIMELINE;
   const totalDays = daysBetween(timeline.start, timeline.end);
 
   const phaseDays = Math.max(1, Math.floor(totalDays / PHASES.length));
@@ -149,11 +165,16 @@ export function synthesizeProgram(brief: ProgramBrief): Program {
 
   const teams = [
     { id: "team-1", name: TEXT.coreTeam[language], kind: "internal" as const },
-    ...(brief.teamHints ?? []).map((hint, i) => ({
-      id: `team-${i + 2}`,
-      name: hint.trim(),
-      kind: "internal" as const,
-    })),
+    // Whitespace-only hints are dropped: an empty team name would violate
+    // TeamSchema and turn a valid brief into a schema-invalid program.
+    ...(brief.teamHints ?? [])
+      .map((hint) => hint.trim())
+      .filter((hint) => hint !== "")
+      .map((hint, i) => ({
+        id: `team-${i + 2}`,
+        name: hint.slice(0, 500),
+        kind: "internal" as const,
+      })),
   ];
 
   const milestones = TEXT.milestones[language].map((name, i) => ({

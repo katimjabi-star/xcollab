@@ -2,14 +2,16 @@ import type { ReactElement, ReactNode } from "react";
 
 /* Markdown-lite for assistant prose — bold, inline code, links, and bullet
    lists only (spec §3.2: a small in-repo renderer instead of a dependency).
-   Injected link targets are restricted to same-app paths and https. */
+   Injected link targets are restricted to same-app paths: model output is a
+   prompt-injection surface, and an external link inside assistant prose is an
+   egress attempt on a sovereign deployment. External URLs render as text. */
 
 const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;
 const LINK = /^\[([^\]]+)\]\(([^)\s]+)\)$/;
 
 function safeHref(href: string): string | null {
-  if (href.startsWith("/")) return href;
-  if (href.startsWith("https://") || href.startsWith("http://")) return href;
+  // Same-app absolute paths only; "//host" is a protocol-relative external URL.
+  if (href.startsWith("/") && !href.startsWith("//")) return href;
   return null;
 }
 

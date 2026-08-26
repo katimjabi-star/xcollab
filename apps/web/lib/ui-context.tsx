@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { STRINGS, type UiLanguage } from "./i18n.ts";
 import {
   cycleThemeMode,
@@ -32,20 +32,23 @@ export function UiProvider({ children }: { children: ReactNode }) {
     if (stored === "light" || stored === "dark") setThemeMode(stored);
   }, []);
 
-  function setTheme(next: ThemeMode) {
-    setThemeMode(next);
-    persistThemeMode(next);
-  }
-
-  const value: UiContextValue = {
-    language,
-    toggleLanguage: () => setLanguage(language === "en" ? "ar" : "en"),
-    themeMode,
-    setTheme,
-    cycleTheme: () => setTheme(cycleThemeMode(themeMode)),
-    t: STRINGS[language],
-    dir: language === "ar" ? "rtl" : "ltr",
-  };
+  // Memoized: nearly every component consumes this context, so a fresh object
+  // per provider render would re-render the whole tree on unrelated updates.
+  const value: UiContextValue = useMemo(() => {
+    const setTheme = (next: ThemeMode) => {
+      setThemeMode(next);
+      persistThemeMode(next);
+    };
+    return {
+      language,
+      toggleLanguage: () => setLanguage(language === "en" ? "ar" : "en"),
+      themeMode,
+      setTheme,
+      cycleTheme: () => setTheme(cycleThemeMode(themeMode)),
+      t: STRINGS[language],
+      dir: language === "ar" ? "rtl" : "ltr",
+    };
+  }, [language, themeMode]);
   return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
 }
 

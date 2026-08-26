@@ -38,8 +38,8 @@ export function TeamsPeoplePicker({ team, users, usersError, onChange }: TeamsPe
     (user) =>
       !memberNames.has(user.username) &&
       (!needle ||
-        [user.username, user.firstName, user.lastName, user.email].some((field) =>
-          field.toLowerCase().includes(needle),
+        [user.username, user.firstName, user.lastName].some(
+          (field) => field !== undefined && field.toLowerCase().includes(needle),
         )),
   );
 

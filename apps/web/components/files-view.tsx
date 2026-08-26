@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpDown, LayoutGrid, ListFilter, Plus, StretchHorizontal } from "lucide-react";
 import { API_BASE, ApiError, WORKSPACE } from "../lib/api-client.ts";
+import { saveBlob } from "../lib/save-blob.ts";
 import { ATTACHMENT_MAX_BYTES, fetchAttachmentBlob, setAttachmentsAuthTokenProvider } from "../lib/api-attachments.ts";
 import { uploadAttachment, type Attachment } from "../lib/api-attachments.ts";
 import { STRINGS, type UiLanguage } from "../lib/i18n.ts";
@@ -177,16 +178,11 @@ export function FilesView({ programId, uiLanguage }: { programId: string; uiLang
   const open = (attachment: Attachment) => {
     fetchAttachmentBlob(API_BASE, { workspaceId: WORKSPACE, attachmentId: attachment.id })
       .then((blob) => {
-        const url = URL.createObjectURL(blob);
         if (isImage(attachment)) {
-          setLightbox({ url, name: attachment.filename });
+          setLightbox({ url: URL.createObjectURL(blob), name: attachment.filename });
           return;
         }
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = attachment.filename;
-        anchor.click();
-        URL.revokeObjectURL(url);
+        saveBlob(blob, attachment.filename);
       })
       .catch(() => push({ message: t.actionFailed }));
   };

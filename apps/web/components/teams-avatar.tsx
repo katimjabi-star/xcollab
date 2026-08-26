@@ -9,14 +9,14 @@ export function findUser(
 }
 
 export function fullNameOf(user: WorkspaceUser | undefined): string {
-  return user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  return user ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() : "";
 }
 
 /** First graphemes of first/last name; fallback: first two of username. */
 export function initialsFor(username: string, user: WorkspaceUser | undefined): string {
   if (user) {
-    const first = Array.from(user.firstName)[0] ?? "";
-    const last = Array.from(user.lastName)[0] ?? "";
+    const first = Array.from(user.firstName ?? "")[0] ?? "";
+    const last = Array.from(user.lastName ?? "")[0] ?? "";
     if (first || last) return `${first}${last}`;
   }
   return Array.from(username).slice(0, 2).join("");

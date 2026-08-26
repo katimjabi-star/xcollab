@@ -5,6 +5,7 @@ import { Check, ChevronDown } from "lucide-react";
 import type { Task } from "@xcollab/core";
 import type { TaskPatch } from "../lib/api-client.ts";
 import { overdueDays } from "../lib/date-label.ts";
+import { localTodayIso } from "../lib/my-tasks.ts";
 import { formatDayCount, STRINGS, type UiLanguage } from "../lib/i18n.ts";
 import { AssigneePicker } from "./assignee-picker.tsx";
 import { DateRows } from "./task-panel-dates.tsx";
@@ -79,13 +80,6 @@ function StatusEditor({
   );
 }
 
-/** Local YYYY-MM-DD (schema dates are calendar dates, not instants). */
-function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
 
 interface TaskPanelFieldsProps {
   task: Task;
@@ -121,7 +115,7 @@ export function TaskPanelFields({
   const [assignee, setAssignee] = useState(task.assigneeRole ?? "");
   const [assigneeUser, setAssigneeUser] = useState<string | null>(task.assignee ?? null);
   const [description, setDescription] = useState(task.description ?? "");
-  const overdue = dueDate !== "" && status !== "done" && dueDate < todayIso();
+  const overdue = dueDate !== "" && status !== "done" && dueDate < localTodayIso();
 
   const commitDate = (
     field: "startDate" | "dueDate",
@@ -244,7 +238,7 @@ export function TaskPanelFields({
           dueDate={dueDate}
           dateError={dateError}
           overdueChip={
-            overdue ? `${t.overdueBy} ${formatDayCount(t, overdueDays(dueDate, todayIso()))}` : null
+            overdue ? `${t.overdueBy} ${formatDayCount(t, overdueDays(dueDate, localTodayIso()))}` : null
           }
           onStart={(value) => commitDate("startDate", value, setStartDate, task.startDate ?? "")}
           onDue={(value) => commitDate("dueDate", value, setDueDate, task.dueDate ?? "")}

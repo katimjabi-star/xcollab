@@ -3,10 +3,11 @@ services:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: xcollab
-      POSTGRES_PASSWORD: xcollab_dev_only
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xcollab_dev_only}
       POSTGRES_DB: xcollab
     ports:
-      - "5432:5432"
+      # Loopback-only: nothing in this dev stack may be reachable off-host.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,31 +17,43 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio:latest
+    # Pinned (charter: boundary-cached base images only; no floating tags).
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: xcollab
-      MINIO_ROOT_PASSWORD: xcollab_dev_only
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-xcollab_dev_only}
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
       # Some corporate endpoint agents (Zscaler ztunnel) hijack loopback :9000;
       # 19000 is an additive alternate for the same S3 API (use MINIO_PORT=19000).
-      - "19000:9000"
-      - "9001:9001"
+      - "127.0.0.1:19000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     command: start-dev
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin_dev_only
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin_dev_only}
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     volumes:
       - ./keycloak/themes/xcollab:/opt/keycloak/themes/xcollab:ro
       - keycloakdata:/opt/keycloak/data
+    healthcheck:
+      # The image ships no curl/wget; bash /dev/tcp is the standard probe.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
 volumes:
   pgdata:

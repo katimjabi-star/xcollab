@@ -6,6 +6,7 @@ import type { Program, Task } from "@xcollab/core";
 import { API_BASE, WORKSPACE, updateTaskStatus } from "../lib/api-client.ts";
 import type { BoardCard } from "../lib/board-filter.ts";
 import { anyFilterActive, filterTasks, sortTasks } from "../lib/board-filter.ts";
+import { localTodayIso } from "../lib/my-tasks.ts";
 import type { UiLanguage } from "../lib/i18n.ts";
 import { STRINGS } from "../lib/i18n.ts";
 import { fullName, useWorkspaceUsers } from "./assignee-picker.tsx";
@@ -35,14 +36,6 @@ function parseDragPayload(raw: string): DragPayload | null {
   }
 }
 
-/** Local calendar date as ISO — computed in the UI layer so lib/board-filter
-    stays clock-free. */
-function localTodayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
 
 function readCollapsed(programId: string): Task["status"][] {
   try {

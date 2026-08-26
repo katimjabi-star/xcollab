@@ -93,4 +93,28 @@ describe("synthesizeProgram", () => {
     const program = synthesizeProgram({ mission: brief.mission, language: "en" });
     expect(() => ProgramSchema.parse(program)).not.toThrow();
   });
+
+  it("drops whitespace-only team hints instead of emitting a schema-invalid team", () => {
+    const program = synthesizeProgram({
+      ...brief,
+      teamHints: ["  ", "Design", "\t", "  QA  "],
+    });
+    expect(() => ProgramSchema.parse(program)).not.toThrow();
+    const hinted = program.teams.slice(1).map((team) => team.name);
+    expect(hinted).toEqual(["Design", "QA"]);
+  });
+
+  it("degrades a malformed or inverted timeline to the default window instead of throwing", () => {
+    const malformed = synthesizeProgram({
+      ...brief,
+      timeline: { start: "not-a-date", end: "2026-12-01" },
+    });
+    expect(() => ProgramSchema.parse(malformed)).not.toThrow();
+    const inverted = synthesizeProgram({
+      ...brief,
+      timeline: { start: "2026-12-01", end: "2026-09-01" },
+    });
+    expect(() => ProgramSchema.parse(inverted)).not.toThrow();
+    expect(inverted.timeline.end > inverted.timeline.start).toBe(true);
+  });
 });

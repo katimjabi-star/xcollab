@@ -10,9 +10,8 @@ import { ApiError } from "./api-client.ts";
 
 export interface WorkspaceUser {
   username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export type TeamRole = "lead" | "member";
