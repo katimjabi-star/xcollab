@@ -51,8 +51,12 @@ export class AiGateway {
     let candidate: unknown;
     try {
       candidate = await adapter.generateProgram(brief);
-    } catch {
-      // Adapter failure degrades to the deterministic path — never an outage.
+    } catch (error) {
+      // Adapter failure degrades to the deterministic path — never an outage,
+      // but the degrade must be operator-visible (status/message only, no key).
+      console.error(
+        `generation adapter degraded: ${adapter.id} -> deterministic: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return this.synthesize(brief, input, adapter.id);
     }
 

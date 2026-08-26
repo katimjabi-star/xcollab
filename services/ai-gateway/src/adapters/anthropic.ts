@@ -26,7 +26,9 @@ export class AnthropicAdapter implements ModelAdapter {
     const client = new Anthropic({ apiKey: this.apiKey });
     const response = await client.messages.create({
       model: this.modelId,
-      max_tokens: 4096,
+      // Large programs (10+ packages) exceed 4K output tokens and a truncated
+      // JSON body silently degrades generation to the deterministic template.
+      max_tokens: 16384,
       messages: [{ role: "user", content: buildProgramPrompt(brief) }],
     });
     const text = response.content
