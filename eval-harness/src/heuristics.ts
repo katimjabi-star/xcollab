@@ -1,12 +1,11 @@
 import { findDependencyCycle, ProgramSchema, type Task } from "@xcollab/core";
 import type { ProgramBrief } from "@xcollab/synthesizer";
+import { ARABIC_SCRIPT } from "./chat-heuristics.ts";
 
 export interface HeuristicReport {
   pass: boolean;
   failures: string[];
 }
-
-const ARABIC_PATTERN = /[؀-ۿ]/;
 
 /** Every generated task must be scheduled: dated, ordered, inside the
     program timeline (Timeline/Calendar views are empty otherwise). */
@@ -58,7 +57,7 @@ export function runHeuristics(brief: ProgramBrief, candidate: unknown): Heuristi
 
   if (brief.language === "ar") {
     const fields = [program.name, ...program.packages.map((p) => p.name)];
-    if (!fields.every((f) => ARABIC_PATTERN.test(f))) {
+    if (!fields.every((f) => ARABIC_SCRIPT.test(f))) {
       failures.push("Arabic brief produced non-Arabic names");
     }
   }

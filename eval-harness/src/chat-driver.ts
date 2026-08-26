@@ -25,6 +25,8 @@ export async function driveDeterministicTurn(
   options: {
     today: string;
     snapshot: unknown;
+    /** System prompt for the turn (build per-language via buildChatSystemPrompt). */
+    system?: string;
     searchTasksResult?: unknown;
     listTeamsResult?: unknown;
     listUsersResult?: unknown;
@@ -40,7 +42,7 @@ export async function driveDeterministicTurn(
 
   for (let turn = 0; turn < TURN_BUDGET; turn += 1) {
     const events = await collect(
-      gateway.runTurn({ system: "", messages, tools: [...ASSISTANT_TOOLS] }),
+      gateway.runTurn({ system: options.system ?? "", messages, tools: [...ASSISTANT_TOOLS] }),
     );
     const invalid = events.find((e) => e.type === "tool_call_invalid");
     if (invalid && invalid.type === "tool_call_invalid") {
