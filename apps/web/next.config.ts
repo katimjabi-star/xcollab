@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["@xcollab/core"],
   agentRules: false,
+  // Hide the dev-mode "N" devtools badge (bottom-left); errors still surface.
+  devIndicators: false,
   // Self-contained server build for the air-gapped image (Dockerfile.k3s);
   // tracing root is the monorepo root so workspace deps are included.
   output: "standalone",
