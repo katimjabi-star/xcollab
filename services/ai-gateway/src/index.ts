@@ -22,6 +22,7 @@ export {
 export { createChatGateway } from "./chat-factory.ts";
 export { buildChatSystemPrompt, type ChatPromptContext } from "./chat-prompts.ts";
 export {
+  ASSISTANT_READ_TOOL_SPECS,
   ASSISTANT_TOOLS,
   CreateProjectArgsSchema,
   CreateTaskArgsSchema,

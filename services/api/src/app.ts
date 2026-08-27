@@ -20,7 +20,7 @@ import { registerSubtaskRoutes } from "./routes-subtasks.ts";
 import { registerSearchRoutes } from "./routes-search.ts";
 import { registerAssistantChatRoute } from "./routes-assistant.ts";
 import { registerAssistantExecuteRoute } from "./routes-assistant-execute.ts";
-import { ProposalStore } from "./assistant-proposals.ts";
+import { wireWhatsAppChannel, type WhatsAppChannelOptions } from "./routes-whatsapp.ts";
 import { createActorResolver, type AssistantConfig } from "./assistant-actor.ts";
 import { AttachmentStore } from "./storage.ts";
 
@@ -106,6 +106,7 @@ export function createApp(
   gateway: AiGateway,
   store: AttachmentStore = new AttachmentStore(),
   assistant?: AssistantConfig,
+  channels?: { whatsapp?: WhatsAppChannelOptions },
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   // Comma-separated allowlist for deployed origins; localhost dev default.
@@ -139,6 +140,10 @@ export function createApp(
 
   // Registered before the auth middleware so it stays open without a token.
   app.get("/api/health", (c) => c.json({ ok: true }));
+
+  // WhatsApp webhook is public by design (Meta authenticates via verify
+  // token + HMAC signature) so it registers before the bearer gate.
+  const { proposals, whatsapp } = wireWhatsAppChannel(app, assistant, channels?.whatsapp);
 
   app.use("/api/*", createAuthMiddleware());
   // Workspace-level authorization (single enforcement point): claimed
@@ -181,6 +186,8 @@ export function createApp(
       actor,
       provenanceOf(c),
     );
+    // Fire-and-forget channel fanout AFTER the authoritative commit.
+    whatsapp?.notifyProgramCreated(program.name, workspaceId);
     return c.json({ program, ledgerSeq, generatedBy: generation.interaction.modelId }, 201);
   });
 
@@ -310,8 +317,7 @@ export function createApp(
   registerSearchRoutes(app, repo);
   registerSubtaskRoutes(app, repo, { actorOf, provenanceOf });
 
-  if (assistant) {
-    const proposals = new ProposalStore();
+  if (assistant && proposals) {
     registerAssistantChatRoute(app, {
       adapter: assistant.adapter,
       proposals,

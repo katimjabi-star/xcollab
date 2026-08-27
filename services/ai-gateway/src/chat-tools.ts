@@ -21,6 +21,19 @@ export const ASSISTANT_TOOLS: readonly ToolSpec[] = Object.entries({
   argsSchema: definition.args,
 }));
 
+/**
+ * Read-only view for channels that must never mutate (e.g. the WhatsApp
+ * bridge): with no mutation tools in the projection, the model cannot even
+ * propose a change on that surface.
+ */
+export const ASSISTANT_READ_TOOL_SPECS: readonly ToolSpec[] = Object.entries(
+  ASSISTANT_READ_TOOLS,
+).map(([name, definition]) => ({
+  name,
+  description: definition.description,
+  argsSchema: definition.args,
+}));
+
 /** Read tools auto-run in the api loop; mutation tools always stop at a proposal. */
 export const MUTATION_TOOLS: ReadonlySet<string> = new Set(ASSISTANT_MUTATION_TOOL_NAMES);
 

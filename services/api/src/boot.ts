@@ -18,6 +18,8 @@ export interface ServerProfile {
   name: "connected" | "sovereign";
   modelPlane: ModelAdapter[];
   chatPlane: { adapter: ChatAdapter; label: string };
+  /** Optional outbound channels (connected profile only, e.g. WhatsApp). */
+  channels?: Parameters<typeof createApp>[4];
 }
 
 export async function bootServer(profile: ServerProfile): Promise<void> {
@@ -41,15 +43,19 @@ export async function bootServer(profile: ServerProfile): Promise<void> {
   // memory only, never logged, never in env.
   const assistantNonce = randomUUID();
 
-  const app = createApp(repo, new AiGateway(profile.modelPlane), store, {
-    adapter: profile.chatPlane.adapter,
-    nonce: assistantNonce,
-  });
+  const app = createApp(
+    repo,
+    new AiGateway(profile.modelPlane),
+    store,
+    { adapter: profile.chatPlane.adapter, nonce: assistantNonce },
+    profile.channels,
+  );
 
   serve({ fetch: app.fetch, port });
   console.log(
     `xcollab api listening on :${port} [${profile.name}]` +
       ` — model plane: ${profile.modelPlane[0]?.id ?? "deterministic-synthesizer"}` +
-      ` — chat plane: ${profile.chatPlane.label}`,
+      ` — chat plane: ${profile.chatPlane.label}` +
+      (profile.channels?.whatsapp ? " — channels: whatsapp" : ""),
   );
 }
