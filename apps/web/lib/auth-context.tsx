@@ -13,6 +13,7 @@ import { setAuthTokenProvider } from "./api-client.ts";
 import {
   buildAuthUrl,
   buildEndSessionUrl,
+  buildPasswordGrantBody,
   parseTokenResponse,
   profileFromIdToken,
   randomVerifier,
@@ -47,6 +48,9 @@ interface AuthContextValue {
   /** True when the gate was reached via an expired session or refresh failure. */
   expired: boolean;
   login: () => Promise<void>;
+  /** In-app credential form → Keycloak direct grant. Throws TokenGrantError
+      (status 401 = wrong credentials) so the gate can show a precise message. */
+  loginWithPassword: (username: string, password: string) => Promise<void>;
   logout: () => void;
   getToken: () => string | null;
 }
@@ -66,13 +70,23 @@ function readStoredSession(): StoredSession | null {
   }
 }
 
+/** Token-endpoint failure carrying the HTTP status (401 = invalid_grant). */
+export class TokenGrantError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`token endpoint → ${status}`);
+    this.name = "TokenGrantError";
+    this.status = status;
+  }
+}
+
 async function tokenGrant(body: URLSearchParams): Promise<AuthTokens> {
   const response = await fetch(tokenEndpoint(KEYCLOAK_ISSUER), {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: body.toString(),
   });
-  if (!response.ok) throw new Error(`token endpoint → ${response.status}`);
+  if (!response.ok) throw new TokenGrantError(response.status);
   return parseTokenResponse((await response.json()) as TokenEndpointResponse);
 }
 
@@ -219,6 +233,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const loginWithPassword = useCallback(
+    async (username: string, password: string) => {
+      const tokens = await tokenGrant(
+        buildPasswordGrantBody(KEYCLOAK_CLIENT_ID, username, password),
+      );
+      if (!tokens.idToken) throw new Error("no id_token in token response");
+      adoptSession({ tokens, profile: profileFromIdToken(tokens.idToken) });
+    },
+    [adoptSession],
+  );
+
   const logout = useCallback(() => {
     const idToken = sessionRef.current?.tokens.idToken ?? undefined;
     dropSession("logout");
@@ -227,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, [dropSession]);
 
-  const value: AuthContextValue = { ready, user, expired, login, logout, getToken };
+  const value: AuthContextValue = { ready, user, expired, login, loginWithPassword, logout, getToken };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

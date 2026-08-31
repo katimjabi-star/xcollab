@@ -50,6 +50,22 @@ export function tokenEndpoint(issuer: string): string {
   return `${issuer}${TOKEN_PATH}`;
 }
 
+/** Direct grant (ROPC) body for the in-app credential form. `openid` scope is
+    required — the profile comes from the id_token, same as the code flow. */
+export function buildPasswordGrantBody(
+  clientId: string,
+  username: string,
+  password: string,
+): URLSearchParams {
+  return new URLSearchParams({
+    grant_type: "password",
+    client_id: clientId,
+    scope: "openid profile email",
+    username,
+    password,
+  });
+}
+
 export function buildEndSessionUrl(
   issuer: string,
   clientId: string,

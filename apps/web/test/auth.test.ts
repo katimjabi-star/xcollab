@@ -3,6 +3,7 @@ import {
   base64UrlEncode,
   buildAuthUrl,
   buildEndSessionUrl,
+  buildPasswordGrantBody,
   parseTokenResponse,
   profileFromIdToken,
   randomVerifier,
@@ -111,6 +112,19 @@ describe("shouldRefresh", () => {
   it("defaults the skew to 60s", () => {
     expect(shouldRefresh(100_000 + 59_999, undefined, 100_000)).toBe(true);
     expect(shouldRefresh(100_000 + 60_001, undefined, 100_000)).toBe(false);
+  });
+});
+
+describe("buildPasswordGrantBody", () => {
+  it("builds a direct-grant body with the openid scope (id_token source)", () => {
+    const body = buildPasswordGrantBody("xcollab-web", "jabbir", "s3cret+&");
+    expect(body.get("grant_type")).toBe("password");
+    expect(body.get("client_id")).toBe("xcollab-web");
+    expect(body.get("scope")).toBe("openid profile email");
+    expect(body.get("username")).toBe("jabbir");
+    expect(body.get("password")).toBe("s3cret+&");
+    // URLSearchParams must form-encode reserved characters safely.
+    expect(body.toString()).toContain("password=s3cret%2B%26");
   });
 });
 
