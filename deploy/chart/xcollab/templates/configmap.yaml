@@ -19,6 +19,11 @@ data:
   MINIO_PORT: {{ .Values.backends.minio.port | quote }}
   MINIO_USE_SSL: {{ .Values.backends.minio.useSSL | quote }}
   CORS_ALLOWED_ORIGINS: {{ .Values.api.env.corsAllowedOrigins | quote }}
+  {{- with .Values.api.env.x4authMode }}
+  # "mock" fakes the Katim-device approval (POC); live mode instead takes
+  # X4AUTH_BASE_URL/CLIENT_ID/CLIENT_SECRET from the api Secret.
+  X4AUTH_MODE: {{ . | quote }}
+  {{- end }}
   {{- if .Values.backends.ollama.enabled }}
   OLLAMA_BASE_URL: {{ printf "http://%s:%v" .Values.backends.ollama.host .Values.backends.ollama.port | quote }}
   OLLAMA_MODEL: {{ .Values.backends.ollama.model | quote }}
