@@ -18,10 +18,23 @@ export function clearUserCache(): void {
   cache = null;
 }
 
-function keycloakConfig(): { origin: string; realm: string } {
-  const issuer = new URL(process.env.KEYCLOAK_ISSUER ?? DEFAULT_ISSUER);
-  const realm = issuer.pathname.split("/").filter(Boolean).at(-1) ?? "xcollab";
-  return { origin: issuer.origin, realm };
+/**
+ * Splits an issuer URL into the Keycloak base (everything before /realms/,
+ * INCLUDING any path prefix such as /auth) and the realm name. Rebuilding
+ * from origin alone breaks deployments where Keycloak is path-routed
+ * (KC_HTTP_RELATIVE_PATH=/auth behind the shared gateway).
+ */
+export function keycloakBase(issuerUrl: string): { base: string; realm: string } {
+  const issuer = issuerUrl.replace(/\/+$/, "");
+  const match = /^(.+)\/realms\/([^/]+)$/.exec(issuer);
+  if (match?.[1] !== undefined && match[2] !== undefined) {
+    return { base: match[1], realm: match[2] };
+  }
+  return { base: issuer, realm: "xcollab" };
+}
+
+function keycloakConfig(): { base: string; realm: string } {
+  return keycloakBase(process.env.KEYCLOAK_ISSUER ?? DEFAULT_ISSUER);
 }
 
 /**
@@ -30,8 +43,8 @@ function keycloakConfig(): { origin: string; realm: string } {
  * service account holds exactly the realm-management view-users role — no
  * master-realm or admin credentials exist anywhere in this process.
  */
-async function serviceToken(origin: string, realm: string): Promise<string> {
-  const res = await fetch(`${origin}/realms/${realm}/protocol/openid-connect/token`, {
+async function serviceToken(base: string, realm: string): Promise<string> {
+  const res = await fetch(`${base}/realms/${realm}/protocol/openid-connect/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -55,9 +68,9 @@ async function serviceToken(origin: string, realm: string): Promise<string> {
 export async function listRealmUsers(): Promise<RealmUser[]> {
   if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.users;
 
-  const { origin, realm } = keycloakConfig();
-  const token = await serviceToken(origin, realm);
-  const res = await fetch(`${origin}/admin/realms/${realm}/users?max=${MAX_USERS}`, {
+  const { base, realm } = keycloakConfig();
+  const token = await serviceToken(base, realm);
+  const res = await fetch(`${base}/admin/realms/${realm}/users?max=${MAX_USERS}`, {
     headers: { authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`keycloak user listing failed: ${res.status}`);
