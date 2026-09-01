@@ -81,14 +81,33 @@ istio:
   virtualService:
     enabled: false
     host: xcollab.xedge-internal.corp
+    # Verified against the live k2 charts (mahara, securesign): the shared
+    # ingress Gateway is named `platform-gateway`, referenced UNQUALIFIED
+    # (resolves in the release namespace). Confirm per env:
+    # `kubectl -n <ns> get gateway`.
     gateways:
-      - istio-system/main-gateway
+      - platform-gateway
+    # Route /auth/* on the same host to Keycloak (KC_HTTP_RELATIVE_PATH=/auth).
+    # Required when Keycloak is deployed in-cluster from deploy/dev-infra —
+    # the in-app login form calls the token endpoint from the BROWSER.
+    routeKeycloak: false
   # Where the ingress gateway pods live — used by the NetworkPolicy
   # ingress allowance.
   ingressGateway:
     namespace: istio-system
     podLabels:
       istio: ingressgateway
+  # k2 namespaces carry a default deny-all Istio AuthorizationPolicy (STRICT
+  # mTLS mesh — hit SecureSign's first bring-up). These ALLOWs are
+  # selector-scoped to xcollab pods only; without them the sidecars 403
+  # gateway traffic and the app logs show nothing.
+  authorizationPolicy:
+    enabled: true
+    # SA principal of the shared ingress gateway (the value mahara and
+    # securesign both allow). If traffic still 403s, confirm with:
+    # kubectl -n istio-system get pods -l istio=ingressgateway \
+    #   -o jsonpath='{.items[0].spec.serviceAccountName}'
+    ingressGatewayPrincipal: cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
   # Every pod gets an istio sidecar. If the cluster enforces NetworkPolicy
   # on sidecar control-plane traffic, the pods also need egress to istiod
   # (XDS 15012) and ingress on the sidecar health/metrics ports

@@ -1,0 +1,51 @@
+{{- if .Values.istio.authorizationPolicy.enabled }}
+# k2 namespaces run a default deny-all Istio AuthorizationPolicy (verified in
+# the SecureSign deployment; the first Mahara bring-up hit the same wall):
+# without explicit ALLOWs the sidecars reject gateway traffic with 403 and
+# NOTHING appears in the app logs. Both policies below are selector-scoped to
+# xcollab pods only — consistent with this chart's isolation rule (no
+# namespace-wide policies in shared namespaces, ever).
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-allow-gateway-web
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "xcollab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - {{ .Values.istio.authorizationPolicy.ingressGatewayPrincipal | quote }}
+---
+# The api receives only /api/* from the gateway (the VirtualService already
+# routes that way; this enforces it at the sidecar — least privilege, same
+# path-scoped pattern as mahara-server's policy).
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "xcollab.fullname" . }}-allow-gateway-api
+  labels:
+    {{- include "xcollab.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "xcollab.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - {{ .Values.istio.authorizationPolicy.ingressGatewayPrincipal | quote }}
+      to:
+        - operation:
+            paths:
+              - /api
+              - /api/*
+{{- end }}

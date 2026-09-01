@@ -1,0 +1,92 @@
+# xcollab dev-infra: MinIO (single node — same pattern as securesign's
+# Phase-2 dependency pod; k2 has no shared MinIO, securesign runs its own).
+#
+# Root credentials come from the out-of-band Secret `xcollab-minio-root`
+# (keys: MINIO_ROOT_USER, MINIO_ROOT_PASSWORD). After first rollout, create
+# the app user + bucket the api expects (values match the xcollab-api
+# Secret's MINIO_ACCESS_KEY / MINIO_SECRET_KEY):
+#   kubectl -n xcollab-dev exec deploy/xcollab-minio -- sh -c '
+#     mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" &&
+#     mc mb -p local/xcollab-attachments &&
+#     mc admin user add local <MINIO_ACCESS_KEY> <MINIO_SECRET_KEY> &&
+#     mc admin policy attach local readwrite --user <MINIO_ACCESS_KEY>'
+#
+# emptyDir storage: attachments die with the pod — dev posture only. Move to
+# a PVC before s/prod.
+#
+# Image: carry as a tar, push as 172.26.34.205:5000/infra/minio:latest
+# (already in the registry catalog if securesign's push happened first —
+# verify with `curl -s http://172.26.34.205:5000/v2/_catalog`).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcollab-minio
+  labels:
+    app.kubernetes.io/name: xcollab-minio
+    app.kubernetes.io/part-of: xcollab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xcollab-minio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xcollab-minio
+        app.kubernetes.io/part-of: xcollab
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: minio
+          image: 172.26.34.205:5000/infra/minio:latest
+          args: ["server", "/data"]
+          envFrom:
+            - secretRef:
+                name: xcollab-minio-root
+          ports:
+            - name: api
+              containerPort: 9000
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcollab-minio
+  labels:
+    app.kubernetes.io/name: xcollab-minio
+    app.kubernetes.io/part-of: xcollab
+spec:
+  selector:
+    app.kubernetes.io/name: xcollab-minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000

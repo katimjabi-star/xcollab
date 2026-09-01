@@ -1,0 +1,48 @@
+# Istio ALLOWs for the xcollab dependency pods (Keycloak, MinIO). Required
+# wherever the namespace carries a default deny-all AuthorizationPolicy
+# (tasdiq-* do — bit securesign's first bring-up: "Access Denied" at the
+# TARGET's inbound sidecar, nothing in the target's logs). Harmless in a
+# dedicated xcollab-dev namespace without a deny-all.
+#
+# Both policies are selector-scoped to xcollab-owned pods only — never
+# namespace-wide (isolation rule, see deploy/README.md).
+#
+# Apply with the target namespace and (for keycloak) keep the gateway
+# principal in sync with the chart's
+# istio.authorizationPolicy.ingressGatewayPrincipal value.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: xcollab-allow-keycloak
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xcollab-keycloak
+  action: ALLOW
+  rules:
+    # Browser traffic: gateway routes /auth/* here (token endpoint, login
+    # theme assets, admin console).
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+    # In-mesh: the api fetches the realm JWKS and calls the service client;
+    # bootstrap jobs run from the same namespace.
+    - from:
+        - source:
+            namespaces: ["xcollab-dev", "xcollab-s", "xcollab-prod", "tasdiq-dev"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: xcollab-allow-minio
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xcollab-minio
+  action: ALLOW
+  rules:
+    # api pods only (attachment store) — MinIO is never gateway-exposed.
+    - from:
+        - source:
+            namespaces: ["xcollab-dev", "xcollab-s", "xcollab-prod", "tasdiq-dev"]

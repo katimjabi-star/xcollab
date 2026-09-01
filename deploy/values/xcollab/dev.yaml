@@ -22,19 +22,28 @@ web:
     tag: v0.1-sovereign-0000000
 
 backends:
-  # Confirm the actual Service DNS names with the platform team; these are
-  # placeholders for the shared in-cluster backends.
+  # Ground truth (2026-09-01 audit of the live k2 deployments): Postgres is
+  # NOT an in-cluster Service — mahara and securesign both use the external
+  # DB VM (x4auth's server). Discover the real host before first sync:
+  #   kubectl -n tasdiq-dev exec deploy/x4auth-server -- printenv DB_HOST DB_PORT
+  # and put that value here (172.26.34.202 at audit time).
   postgres:
-    host: postgres.tasdiq-dev.svc.cluster.local
+    host: "172.26.34.202"
     port: 5432
+  # No shared MinIO/Keycloak exist on k2 (securesign deployed its OWN minio;
+  # the incumbent IdP is X4Auth, not Keycloak). Both are deployed as xcollab
+  # dependency pods from deploy/dev-infra/ — these are their Service names.
   minio:
-    host: minio.tasdiq-dev.svc.cluster.local
+    host: xcollab-minio.xcollab-dev.svc.cluster.local
     port: 9000
     useSSL: "false"
   keycloak:
-    host: keycloak.tasdiq-dev.svc.cluster.local
+    host: xcollab-keycloak.xcollab-dev.svc.cluster.local
     port: 8080
-    issuer: https://keycloak.xedge-internal.corp/realms/xcollab
+    # Same-host path routing (VirtualService /auth/* -> Keycloak). Must match
+    # the token iss claim: KC_HOSTNAME in deploy/dev-infra/keycloak.yaml and
+    # the NEXT_PUBLIC_KEYCLOAK_ISSUER baked into the web image.
+    issuer: https://xcollab.xedge-internal.corp/auth/realms/xcollab
   ollama:
     enabled: false
     host: ollama.tasdiq-dev.svc.cluster.local
@@ -45,8 +54,10 @@ istio:
   virtualService:
     enabled: true
     host: xcollab.xedge-internal.corp
+    # Shared gateway name verified in the mahara + securesign charts.
     gateways:
-      - istio-system/main-gateway
+      - platform-gateway
+    routeKeycloak: true
 
 quota:
   enabled: false   # enable only in the dedicated xcollab-dev namespace

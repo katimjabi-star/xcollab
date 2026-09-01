@@ -27,6 +27,23 @@ spec:
             port:
               number: {{ .Values.api.port }}
     {{- end }}
+    {{- if .Values.istio.virtualService.routeKeycloak }}
+    # Same-host IdP: /auth/* -> Keycloak (KC_HTTP_RELATIVE_PATH=/auth). The
+    # browser talks to the token endpoint directly (in-app login form), so
+    # Keycloak MUST be reachable on the public host — one domain, path-routed,
+    # same single-host layout as SecureSign.
+    - name: keycloak
+      match:
+        - uri:
+            prefix: /auth/
+        - uri:
+            exact: /auth
+      route:
+        - destination:
+            host: {{ .Values.backends.keycloak.host }}
+            port:
+              number: {{ .Values.backends.keycloak.port }}
+    {{- end }}
     - name: web
       route:
         - destination:

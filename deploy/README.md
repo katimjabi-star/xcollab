@@ -8,6 +8,43 @@ repo; a human executes the steps that touch shared infrastructure.
 explicit instruction. Argo CD is authoritative — never `kubectl set image`
 or `helm upgrade` against the cluster; drift is undone on the next sync.
 
+## Ground truth — 2026-09-01 audit vs the live k2 deployments
+
+Corrections made after reading the deployed mahara chart
+(`X4Mahara/XMaharaServer/k8s/helm/mahara`) and the SecureSign repo
+(`scm.katim.com/x-labs/ecorrespondence`:
+`docs/deploy/k2-first-deploy-runbook.md` plus its `k2-deploy` skill):
+
+- **Gateway**: the shared ingress Gateway is **`platform-gateway`**,
+  referenced *unqualified* from the app namespace (both live charts do).
+  This chart's default was corrected from `istio-system/main-gateway`.
+- **Postgres is NOT in-cluster.** Both apps use the external DB VM
+  (x4auth's server — `172.26.34.202` at audit time). Discover with
+  `kubectl -n tasdiq-dev exec deploy/x4auth-server -- printenv DB_HOST`.
+- **No shared Keycloak or MinIO exist.** The incumbent IdP is X4Auth;
+  securesign runs its own MinIO. xcollab therefore ships both as
+  dependency pods — see `deploy/dev-infra/` and section (d0).
+- **Default deny-all Istio AuthorizationPolicy** in the tasdiq namespaces
+  (STRICT mTLS mesh): sidecars 403 gateway traffic with nothing in app
+  logs. The chart now ships selector-scoped ALLOWs
+  (`templates/istio-authz.yaml`) and `deploy/dev-infra/authz-deps.yaml`
+  covers the dependency pods.
+- **Keycloak issuer is same-host path-routed**: `/auth/*` on the app host
+  (`istio.virtualService.routeKeycloak`), because the in-app login form
+  calls the token endpoint from the browser. Issuer =
+  `https://<host>/auth/realms/xcollab` everywhere (KC_HOSTNAME, values,
+  and the `NEXT_PUBLIC_KEYCLOAK_ISSUER` baked into the web image).
+- **Access mechanics**: every k2 host needs `ProxyJump kps-jump` in
+  `~/.ssh/config`; the Mac cannot reach the registry HTTP API (corp proxy
+  resets `:5000`) — hence the rsync-then-build-on-k2-registry flow below.
+  Sanity check the catalog from a k2 host:
+  `curl -s http://172.26.34.205:5000/v2/_catalog`.
+- **Public-plane alternative**: mahara's browser-facing host is
+  `service3.nexedge.ae` on `platform-gateway`. If xcollab needs a
+  non-VPN URL, request the next free `serviceN.nexedge.ae` slot from the
+  platform team and set `istio.virtualService.host` (and re-bake the web
+  image's `NEXT_PUBLIC_*` for that host).
+
 ## Isolation guarantees (k2 hosts other projects)
 
 k2's `tasdiq-*` namespaces are shared with x4auth, mahara-server,
@@ -196,16 +233,74 @@ CREATE DATABASE xcollab OWNER xcollab;
 CREATE EXTENSION IF NOT EXISTS vector;            -- pgvector 16+ required
 ```
 
-4. **Backing services** (assumed already in-cluster per env): Postgres
-   16 + pgvector, MinIO, Keycloak with realm `xcollab` (clients
-   `xcollab-web` public + `xcollab-svc` confidential/service-account),
-   optionally Ollama. Their Service hostnames/ports are parameterized in
-   `values/xcollab/<env>.yaml` under `backends.*` — set them to the real
-   DNS names.
+4. **Backing services — ground truth (see audit section):** Postgres is
+   the external DB VM (`backends.postgres.host`; pgvector required).
+   Keycloak and MinIO do NOT exist on k2 — deploy them from
+   `deploy/dev-infra/` (section d0) before the first Argo sync, then point
+   `backends.*` at their Services. Ollama optional.
 
 5. **Non-secret env** (`KEYCLOAK_ISSUER`, MinIO endpoint, CORS origins,
    Ollama toggle) comes from the chart's ConfigMap via the same
    `backends.*` / `api.env.*` values.
+
+## d0) Dependency pods — first deploy only (Keycloak + MinIO)
+
+Same pattern as SecureSign's Phase 2 (their dev Vault/MinIO pods). All
+manifests are PSA-restricted-compliant and label-scoped to xcollab.
+
+1. **Carry the images** (add to the section (a)/(b) tar run):
+
+```bash
+# on the Mac
+docker pull --platform linux/amd64 quay.io/keycloak/keycloak:26.0 \
+  && docker save quay.io/keycloak/keycloak:26.0 -o out/keycloak.tar
+docker pull --platform linux/amd64 minio/minio:latest \
+  && docker save minio/minio:latest -o out/minio.tar
+# on k2-registry (after scp): load, retag to
+# 172.26.34.205:5000/infra/keycloak:26.0 and .../infra/minio:latest, push.
+# minio may already be in the catalog from securesign — check first.
+```
+
+2. **Secrets (out of band, never in git):**
+
+```bash
+kubectl -n xcollab-dev create secret generic xcollab-keycloak-admin \
+  --from-literal=KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+  --from-literal=KC_BOOTSTRAP_ADMIN_PASSWORD='<strong pw>'
+kubectl -n xcollab-dev create secret generic xcollab-minio-root \
+  --from-literal=MINIO_ROOT_USER=xcollab-root \
+  --from-literal=MINIO_ROOT_PASSWORD='<strong pw>'
+```
+
+3. **Apply + wait:**
+
+```bash
+kubectl -n xcollab-dev apply -f deploy/dev-infra/keycloak.yaml \
+  -f deploy/dev-infra/minio.yaml -f deploy/dev-infra/authz-deps.yaml
+kubectl -n xcollab-dev rollout status deploy/xcollab-keycloak --timeout=180s
+kubectl -n xcollab-dev rollout status deploy/xcollab-minio --timeout=120s
+```
+
+4. **Bootstrap the realm** — `keycloak/bootstrap-dev.sh` is already
+   parameterized (`KEYCLOAK_URL`); run it against a port-forward, then fix
+   the client's redirect/web origins for the real host in the admin
+   console (the script bakes localhost:3000 values):
+
+```bash
+kubectl -n xcollab-dev port-forward deploy/xcollab-keycloak 8081:8080 &
+KEYCLOAK_URL=http://localhost:8081/auth KC_BOOTSTRAP_ADMIN_PASSWORD='<pw>' \
+  keycloak/bootstrap-dev.sh
+# then: realm xcollab -> client xcollab-web -> redirectUris/webOrigins =
+# https://xcollab.xedge-internal.corp/* ; create real users (no demo/demo).
+```
+
+5. **MinIO app user + bucket** — run the `mc` block from the header
+   comment of `deploy/dev-infra/minio.yaml`, with the same access/secret
+   pair you put in the `xcollab-api` Secret.
+
+Dev-posture caveats (both pods): emptyDir storage — Keycloak realm state
+and MinIO objects die with the pod. Before `s`: Keycloak → `KC_DB=postgres`
+on the xcollab database, MinIO → PVC.
 
 ## e) tasdiq-dev manual sync workaround
 
