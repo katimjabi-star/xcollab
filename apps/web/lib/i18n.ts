@@ -117,6 +117,13 @@ const en = {
   x4Denied: "Sign-in was declined on the device.",
   x4Expired: "The request expired. Try again.",
   x4Failed: "Couldn’t reach the Katim ID service. Use your password instead.",
+  demoAiTitle: "Demo AI (browser relay)",
+  demoAiHint:
+    "Paste your Anthropic API key to power project generation and the assistant with the hosted model via this browser. The key stays in this tab only and is never sent to the server.",
+  demoAiPlaceholder: "Anthropic API key",
+  demoAiSave: "Activate",
+  demoAiActive: "Demo AI active for this tab",
+  demoAiClear: "Deactivate",
   signOut: "Sign out",
   loggedInAs: "Signed in as",
   // sprint-added keys
@@ -593,6 +600,13 @@ const ar: Dictionary = {
   x4Denied: "رُفض تسجيل الدخول من الجهاز.",
   x4Expired: "انتهت صلاحية الطلب. حاول مجددًا.",
   x4Failed: "تعذّر الوصول إلى خدمة هوية كتيم. استخدم كلمة المرور بدلًا من ذلك.",
+  demoAiTitle: "الذكاء الاصطناعي التجريبي (عبر المتصفح)",
+  demoAiHint:
+    "الصق مفتاح Anthropic API لتشغيل توليد المشاريع والمساعد بالنموذج المستضاف عبر هذا المتصفح. يبقى المفتاح في هذا التبويب فقط ولا يُرسل إلى الخادم أبدًا.",
+  demoAiPlaceholder: "مفتاح Anthropic API",
+  demoAiSave: "تفعيل",
+  demoAiActive: "الذكاء التجريبي مفعّل في هذا التبويب",
+  demoAiClear: "إلغاء التفعيل",
   signOut: "تسجيل الخروج",
   loggedInAs: "مسجَّل الدخول باسم",
   // sprint-added keys

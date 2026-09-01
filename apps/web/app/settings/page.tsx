@@ -1,6 +1,7 @@
 "use client";
 
 import { SettingsAppearance } from "../../components/settings-appearance.tsx";
+import { SettingsDemoAi } from "../../components/settings-demo-ai.tsx";
 import { SettingsProfile } from "../../components/settings-profile.tsx";
 import { SettingsWorkspace } from "../../components/settings-workspace.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
@@ -15,6 +16,7 @@ export default function SettingsPage() {
       </div>
       <SettingsProfile />
       <SettingsAppearance />
+      <SettingsDemoAi />
       <SettingsWorkspace />
     </div>
   );

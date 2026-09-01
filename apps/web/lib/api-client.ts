@@ -57,7 +57,7 @@ export function currentAuthToken(): string | null {
   return authTokenProvider ? authTokenProvider() : null;
 }
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
+export async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const token = authTokenProvider ? authTokenProvider() : null;
   if (token) headers.set("authorization", `Bearer ${token}`);

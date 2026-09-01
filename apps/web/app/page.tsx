@@ -8,11 +8,11 @@ import type { Program, Task } from "@xcollab/core";
 import {
   API_BASE,
   WORKSPACE,
-  createProgram,
   getLedger,
   listPrograms,
   updateProgramName,
 } from "../lib/api-client.ts";
+import { createProgramSmart } from "../lib/demo-ai.ts";
 import { setDocumentTitle } from "../lib/nav.ts";
 import { useToasts } from "../lib/toast-context.tsx";
 import { useUi } from "../lib/ui-context.tsx";
@@ -110,7 +110,7 @@ export default function Home() {
     setBusy(true);
     setError(false);
     try {
-      const created = await createProgram(API_BASE, {
+      const created = await createProgramSmart(API_BASE, {
         workspaceId: WORKSPACE,
         mission: mission.trim(),
         language,

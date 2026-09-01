@@ -1,0 +1,9 @@
+# DEMO OVERRIDE — used only by bin/demo-lan.sh. Opens Keycloak to the LAN so
+# other machines on the office network can complete the browser login flow.
+# Postgres and MinIO stay loopback-only (the browser never talks to them; the
+# API proxies attachments). Default `docker compose up` keeps the loopback
+# posture — this file must be passed explicitly with -f.
+services:
+  keycloak:
+    ports: !override
+      - "8081:8080"

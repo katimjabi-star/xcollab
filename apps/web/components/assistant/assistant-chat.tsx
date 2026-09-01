@@ -17,6 +17,7 @@ import {
   toWireMessages,
   type ChatMessage,
 } from "../../lib/assistant-transcript.ts";
+import { getDemoKey, relayChatTurn } from "../../lib/demo-ai.ts";
 import { useToasts } from "../../lib/toast-context.tsx";
 import { useUi } from "../../lib/ui-context.tsx";
 import { AssistantWelcome } from "./assistant-welcome.tsx";
@@ -49,6 +50,28 @@ export function AssistantChat(): ReactElement {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
+      // Demo relay: the operator's browser calls the hosted model directly
+      // (the cluster has no egress). Read-only — proposals stay in-cluster.
+      if (getDemoKey()) {
+        // Fetched at turn time — the programs prop may not have loaded yet.
+        const fresh = await listPrograms(API_BASE, WORKSPACE).catch(() => programs ?? []);
+        const digest = fresh
+          .slice(0, 25)
+          .map((p) => `- ${p.name}: ${p.packages.length} sections, ${p.packages.reduce((n, pkg) => n + pkg.tasks.length, 0)} tasks`)
+          .join("\n");
+        const transcript = toWireMessages(list).flatMap((m) =>
+          m.role === "user" || m.role === "assistant"
+            ? [{ role: m.role, content: m.content }]
+            : [],
+        );
+        const reply = await relayChatTurn(
+          transcript,
+          { language, programsDigest: digest || "(no projects yet)" },
+          controller.signal,
+        );
+        setMessages((prev) => applyEvent(prev, { type: "text_delta", text: reply }));
+        return;
+      }
       const turn = streamAssistantTurn(
         API_BASE,
         { workspaceId: WORKSPACE, language, messages: toWireMessages(list) },

@@ -17,6 +17,7 @@ import { registerWorkspaceMemberRoutes } from "./routes-workspace-members.ts";
 import { registerAttachmentRoutes } from "./routes-attachments.ts";
 import { registerMyTaskRoutes } from "./routes-my-tasks.ts";
 import { registerSubtaskRoutes } from "./routes-subtasks.ts";
+import { registerProgramImportRoute } from "./routes-program-import.ts";
 import { registerSearchRoutes } from "./routes-search.ts";
 import { registerAssistantChatRoute } from "./routes-assistant.ts";
 import { registerAssistantExecuteRoute } from "./routes-assistant-execute.ts";
@@ -319,6 +320,7 @@ export function createApp(
   registerMyTaskRoutes(app, repo);
   registerSearchRoutes(app, repo);
   registerSubtaskRoutes(app, repo, { actorOf, provenanceOf });
+  registerProgramImportRoute(app, repo);
 
   if (assistant && proposals) {
     registerAssistantChatRoute(app, {
