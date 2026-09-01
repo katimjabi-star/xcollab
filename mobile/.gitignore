@@ -1,0 +1,8 @@
+# Continuous Native Generation: android/ and ios/ are prebuild output.
+# Native customization lives in plugins/ — never hand-edit generated dirs.
+android/
+ios/
+node_modules/
+.expo/
+dist/
+*.log

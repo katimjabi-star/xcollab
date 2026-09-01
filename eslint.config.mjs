@@ -2,7 +2,9 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/.next/**", "**/next-env.d.ts"] },
+  // mobile/ is a standalone Expo app (npm, outside the pnpm workspace) with
+  // its own eslint config — gated by `cd mobile && npm run lint`.
+  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/.next/**", "**/next-env.d.ts", "mobile/**"] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
