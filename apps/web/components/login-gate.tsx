@@ -7,6 +7,13 @@ import { useUi } from "../lib/ui-context.tsx";
 import { BrandLogo } from "./brand-logo.tsx";
 import { Icon } from "./ui/icon.tsx";
 
+/** POC convenience: prefill the form so a demo visitor only presses Sign in.
+    BUILD-time (inlined into the client bundle — anyone can read it), so it is
+    off unless the env is set for that specific build. Never set these on a
+    build whose realm holds real accounts. */
+const DEMO_USERNAME = process.env.NEXT_PUBLIC_DEMO_USERNAME ?? "";
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
+
 /** Full-viewport sign-in — rendered INSTEAD of the app shell. One screen:
     the credential card talks to Keycloak's token endpoint directly (direct
     grant), so there is no second, IdP-hosted login page. The end panel is
@@ -63,7 +70,14 @@ export function LoginGate() {
             <label className="login-field">
               <span>{t.usernameLabel}</span>
               {/* Identifiers are Latin-script in this realm — pin LTR in AR */}
-              <input name="username" autoComplete="username" required autoFocus dir="ltr" />
+              <input
+                name="username"
+                autoComplete="username"
+                required
+                autoFocus
+                dir="ltr"
+                defaultValue={DEMO_USERNAME}
+              />
             </label>
             <label className="login-field">
               <span>{t.passwordLabel}</span>
@@ -73,6 +87,7 @@ export function LoginGate() {
                 autoComplete="current-password"
                 required
                 dir="ltr"
+                defaultValue={DEMO_PASSWORD}
               />
             </label>
             <button type="submit" className="login-cta" disabled={busy}>
