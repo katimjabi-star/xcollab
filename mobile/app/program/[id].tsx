@@ -7,13 +7,14 @@ import {
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Card, ProgressBar, StatusPill } from "../../src/components/ui";
+import { Avatar, Card, Hairline, StatusChip, StatusCircle, Swatch } from "../../src/components/ui";
 import { usePrograms, taskTotals } from "../../src/hooks/use-programs";
 import { updateTaskStatus } from "../../src/lib/api";
 import { API_BASE, WORKSPACE } from "../../src/lib/config";
+import { formatIsoDate, programColor, programDisplayName } from "../../src/lib/format";
 import type { TaskStatus } from "../../src/lib/types";
 import { useUi } from "../../src/state/ui";
-import { colors, spacing } from "../../src/theme";
+import { colors, font, spacing, statusTokens, type } from "../../src/theme";
 
 /** Tap order: the natural forward path, then blocked, then back around. */
 const CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -25,7 +26,7 @@ const CYCLE: Record<TaskStatus, TaskStatus> = {
 
 export default function ProgramDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useUi();
+  const { t, language } = useUi();
   const { programs, refreshing, refresh, replaceProgram } = usePrograms();
   const [pendingTask, setPendingTask] = useState<string | null>(null);
 
@@ -43,7 +44,7 @@ export default function ProgramDetail() {
       });
       replaceProgram(fresh);
     } catch {
-      /* leave the pill as-is; pull-to-refresh recovers */
+      /* leave the chip as-is; pull-to-refresh recovers */
     } finally {
       setPendingTask(null);
     }
@@ -53,78 +54,100 @@ export default function ProgramDetail() {
 
   return (
     <>
-      <Stack.Screen options={{ title: program?.name ?? t.loading, headerBackTitle: "" }} />
+      <Stack.Screen options={{ title: "", headerBackTitle: "" }} />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand} />
         }
       >
         {program && (
           <>
-            <Card>
-              <Text style={styles.mission} numberOfLines={4}>
-                {program.mission}
+            <View style={styles.titleRow}>
+              <Swatch color={programColor(program.id)} size={26} />
+              <Text style={styles.title} numberOfLines={2}>
+                {programDisplayName(program)}
               </Text>
-              <Text style={styles.meta}>
-                {t.timeline}: {program.timeline.start} → {program.timeline.end}
-              </Text>
-              <ProgressBar done={totals.done} total={totals.total} />
-              <Text style={styles.meta}>
-                {totals.done}/{totals.total} {t.doneCount}
-              </Text>
-            </Card>
+            </View>
+            <Text style={styles.dates}>
+              {formatIsoDate(program.timeline.start, language)} →{" "}
+              {formatIsoDate(program.timeline.end, language)} · {totals.done}/{totals.total}{" "}
+              {t.doneCount}
+            </Text>
+            <Text style={styles.mission} numberOfLines={3}>
+              {program.mission}
+            </Text>
 
             {program.packages.map((pkg) => (
               <View key={pkg.id} style={styles.section}>
                 <Text style={styles.sectionName}>{pkg.name}</Text>
-                <Text style={styles.sectionScope} numberOfLines={2}>
-                  {pkg.scope}
-                </Text>
-                {pkg.tasks.map((task) => (
-                  <View
-                    key={task.id}
-                    style={[styles.taskRow, pendingTask === task.id && { opacity: 0.5 }]}
-                  >
-                    <View style={styles.taskMain}>
-                      <Text style={styles.taskName}>{task.name}</Text>
-                      <Text style={styles.taskMeta}>
-                        {task.assignee ?? task.assigneeRole ?? t.unassigned}
-                        {task.dueDate ? ` · ${t.due} ${task.dueDate}` : ""}
-                      </Text>
+                <Card>
+                  {pkg.tasks.map((task, index) => (
+                    <View key={task.id}>
+                      {index > 0 && <Hairline />}
+                      <View
+                        style={[styles.taskRow, pendingTask === task.id && { opacity: 0.5 }]}
+                      >
+                        <StatusCircle status={task.status} />
+                        <View style={styles.taskMain}>
+                          <Text style={styles.taskName}>{task.name}</Text>
+                          {(task.assignee ?? task.dueDate) && (
+                            <Text style={styles.taskMeta}>
+                              {task.assignee ?? ""}
+                              {task.assignee && task.dueDate ? " · " : ""}
+                              {task.dueDate ? formatIsoDate(task.dueDate, language) : ""}
+                            </Text>
+                          )}
+                        </View>
+                        {task.assignee && <Avatar name={task.assignee} size={22} />}
+                        <StatusChip
+                          t={t}
+                          status={task.status}
+                          onPress={() => void cycleStatus(task.id, task.status)}
+                        />
+                      </View>
                     </View>
-                    <StatusPill
-                      t={t}
-                      status={task.status}
-                      onPress={() => void cycleStatus(task.id, task.status)}
-                    />
-                  </View>
-                ))}
+                  ))}
+                </Card>
               </View>
             ))}
 
             {program.milestones.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionName}>{t.milestones}</Text>
-                {program.milestones.map((m) => (
-                  <View key={m.id} style={styles.taskRow}>
-                    <Text style={styles.taskName}>{m.name}</Text>
-                    <Text style={styles.taskMeta}>{m.dueDate}</Text>
-                  </View>
-                ))}
+                <Card>
+                  {program.milestones.map((m, index) => (
+                    <View key={m.id}>
+                      {index > 0 && <Hairline />}
+                      <View style={styles.taskRow}>
+                        <Text style={[styles.taskName, { flex: 1 }]}>{m.name}</Text>
+                        <Text style={styles.taskMeta}>{formatIsoDate(m.dueDate, language)}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </Card>
               </View>
             )}
 
             {program.risks.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionName}>{t.risks}</Text>
-                {program.risks.map((r) => (
-                  <View key={r.id} style={styles.taskRow}>
-                    <Text style={styles.taskName}>{r.title}</Text>
-                    <Text style={[styles.severity, severityStyle(r.severity)]}>{r.severity}</Text>
-                  </View>
-                ))}
+                <Card>
+                  {program.risks.map((r, index) => (
+                    <View key={r.id}>
+                      {index > 0 && <Hairline />}
+                      <View style={styles.taskRow}>
+                        <Text style={[styles.taskName, { flex: 1 }]}>{r.title}</Text>
+                        <View style={[styles.severity, { backgroundColor: severityBg(r.severity) }]}>
+                          <Text style={[styles.severityText, { color: severityFg(r.severity) }]}>
+                            {r.severity}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </Card>
               </View>
             )}
           </>
@@ -134,34 +157,49 @@ export default function ProgramDetail() {
   );
 }
 
-function severityStyle(severity: string) {
-  if (severity === "critical" || severity === "high") return { color: colors.bad };
-  if (severity === "medium") return { color: colors.warn };
-  return { color: colors.textDim };
+function severityFg(severity: string): string {
+  if (severity === "critical" || severity === "high") return statusTokens.blocked.fg;
+  if (severity === "medium") return statusTokens.in_progress.fg;
+  return statusTokens.todo.fg;
+}
+
+function severityBg(severity: string): string {
+  if (severity === "critical" || severity === "high") return statusTokens.blocked.bg;
+  if (severity === "medium") return statusTokens.in_progress.bg;
+  return statusTokens.todo.bg;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xl * 2 },
-  mission: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  meta: { color: colors.textDim, fontSize: 13 },
-  section: { gap: spacing.sm },
-  sectionName: { color: colors.text, fontSize: 16, fontWeight: "700" },
-  sectionScope: { color: colors.textDim, fontSize: 13 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[8] },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing[3] },
+  title: { flex: 1, color: colors.text, fontSize: type.xl, fontFamily: font.semibold },
+  dates: { color: colors.textMedium, fontSize: type.sm, fontFamily: font.regular },
+  mission: {
+    color: colors.textMedium,
+    fontSize: type.md,
+    fontFamily: font.regular,
+    lineHeight: 19,
+    marginBottom: spacing[2],
+  },
+  section: { gap: spacing[2], marginTop: spacing[3] },
+  sectionName: { color: colors.text, fontSize: type.md, fontFamily: font.semibold },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: spacing[3],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
   },
   taskMain: { flex: 1, gap: 2 },
-  taskName: { color: colors.text, fontSize: 14, fontWeight: "600" },
-  taskMeta: { color: colors.textDim, fontSize: 12 },
-  severity: { fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
+  taskName: { color: colors.textHigh, fontSize: type.md, fontFamily: font.regular },
+  taskMeta: { color: colors.textLow, fontSize: type.sm, fontFamily: font.regular },
+  severity: {
+    height: 22,
+    paddingHorizontal: spacing[2],
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  severityText: { fontSize: type.xs, fontFamily: font.medium, textTransform: "uppercase" },
 });

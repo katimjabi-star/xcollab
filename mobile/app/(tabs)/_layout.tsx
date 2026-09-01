@@ -2,7 +2,7 @@ import { Redirect, Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAuth } from "../../src/state/auth";
 import { useUi } from "../../src/state/ui";
-import { colors } from "../../src/theme";
+import { colors, font } from "../../src/theme";
 
 export default function TabsLayout() {
   const { session, ready } = useAuth();
@@ -12,21 +12,28 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.bg },
+        headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: "700" },
+        headerTitleStyle: { fontFamily: font.semibold, fontSize: 20 },
+        headerTitleAlign: "left",
         headerShadowVisible: false,
-        sceneStyle: { backgroundColor: colors.bg },
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textDim,
+        sceneStyle: { backgroundColor: colors.background },
+        tabBarStyle: {
+          backgroundColor: colors.surfaceSidebar,
+          borderTopColor: colors.border,
+        },
+        tabBarActiveTintColor: colors.textBrand,
+        tabBarInactiveTintColor: colors.textMedium,
+        tabBarLabelStyle: { fontFamily: font.medium, fontSize: 11 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: t.tabPrograms,
-          tabBarIcon: ({ color, size }) => <Ionicons name="layers" color={color} size={size} />,
+          title: t.tabHome,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" color={color} size={size - 2} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -34,7 +41,7 @@ export default function TabsLayout() {
         options={{
           title: t.tabMyTasks,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkbox-outline" color={color} size={size} />
+            <Ionicons name="checkmark-circle-outline" color={color} size={size - 2} />
           ),
         }}
       />
@@ -43,7 +50,7 @@ export default function TabsLayout() {
         options={{
           title: t.tabLedger,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="git-commit-outline" color={color} size={size} />
+            <Ionicons name="shield-checkmark-outline" color={color} size={size - 2} />
           ),
         }}
       />
@@ -52,7 +59,7 @@ export default function TabsLayout() {
         options={{
           title: t.tabSettings,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" color={color} size={size} />
+            <Ionicons name="settings-outline" color={color} size={size - 2} />
           ),
         }}
       />

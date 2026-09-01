@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Card } from "../../src/components/ui";
+import { Avatar, Card, Hairline } from "../../src/components/ui";
 import { API_BASE } from "../../src/lib/config";
 import { useAuth } from "../../src/state/auth";
 import { useUi } from "../../src/state/ui";
-import { colors, spacing } from "../../src/theme";
+import { colors, font, radius, spacing, type } from "../../src/theme";
 
 export default function Settings() {
   const { t, language, rtlPending, setLanguage } = useUi();
@@ -12,33 +12,46 @@ export default function Settings() {
 
   return (
     <View style={styles.screen}>
-      <Card>
-        <Text style={styles.label}>{t.signedInAs}</Text>
-        <Text style={styles.value}>{session?.name ?? session?.username}</Text>
-        <Text style={styles.dim}>@{session?.username}</Text>
-      </Card>
-
-      <Card>
-        <Text style={styles.label}>{t.languageLabel}</Text>
-        <View style={styles.langRow}>
-          {(["en", "ar"] as const).map((lang) => (
-            <Pressable
-              key={lang}
-              onPress={() => setLanguage(lang)}
-              style={[styles.langBtn, language === lang && styles.langBtnActive]}
-            >
-              <Text style={[styles.langText, language === lang && styles.langTextActive]}>
-                {lang === "en" ? t.english : t.arabic}
-              </Text>
-            </Pressable>
-          ))}
+      <Card style={styles.userCard}>
+        <Avatar name={session?.name ?? session?.username ?? "?"} size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.userName}>{session?.name ?? session?.username}</Text>
+          <Text style={styles.userSub}>@{session?.username}</Text>
         </View>
-        {rtlPending && <Text style={styles.note}>{t.restartNote}</Text>}
       </Card>
 
       <Card>
-        <Text style={styles.label}>{t.serverLabel}</Text>
-        <Text style={styles.dim}>{API_BASE}</Text>
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>{t.languageLabel}</Text>
+          <View style={styles.langRow}>
+            {(["en", "ar"] as const).map((lang) => (
+              <Pressable
+                key={lang}
+                onPress={() => setLanguage(lang)}
+                style={[styles.langBtn, language === lang && styles.langBtnActive]}
+              >
+                <Text
+                  style={[styles.langText, language === lang && styles.langTextActive]}
+                >
+                  {lang === "en" ? t.english : t.arabic}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        {rtlPending && (
+          <>
+            <Hairline />
+            <Text style={styles.note}>{t.restartNote}</Text>
+          </>
+        )}
+        <Hairline />
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>{t.serverLabel}</Text>
+          <Text style={styles.settingValue} numberOfLines={1}>
+            {API_BASE.replace("https://", "")}
+          </Text>
+        </View>
       </Card>
 
       <Pressable
@@ -54,29 +67,60 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg, gap: spacing.lg },
-  label: { color: colors.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 },
-  value: { color: colors.text, fontSize: 17, fontWeight: "700" },
-  dim: { color: colors.textDim, fontSize: 13 },
-  langRow: { flexDirection: "row", gap: spacing.sm },
+  screen: { flex: 1, backgroundColor: colors.background, padding: spacing[4], gap: spacing[3] },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing[3],
+    padding: spacing[4],
+  },
+  userName: { color: colors.text, fontSize: type.lg, fontFamily: font.semibold },
+  userSub: { color: colors.textMedium, fontSize: type.sm, fontFamily: font.regular },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing[3],
+    padding: spacing[4],
+  },
+  settingLabel: { color: colors.textHigh, fontSize: type.md, fontFamily: font.medium },
+  settingValue: {
+    color: colors.textMedium,
+    fontSize: type.md,
+    fontFamily: font.regular,
+    flexShrink: 1,
+  },
+  langRow: { flexDirection: "row", gap: spacing[1] },
   langBtn: {
-    flex: 1,
+    paddingHorizontal: spacing[3],
+    height: 30,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceThin,
+  },
+  langBtnActive: {
+    backgroundColor: colors.chipSelected,
+    borderColor: colors.chipSelectedBorder,
+    borderWidth: 1,
+  },
+  langText: { color: colors.textMedium, fontSize: type.md, fontFamily: font.medium },
+  langTextActive: { color: colors.textBrand },
+  note: {
+    color: colors.textMedium,
+    fontSize: type.sm,
+    fontFamily: font.regular,
+    padding: spacing[4],
+    paddingVertical: spacing[2],
+  },
+  signOut: {
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: radius.lg,
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    height: 44,
+    justifyContent: "center",
+    backgroundColor: colors.card,
   },
-  langBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  langText: { color: colors.textDim, fontWeight: "600" },
-  langTextActive: { color: colors.accent },
-  note: { color: colors.warn, fontSize: 12 },
-  signOut: {
-    borderColor: colors.bad,
-    borderWidth: 1,
-    borderRadius: 10,
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  signOutText: { color: colors.bad, fontWeight: "700" },
+  signOutText: { color: colors.error, fontFamily: font.medium, fontSize: type.md },
 });

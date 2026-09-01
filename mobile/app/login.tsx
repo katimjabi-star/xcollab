@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { BrandMark } from "../src/components/ui";
+import { BrandMark, Card, PrimaryButton } from "../src/components/ui";
 import {
   TokenGrantError,
   x4Complete,
@@ -22,7 +22,7 @@ import {
 import { API_BASE, DEMO_USERNAME } from "../src/lib/config";
 import { useAuth } from "../src/state/auth";
 import { useUi } from "../src/state/ui";
-import { colors, spacing } from "../src/theme";
+import { colors, font, radius, spacing, type } from "../src/theme";
 
 type Mode = "katim" | "password";
 
@@ -120,48 +120,33 @@ export default function Login() {
       style={styles.screen}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.panel}>
-        <BrandMark size={34} />
-        <Text style={styles.tagline}>{t.loginTagline}</Text>
-
-        {katimAvailable && (
-          <View style={styles.switcher}>
-            {(["katim", "password"] as const).map((door) => (
-              <Pressable
-                key={door}
-                onPress={() => {
-                  setMode(door);
-                  setError(null);
-                }}
-                style={[styles.switchBtn, mode === door && styles.switchBtnActive]}
-              >
-                <Text style={[styles.switchText, mode === door && styles.switchTextActive]}>
-                  {door === "katim" ? t.katimDoor : t.passwordDoor}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+      <Card style={styles.panel}>
+        <BrandMark size={22} />
+        <Text style={styles.heading}>{t.welcomeBack}</Text>
+        <Text style={styles.hint}>{t.signInHint}</Text>
 
         {push ? (
           <View style={styles.pushWait}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={colors.brand} />
             <Text style={styles.pushText}>{t.pushWaiting}</Text>
             <Text style={styles.pushCodeLabel}>{t.pushCode}</Text>
             <Text style={styles.pushCode}>{push.verificationCode}</Text>
             <Pressable onPress={() => setPush(null)} hitSlop={8}>
-              <Text style={styles.cancel}>{t.pushCancel}</Text>
+              <Text style={styles.quietLink}>{t.pushCancel}</Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.label}>{t.usernameLabel}</Text>
+            <Text style={styles.label}>
+              {mode === "katim" ? t.katimIdOrEmail : t.usernameLabel}
+            </Text>
             <TextInput
               style={styles.input}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
+              selectionColor={colors.ring}
               testID="login-username"
             />
             {mode === "password" && (
@@ -173,30 +158,46 @@ export default function Login() {
                   onChangeText={setPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  selectionColor={colors.ring}
                   onSubmitEditing={() => void submitPassword()}
                   testID="login-password"
                 />
               </>
             )}
-            <Pressable
-              style={[styles.submit, busy && styles.submitBusy]}
+            <View style={{ height: spacing[2] }} />
+            <PrimaryButton
               onPress={() => void (mode === "katim" ? startKatim() : submitPassword())}
               disabled={busy}
               testID="login-submit"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.submitText}>
                   {mode === "katim" ? t.continueKatim : t.signIn}
                 </Text>
               )}
-            </Pressable>
+            </PrimaryButton>
+            {katimAvailable && (
+              <Pressable
+                onPress={() => {
+                  setMode(mode === "katim" ? "password" : "katim");
+                  setError(null);
+                }}
+                hitSlop={8}
+                style={styles.switchLink}
+              >
+                <Text style={styles.quietLink}>
+                  {mode === "katim" ? t.usePasswordInstead : t.useKatimInstead}
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
 
         {error && <Text style={styles.error}>{error}</Text>}
-      </View>
+      </Card>
+      <Text style={styles.footer}>{t.sovereignFooter}</Text>
     </KeyboardAvoidingView>
   );
 }
@@ -204,55 +205,56 @@ export default function Login() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
-    padding: spacing.xl,
+    padding: spacing[6],
   },
-  panel: { width: "100%", maxWidth: 380, gap: spacing.lg },
-  tagline: { color: colors.textDim, fontSize: 14 },
-  switcher: {
-    flexDirection: "row",
-    backgroundColor: colors.card,
-    borderRadius: 10,
-    padding: 4,
-    gap: 4,
-  },
-  switchBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: 8, alignItems: "center" },
-  switchBtnActive: { backgroundColor: colors.cardRaised },
-  switchText: { color: colors.textDim, fontWeight: "600" },
-  switchTextActive: { color: colors.text },
-  form: { gap: spacing.sm },
-  label: { color: colors.textDim, fontSize: 13, marginTop: spacing.xs },
-  input: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 10,
+  panel: { width: "100%", maxWidth: 400, padding: spacing[7], gap: spacing[2] },
+  heading: {
     color: colors.text,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 16,
+    fontSize: type.xxl,
+    fontFamily: font.semibold,
+    marginTop: spacing[5],
   },
-  submit: {
-    backgroundColor: colors.accent,
-    borderRadius: 10,
-    alignItems: "center",
-    paddingVertical: 12,
-    marginTop: spacing.md,
+  hint: { color: colors.textMedium, fontSize: type.md, fontFamily: font.regular },
+  form: { gap: spacing[2], marginTop: spacing[4] },
+  label: {
+    color: colors.textHigh,
+    fontSize: type.sm,
+    fontFamily: font.medium,
+    marginTop: spacing[1],
   },
-  submitBusy: { opacity: 0.7 },
-  submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  pushWait: {
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: spacing.xl,
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.inputLine,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    color: colors.text,
+    paddingHorizontal: spacing[3],
+    height: 44,
+    fontSize: type.lg,
+    fontFamily: font.regular,
   },
-  pushText: { color: colors.text, textAlign: "center" },
-  pushCodeLabel: { color: colors.textDim, fontSize: 12, marginTop: spacing.sm },
-  pushCode: { color: colors.accent, fontSize: 32, fontWeight: "800", letterSpacing: 4 },
-  cancel: { color: colors.textDim, marginTop: spacing.sm, textDecorationLine: "underline" },
-  error: { color: colors.bad, textAlign: "center" },
+  submitText: { color: colors.onPrimary, fontFamily: font.semibold, fontSize: type.lg },
+  switchLink: { alignItems: "center", marginTop: spacing[3] },
+  quietLink: { color: colors.textMedium, fontSize: type.md, fontFamily: font.medium },
+  pushWait: { alignItems: "center", gap: spacing[2], paddingVertical: spacing[6] },
+  pushText: { color: colors.textHigh, fontSize: type.md, textAlign: "center", fontFamily: font.regular },
+  pushCodeLabel: {
+    color: colors.textLow,
+    fontSize: type.xs,
+    fontFamily: font.medium,
+    marginTop: spacing[3],
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  pushCode: { color: colors.brand, fontSize: 30, fontFamily: font.semibold, letterSpacing: 6 },
+  error: { color: colors.error, fontSize: type.md, fontFamily: font.regular, marginTop: spacing[2] },
+  footer: {
+    color: colors.textLow,
+    fontSize: type.sm,
+    fontFamily: font.regular,
+    marginTop: spacing[4],
+  },
 });
