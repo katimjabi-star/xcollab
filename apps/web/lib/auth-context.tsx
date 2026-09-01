@@ -51,6 +51,9 @@ interface AuthContextValue {
   /** In-app credential form → Keycloak direct grant. Throws TokenGrantError
       (status 401 = wrong credentials) so the gate can show a precise message. */
   loginWithPassword: (username: string, password: string) => Promise<void>;
+  /** Katim ID (X4Auth) push completion: the API minted a local session token;
+      adopt it as the live session (no refresh token — it ends at expiry). */
+  adoptLocalSession: (accessToken: string, expiresIn: number, profile: AuthProfile) => void;
   logout: () => void;
   getToken: () => string | null;
 }
@@ -244,15 +247,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adoptSession],
   );
 
+  const adoptLocalSession = useCallback(
+    (accessToken: string, expiresIn: number, profile: AuthProfile) => {
+      adoptSession({
+        tokens: {
+          accessToken,
+          refreshToken: null,
+          idToken: null,
+          expiresAt: Date.now() + expiresIn * 1000,
+        },
+        profile,
+      });
+    },
+    [adoptSession],
+  );
+
   const logout = useCallback(() => {
     const idToken = sessionRef.current?.tokens.idToken ?? undefined;
     dropSession("logout");
+    if (!idToken) {
+      // Local (Katim ID) session — there is no IdP session to end; a plain
+      // navigation boots back into the sign-in gate.
+      window.location.assign(redirectUri());
+      return;
+    }
     window.location.assign(
       buildEndSessionUrl(KEYCLOAK_ISSUER, KEYCLOAK_CLIENT_ID, redirectUri(), idToken),
     );
   }, [dropSession]);
 
-  const value: AuthContextValue = { ready, user, expired, login, loginWithPassword, logout, getToken };
+  const value: AuthContextValue = {
+    ready,
+    user,
+    expired,
+    login,
+    loginWithPassword,
+    adoptLocalSession,
+    logout,
+    getToken,
+  };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

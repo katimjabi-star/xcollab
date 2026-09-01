@@ -19,7 +19,7 @@ export default tseslint.config(
     // single-source shape. Cap it generously instead of exempting entirely.
     files: ["apps/web/lib/i18n.ts"],
     rules: {
-      "max-lines": ["error", { max: 950, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["error", { max: 1000, skipBlankLines: true, skipComments: true }],
     },
   },
 );

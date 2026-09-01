@@ -21,6 +21,7 @@ import { registerSearchRoutes } from "./routes-search.ts";
 import { registerAssistantChatRoute } from "./routes-assistant.ts";
 import { registerAssistantExecuteRoute } from "./routes-assistant-execute.ts";
 import { wireWhatsAppChannel, type WhatsAppChannelOptions } from "./routes-whatsapp.ts";
+import { wireX4Auth, type X4AuthOptions } from "./routes-x4auth.ts";
 import { createActorResolver, type AssistantConfig } from "./assistant-actor.ts";
 import { AttachmentStore } from "./storage.ts";
 
@@ -106,7 +107,7 @@ export function createApp(
   gateway: AiGateway,
   store: AttachmentStore = new AttachmentStore(),
   assistant?: AssistantConfig,
-  channels?: { whatsapp?: WhatsAppChannelOptions },
+  channels?: { whatsapp?: WhatsAppChannelOptions; x4auth?: X4AuthOptions },
 ): Hono<AuthEnv> {
   const app = new Hono<AuthEnv>();
   // Comma-separated allowlist for deployed origins; localhost dev default.
@@ -144,6 +145,8 @@ export function createApp(
   // WhatsApp webhook is public by design (Meta authenticates via verify
   // token + HMAC signature) so it registers before the bearer gate.
   const { proposals, whatsapp } = wireWhatsAppChannel(app, assistant, channels?.whatsapp);
+  // Katim ID push login is pre-auth by definition — it is how a token is born.
+  wireX4Auth(app, channels?.x4auth);
 
   app.use("/api/*", createAuthMiddleware());
   // Workspace-level authorization (single enforcement point): claimed

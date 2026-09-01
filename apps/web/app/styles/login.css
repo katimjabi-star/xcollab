@@ -150,6 +150,102 @@
   color: var(--text-low);
 }
 
+/* ---- Katim ID push: waiting-for-device-approval state ---- */
+.login-push-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+
+/* Breathing beacon around the device glyph while the push is pending. */
+.login-push-pulse {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--error-tint);
+  color: var(--button-primary);
+  animation: login-push-breathe 1.8s var(--ease-out) infinite;
+}
+
+@keyframes login-push-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 86, 34, 0.35);
+  }
+  60% {
+    box-shadow: 0 0 0 14px rgba(255, 86, 34, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-push-pulse {
+    animation: none;
+  }
+}
+
+.login-push-title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-highest);
+  text-wrap: balance;
+}
+
+.login-push-hint {
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+  text-wrap: balance;
+}
+
+/* The two-digit match code the person confirms on their device. */
+.login-push-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px dashed var(--input-line);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-medium);
+}
+
+.login-push-code strong {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.12em;
+  color: var(--text-highest);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quiet text control: door switch + cancel (low emphasis by design). */
+.login-alt {
+  align-self: center;
+  border: none;
+  background: none;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-medium);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.login-alt:hover {
+  color: var(--text-highest);
+  text-decoration: underline;
+}
+
+.login-alt:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
 /* ---- Pitch pane — charcoal-to-ember gradient, EDGE Orange accents ---- */
 .login-pitch {
   flex: 1 1 48%;

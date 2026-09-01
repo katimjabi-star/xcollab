@@ -20,6 +20,15 @@ spec:
         # Force a rollout when the non-secret env changes.
         checksum/env: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      {{- with .Values.api.hostAliases }}
+      # Air-gap DNS workaround: in-cluster resolution of the public host may
+      # point at an edge that does not forward this service, which breaks the
+      # Keycloak JWKS fetch (every token then 401s). Pin the host to the
+      # ingressgateway ClusterIP so issuer URL and JWKS URL stay identical to
+      # what the tokens carry.
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         {{- include "xcollab.podSecurityContext" . | nindent 8 }}
       containers:

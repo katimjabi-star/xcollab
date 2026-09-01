@@ -53,7 +53,7 @@ spec:
               value: /auth
             # Public base URL — TLS terminates at the platform gateway.
             - name: KC_HOSTNAME
-              value: https://xcollab.xedge-internal.corp/auth
+              value: https://service8.nexedge.ae/auth
             - name: KC_PROXY_HEADERS
               value: xforwarded
             - name: KC_HTTP_ENABLED
