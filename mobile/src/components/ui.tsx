@@ -90,6 +90,16 @@ export function Hairline() {
   return <View style={styles.hairline} />;
 }
 
+/** Slim completion bar — green fill over a thin track, radius full. */
+export function ProgressBar({ done, total }: { done: number; total: number }) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <View style={styles.progressTrack}>
+      <View style={[styles.progressFill, { width: `${pct}%` }]} />
+    </View>
+  );
+}
+
 /** Wordmark: orange bar riding the top-right of "XCollab" (login card). */
 export function BrandMark({ size = 24 }: { size?: number }) {
   return (
@@ -151,6 +161,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
   },
   hairline: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  progressTrack: {
+    height: 5,
+    borderRadius: radius.full,
+    backgroundColor: colors.surfaceThin,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: radius.full,
+    backgroundColor: colors.success,
+  },
   brandRow: { alignSelf: "flex-start" },
   brand: { color: colors.text, fontFamily: font.semibold, letterSpacing: 0.2 },
   brandBar: {

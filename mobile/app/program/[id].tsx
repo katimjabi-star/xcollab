@@ -1,53 +1,68 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Avatar, Card, Hairline, StatusChip, StatusCircle, Swatch } from "../../src/components/ui";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Avatar, Card, Hairline, ProgressBar, StatusChip, Swatch } from "../../src/components/ui";
+import { ProgramOverview } from "../../src/components/program-overview";
+import { TaskSheet } from "../../src/components/task-sheet";
 import { usePrograms, taskTotals } from "../../src/hooks/use-programs";
-import { updateTaskStatus } from "../../src/lib/api";
+import { createTask, listUsers, updateTask, type WorkspaceUser } from "../../src/lib/api";
 import { API_BASE, WORKSPACE } from "../../src/lib/config";
 import { formatIsoDate, programColor, programDisplayName } from "../../src/lib/format";
-import type { TaskStatus } from "../../src/lib/types";
+import type { Task } from "../../src/lib/types";
 import { useUi } from "../../src/state/ui";
-import { colors, font, spacing, statusTokens, type } from "../../src/theme";
+import { colors, font, radius, spacing, type } from "../../src/theme";
 
-/** Tap order: the natural forward path, then blocked, then back around. */
-const CYCLE: Record<TaskStatus, TaskStatus> = {
-  todo: "in_progress",
-  in_progress: "done",
-  done: "blocked",
-  blocked: "todo",
-};
+type ViewTab = "list" | "overview";
 
 export default function ProgramDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, language } = useUi();
   const { programs, refreshing, refresh, replaceProgram } = usePrograms();
-  const [pendingTask, setPendingTask] = useState<string | null>(null);
+  const [tab, setTab] = useState<ViewTab>("list");
+  const [users, setUsers] = useState<WorkspaceUser[]>([]);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const program = programs?.find((p) => p.id === id) ?? null;
+  const openTask: Task | null =
+    (openTaskId &&
+      program?.packages.flatMap((pkg) => pkg.tasks).find((task) => task.id === openTaskId)) ||
+    null;
 
-  const cycleStatus = async (taskId: string, status: TaskStatus) => {
-    if (!program || pendingTask) return;
-    setPendingTask(taskId);
-    try {
-      const { program: fresh } = await updateTaskStatus(API_BASE, {
-        workspaceId: WORKSPACE,
-        programId: program.id,
-        taskId,
-        status: CYCLE[status],
-      });
-      replaceProgram(fresh);
-    } catch {
-      /* leave the chip as-is; pull-to-refresh recovers */
-    } finally {
-      setPendingTask(null);
-    }
+  useEffect(() => {
+    listUsers(API_BASE, WORKSPACE)
+      .then(setUsers)
+      .catch(() => setUsers([]));
+  }, []);
+
+  const toggleDone = (task: Task) => {
+    if (!program) return;
+    void updateTask(API_BASE, {
+      workspaceId: WORKSPACE,
+      programId: program.id,
+      taskId: task.id,
+      patch: { status: task.status === "done" ? "todo" : "done" },
+    })
+      .then(({ program: fresh }) => replaceProgram(fresh))
+      .catch(() => undefined);
+  };
+
+  const submitDraft = (packageId: string) => {
+    const name = (drafts[packageId] ?? "").trim();
+    if (!name || !program) return;
+    setDrafts((prev) => ({ ...prev, [packageId]: "" }));
+    void createTask(API_BASE, { workspaceId: WORKSPACE, programId: program.id, packageId, name })
+      .then(({ program: fresh }) => replaceProgram(fresh))
+      .catch(() => setDrafts((prev) => ({ ...prev, [packageId]: name })));
   };
 
   const totals = program ? taskTotals(program) : { total: 0, done: 0 };
@@ -58,6 +73,7 @@ export default function ProgramDetail() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand} />
         }
@@ -72,118 +88,163 @@ export default function ProgramDetail() {
             </View>
             <Text style={styles.dates}>
               {formatIsoDate(program.timeline.start, language)} →{" "}
-              {formatIsoDate(program.timeline.end, language)} · {totals.done}/{totals.total}{" "}
-              {t.doneCount}
+              {formatIsoDate(program.timeline.end, language)}
             </Text>
-            <Text style={styles.mission} numberOfLines={3}>
-              {program.mission}
-            </Text>
+            <View style={styles.progressRow}>
+              <View style={{ flex: 1 }}>
+                <ProgressBar done={totals.done} total={totals.total} />
+              </View>
+              <Text style={styles.progressText}>
+                {totals.done}/{totals.total}
+              </Text>
+            </View>
 
-            {program.packages.map((pkg) => (
-              <View key={pkg.id} style={styles.section}>
-                <Text style={styles.sectionName}>{pkg.name}</Text>
-                <Card>
-                  {pkg.tasks.map((task, index) => (
-                    <View key={task.id}>
-                      {index > 0 && <Hairline />}
-                      <View
-                        style={[styles.taskRow, pendingTask === task.id && { opacity: 0.5 }]}
-                      >
-                        <StatusCircle status={task.status} />
-                        <View style={styles.taskMain}>
-                          <Text style={styles.taskName}>{task.name}</Text>
-                          {(task.assignee ?? task.dueDate) && (
-                            <Text style={styles.taskMeta}>
-                              {task.assignee ?? ""}
-                              {task.assignee && task.dueDate ? " · " : ""}
-                              {task.dueDate ? formatIsoDate(task.dueDate, language) : ""}
-                            </Text>
-                          )}
+            <View style={styles.tabs}>
+              {(["list", "overview"] as const).map((next) => (
+                <Pressable
+                  key={next}
+                  onPress={() => setTab(next)}
+                  style={[styles.tabBtn, tab === next && styles.tabBtnActive]}
+                >
+                  <Text style={[styles.tabText, tab === next && styles.tabTextActive]}>
+                    {next === "list" ? t.viewList : t.viewOverview}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {tab === "overview" ? (
+              <ProgramOverview t={t} program={program} language={language} />
+            ) : (
+              program.packages.map((pkg) => {
+                const done = pkg.tasks.filter((task) => task.status === "done").length;
+                return (
+                  <View key={pkg.id} style={styles.section}>
+                    <View style={styles.sectionHead}>
+                      <Text style={styles.sectionName}>{pkg.name}</Text>
+                      <Text style={styles.sectionMeta}>
+                        {done}/{pkg.tasks.length}
+                      </Text>
+                    </View>
+                    <Card>
+                      {pkg.tasks.map((task, index) => (
+                        <View key={task.id}>
+                          {index > 0 && <Hairline />}
+                          <Pressable style={styles.taskRow} onPress={() => setOpenTaskId(task.id)}>
+                            <Pressable hitSlop={8} onPress={() => toggleDone(task)}>
+                              <Ionicons
+                                name={
+                                  task.status === "done" ? "checkmark-circle" : "ellipse-outline"
+                                }
+                                size={20}
+                                color={task.status === "done" ? colors.success : colors.textLow}
+                              />
+                            </Pressable>
+                            <View style={styles.taskMain}>
+                              <Text
+                                style={[
+                                  styles.taskName,
+                                  task.status === "done" && styles.taskNameDone,
+                                ]}
+                                numberOfLines={2}
+                              >
+                                {task.name}
+                              </Text>
+                              {(task.dueDate != null || (task.subtasks?.length ?? 0) > 0) && (
+                                <Text style={styles.taskMeta}>
+                                  {task.dueDate ? formatIsoDate(task.dueDate, language) : ""}
+                                  {task.dueDate && task.subtasks?.length ? "  ·  " : ""}
+                                  {task.subtasks?.length
+                                    ? `${task.subtasks.filter((s) => s.done).length}/${task.subtasks.length} ☑`
+                                    : ""}
+                                </Text>
+                              )}
+                            </View>
+                            {task.assignee && <Avatar name={task.assignee} size={22} />}
+                            {task.status !== "done" && task.status !== "todo" && (
+                              <StatusChip t={t} status={task.status} />
+                            )}
+                          </Pressable>
                         </View>
-                        {task.assignee && <Avatar name={task.assignee} size={22} />}
-                        <StatusChip
-                          t={t}
-                          status={task.status}
-                          onPress={() => void cycleStatus(task.id, task.status)}
+                      ))}
+                      <Hairline />
+                      <View style={styles.addRow}>
+                        <Ionicons name="add" size={18} color={colors.textLow} />
+                        <TextInput
+                          style={styles.addInput}
+                          value={drafts[pkg.id] ?? ""}
+                          onChangeText={(text) =>
+                            setDrafts((prev) => ({ ...prev, [pkg.id]: text }))
+                          }
+                          placeholder={t.addTask}
+                          placeholderTextColor={colors.textLow}
+                          onSubmitEditing={() => submitDraft(pkg.id)}
+                          returnKeyType="done"
+                          submitBehavior="submit"
                         />
                       </View>
-                    </View>
-                  ))}
-                </Card>
-              </View>
-            ))}
-
-            {program.milestones.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionName}>{t.milestones}</Text>
-                <Card>
-                  {program.milestones.map((m, index) => (
-                    <View key={m.id}>
-                      {index > 0 && <Hairline />}
-                      <View style={styles.taskRow}>
-                        <Text style={[styles.taskName, { flex: 1 }]}>{m.name}</Text>
-                        <Text style={styles.taskMeta}>{formatIsoDate(m.dueDate, language)}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </Card>
-              </View>
-            )}
-
-            {program.risks.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionName}>{t.risks}</Text>
-                <Card>
-                  {program.risks.map((r, index) => (
-                    <View key={r.id}>
-                      {index > 0 && <Hairline />}
-                      <View style={styles.taskRow}>
-                        <Text style={[styles.taskName, { flex: 1 }]}>{r.title}</Text>
-                        <View style={[styles.severity, { backgroundColor: severityBg(r.severity) }]}>
-                          <Text style={[styles.severityText, { color: severityFg(r.severity) }]}>
-                            {r.severity}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </Card>
-              </View>
+                    </Card>
+                  </View>
+                );
+              })
             )}
           </>
         )}
       </ScrollView>
+      {openTask && program && (
+        <TaskSheet
+          t={t}
+          programId={program.id}
+          task={openTask}
+          users={users}
+          onProgram={replaceProgram}
+          onClose={() => setOpenTaskId(null)}
+        />
+      )}
     </>
   );
 }
 
-function severityFg(severity: string): string {
-  if (severity === "critical" || severity === "high") return statusTokens.blocked.fg;
-  if (severity === "medium") return statusTokens.in_progress.fg;
-  return statusTokens.todo.fg;
-}
-
-function severityBg(severity: string): string {
-  if (severity === "critical" || severity === "high") return statusTokens.blocked.bg;
-  if (severity === "medium") return statusTokens.in_progress.bg;
-  return statusTokens.todo.bg;
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[8] },
+  content: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[8] * 2 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: spacing[3] },
   title: { flex: 1, color: colors.text, fontSize: type.xl, fontFamily: font.semibold },
   dates: { color: colors.textMedium, fontSize: type.sm, fontFamily: font.regular },
-  mission: {
+  progressRow: { flexDirection: "row", alignItems: "center", gap: spacing[3] },
+  progressText: {
     color: colors.textMedium,
-    fontSize: type.md,
-    fontFamily: font.regular,
-    lineHeight: 19,
-    marginBottom: spacing[2],
+    fontSize: type.sm,
+    fontFamily: font.medium,
+    fontVariant: ["tabular-nums"],
   },
-  section: { gap: spacing[2], marginTop: spacing[3] },
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: colors.card,
+    borderRadius: radius.full,
+    padding: 3,
+    marginVertical: spacing[2],
+    alignSelf: "flex-start",
+  },
+  tabBtn: {
+    paddingHorizontal: spacing[4],
+    height: 30,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBtnActive: { backgroundColor: colors.sheet },
+  tabText: { color: colors.textMedium, fontSize: type.md, fontFamily: font.medium },
+  tabTextActive: { color: colors.text },
+  section: { gap: spacing[2], marginTop: spacing[2] },
+  sectionHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   sectionName: { color: colors.text, fontSize: type.md, fontFamily: font.semibold },
+  sectionMeta: {
+    color: colors.textLow,
+    fontSize: type.sm,
+    fontFamily: font.regular,
+    fontVariant: ["tabular-nums"],
+  },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -193,13 +254,19 @@ const styles = StyleSheet.create({
   },
   taskMain: { flex: 1, gap: 2 },
   taskName: { color: colors.textHigh, fontSize: type.md, fontFamily: font.regular },
+  taskNameDone: { color: colors.textLow, textDecorationLine: "line-through" },
   taskMeta: { color: colors.textLow, fontSize: type.sm, fontFamily: font.regular },
-  severity: {
-    height: 22,
-    paddingHorizontal: spacing[2],
-    borderRadius: 999,
+  addRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
   },
-  severityText: { fontSize: type.xs, fontFamily: font.medium, textTransform: "uppercase" },
+  addInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: type.md,
+    fontFamily: font.regular,
+    paddingVertical: spacing[2],
+  },
 });
